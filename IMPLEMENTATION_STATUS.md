@@ -37,6 +37,15 @@ of what is complete, partial, or blocked.
       Dependabot.
 - [x] Documentation suite, ADRs, community files, screenshots, architecture
       diagram (Mermaid + SVG).
+- [x] Pushed to GitHub
+      (https://github.com/raveheart1/Orbital-Earth-Observation-Platform);
+      CI fully green on main (python, web, terraform, 3× docker,
+      secrets scan); `deploy-dev` skips cleanly until Azure bootstrap runs;
+      branch protection on `main` requires the seven CI checks via PR.
+      Note: the working directory carried a pre-existing remote to an empty
+      private repo `ScoreSage/Orbital-Earth-Observation-Platform`; it is
+      preserved as the `scoresage` remote, while `origin` is the public
+      user-owned repository the build brief specified.
 - [x] Test totals: **109 Python tests** (science, platform, API, worker;
       +6 stack-integration tests that run when the compose stack is up),
       **48 frontend tests**, 3 Playwright e2e/screenshot specs.
