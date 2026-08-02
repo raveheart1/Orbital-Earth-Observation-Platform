@@ -106,6 +106,7 @@ jobs:
           terraform plan \
             -lock=false \
             -var "deploy_workloads=true" \
+            -var "location=${{ vars.AZURE_LOCATION }}" \
             -out=tfplan
 
       - name: Upload plan artifact

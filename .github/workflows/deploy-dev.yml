@@ -76,6 +76,7 @@ jobs:
         run: |
           terraform apply -auto-approve \
             -var "deploy_workloads=false" \
+            -var "location=${{ vars.AZURE_LOCATION }}" \
             -var "image_tag=${{ github.sha }}"
 
       - name: Read foundation outputs
@@ -111,6 +112,7 @@ jobs:
         run: |
           terraform apply -auto-approve \
             -var "deploy_workloads=true" \
+            -var "location=${{ vars.AZURE_LOCATION }}" \
             -var "image_tag=${{ github.sha }}"
 
       - name: Read workload outputs
