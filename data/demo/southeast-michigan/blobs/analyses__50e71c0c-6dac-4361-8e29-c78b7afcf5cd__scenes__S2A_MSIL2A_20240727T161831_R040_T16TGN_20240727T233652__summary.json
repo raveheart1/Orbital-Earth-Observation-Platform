@@ -1,0 +1,67 @@
+{
+  "band_scaling": {
+    "offset": -0.1,
+    "scale": 0.0001,
+    "source": "baseline_heuristic"
+  },
+  "collection": "sentinel-2-l2a",
+  "instruments": [
+    "msi"
+  ],
+  "item_id": "S2A_MSIL2A_20240727T161831_R040_T16TGN_20240727T233652",
+  "mask_policy_scl_classes": [
+    0,
+    1,
+    3,
+    8,
+    9,
+    10,
+    11
+  ],
+  "observed_at": "2024-07-27T16:18:31.024000+00:00",
+  "platform": "Sentinel-2A",
+  "processing_baseline": "05.11",
+  "raster": {
+    "crs": "EPSG:32616",
+    "height": 1174,
+    "nodata": -9999.0,
+    "resolution": [
+      10.0,
+      10.0
+    ],
+    "transform": [
+      10.0,
+      0.0,
+      803260.0,
+      0.0,
+      -10.0,
+      4729180.0
+    ],
+    "width": 650
+  },
+  "source_assets_unsigned": {
+    "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/27/S2A_MSIL2A_20240727T161831_N0511_R040_T16TGN_20240727T233652.SAFE/GRANULE/L2A_T16TGN_A047513_20240727T163133/IMG_DATA/R10m/T16TGN_20240727T161831_B08_10m.tif",
+    "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/27/S2A_MSIL2A_20240727T161831_N0511_R040_T16TGN_20240727T233652.SAFE/GRANULE/L2A_T16TGN_A047513_20240727T163133/IMG_DATA/R10m/T16TGN_20240727T161831_B04_10m.tif",
+    "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/27/S2A_MSIL2A_20240727T161831_N0511_R040_T16TGN_20240727T233652.SAFE/GRANULE/L2A_T16TGN_A047513_20240727T163133/IMG_DATA/R20m/T16TGN_20240727T161831_SCL_20m.tif",
+    "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/27/S2A_MSIL2A_20240727T161831_N0511_R040_T16TGN_20240727T233652.SAFE/GRANULE/L2A_T16TGN_A047513_20240727T163133/IMG_DATA/R10m/T16TGN_20240727T161831_TCI_10m.tif"
+  },
+  "stac_cloud_cover_pct": 0.102048,
+  "stats": {
+    "aoi_pixel_count": 691308,
+    "masked_pixel_count": 8,
+    "ndvi_max": 0.9402422904968262,
+    "ndvi_mean": 0.5968355530093563,
+    "ndvi_median": 0.6810370683670044,
+    "ndvi_min": -0.6218905448913574,
+    "ndvi_p10": 0.1496949315071106,
+    "ndvi_p25": 0.41813260316848755,
+    "ndvi_p75": 0.8261575698852539,
+    "ndvi_p90": 0.8758347630500793,
+    "ndvi_std": 0.2700022523524697,
+    "valid_pixel_count": 691300,
+    "valid_pixel_pct": 99.9988,
+    "zero_denominator_pixel_count": 0
+  },
+  "usable": true,
+  "warnings": []
+}

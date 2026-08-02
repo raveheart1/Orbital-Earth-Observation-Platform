@@ -1,0 +1,2704 @@
+{
+  "format_version": "1.0",
+  "attribution": "Derived previews and statistics from Copernicus Sentinel-2 data (ESA), accessed via Microsoft Planetary Computer. Sentinel data is provided under the Legal Notice on the use of Copernicus Sentinel Data and Service Information.",
+  "region_slug": "southeast-michigan-demo",
+  "analysis": {
+    "id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+    "region_id": "9822ec77-5979-4127-984f-4b717ea67f1c",
+    "bbox": [
+      -83.3,
+      42.55,
+      -83.15,
+      42.65
+    ],
+    "area_km2": 136.74758682928467,
+    "start_date": "2024-04-01",
+    "end_date": "2024-10-31",
+    "collection": "sentinel-2-l2a",
+    "max_cloud_cover_pct": 30.0,
+    "scene_limit": 6,
+    "operation": "ndvi",
+    "processing_config": {
+      "asset_keys": {
+        "nir": "B08",
+        "red": "B04",
+        "scl": "SCL",
+        "visual": "visual"
+      },
+      "collection": "sentinel-2-l2a",
+      "resampling": "nearest",
+      "output_nodata": -9999.0,
+      "stac_endpoint": "https://planetarycomputer.microsoft.com/api/stac/v1",
+      "preview_max_dim": 1024,
+      "ndvi_display_max": 0.9,
+      "ndvi_display_min": -0.2,
+      "masked_scl_classes": [
+        0,
+        1,
+        3,
+        8,
+        9,
+        10,
+        11
+      ],
+      "processing_version": "1.0.0",
+      "max_candidate_items": 200,
+      "min_aoi_overlap_pct": 25.0,
+      "min_valid_pixel_pct": 10.0
+    },
+    "processing_version": "1.0.0",
+    "git_commit_sha": null,
+    "status": "succeeded",
+    "status_message": "Completed",
+    "submitted_at": "2026-08-02T20:33:59.947072+00:00",
+    "started_at": "2026-08-02T20:34:08.111129+00:00",
+    "completed_at": "2026-08-02T20:34:28.956142+00:00",
+    "retry_count": 0,
+    "output_prefix": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+    "summary": {
+      "ndvi_mean_last": 0.5797006548026676,
+      "ndvi_mean_first": 0.3847833111455496,
+      "last_observation": "2024-10-05T16:21:41.024000+00:00",
+      "ndvi_mean_change": 0.19491734365711805,
+      "first_observation": "2024-04-08T16:18:31.024000+00:00",
+      "usable_scene_count": 6,
+      "interpretation_note": "Values are observed spectral vegetation-index changes for the specific acquisition dates shown. They do not by themselves establish causes such as drought, land-use change, or climate trends. See the limitations documentation.",
+      "mean_valid_pixel_pct": 99.98668333333335,
+      "unusable_scene_count": 0
+    },
+    "is_demo": true
+  },
+  "scenes": [
+    {
+      "id": "d95534b3-936c-49bf-a24e-ad2b4b880add",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240408T161831_R040_T16TGN_20240410T211148",
+      "observed_at": "2024-04-08T16:18:31.024000+00:00",
+      "bbox": [
+        -84.4015433,
+        42.3024516,
+        -83.1818763,
+        43.3139785
+      ],
+      "cloud_cover_pct": 0.000375,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/08/S2A_MSIL2A_20240408T161831_N0510_R040_T16TGN_20240410T211148.SAFE/GRANULE/L2A_T16TGN_A045940_20240408T162710/IMG_DATA/R10m/T16TGN_20240408T161831_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/08/S2A_MSIL2A_20240408T161831_N0510_R040_T16TGN_20240410T211148.SAFE/GRANULE/L2A_T16TGN_A045940_20240408T162710/IMG_DATA/R10m/T16TGN_20240408T161831_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/08/S2A_MSIL2A_20240408T161831_N0510_R040_T16TGN_20240410T211148.SAFE/GRANULE/L2A_T16TGN_A045940_20240408T162710/IMG_DATA/R20m/T16TGN_20240408T161831_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/08/S2A_MSIL2A_20240408T161831_N0510_R040_T16TGN_20240410T211148.SAFE/GRANULE/L2A_T16TGN_A045940_20240408T162710/IMG_DATA/R10m/T16TGN_20240408T161831_TCI_10m.tif"
+      },
+      "selection_status": "selected",
+      "exclusion_reason": null,
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093,
+        "processing_baseline": "05.10"
+      }
+    },
+    {
+      "id": "3c829517-c667-4408-8664-2e60f2397887",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240531T162841_R083_T17TLH_20240601T010652",
+      "observed_at": "2024-05-31T16:28:41.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8488317,
+        43.3359201
+      ],
+      "cloud_cover_pct": 0.035593,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/31/S2A_MSIL2A_20240531T162841_N0510_R083_T17TLH_20240601T010652.SAFE/GRANULE/L2A_T17TLH_A046698_20240531T163405/IMG_DATA/R10m/T17TLH_20240531T162841_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/31/S2A_MSIL2A_20240531T162841_N0510_R083_T17TLH_20240601T010652.SAFE/GRANULE/L2A_T17TLH_A046698_20240531T163405/IMG_DATA/R10m/T17TLH_20240531T162841_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/31/S2A_MSIL2A_20240531T162841_N0510_R083_T17TLH_20240601T010652.SAFE/GRANULE/L2A_T17TLH_A046698_20240531T163405/IMG_DATA/R20m/T17TLH_20240531T162841_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/31/S2A_MSIL2A_20240531T162841_N0510_R083_T17TLH_20240601T010652.SAFE/GRANULE/L2A_T17TLH_A046698_20240531T163405/IMG_DATA/R10m/T17TLH_20240531T162841_TCI_10m.tif"
+      },
+      "selection_status": "selected",
+      "exclusion_reason": null,
+      "quality": {
+        "aoi_overlap_pct": 99.96596084214883,
+        "processing_baseline": "05.10"
+      }
+    },
+    {
+      "id": "25e5ed0b-6414-4ccb-a0f0-b95a3f2de978",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240612T161829_R040_T17TLH_20240612T221210",
+      "observed_at": "2024-06-12T16:18:29.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.0953092,
+        43.3474404
+      ],
+      "cloud_cover_pct": 0.001377,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/06/12/S2B_MSIL2A_20240612T161829_N0510_R040_T17TLH_20240612T221210.SAFE/GRANULE/L2A_T17TLH_A037961_20240612T162626/IMG_DATA/R10m/T17TLH_20240612T161829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/06/12/S2B_MSIL2A_20240612T161829_N0510_R040_T17TLH_20240612T221210.SAFE/GRANULE/L2A_T17TLH_A037961_20240612T162626/IMG_DATA/R10m/T17TLH_20240612T161829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/06/12/S2B_MSIL2A_20240612T161829_N0510_R040_T17TLH_20240612T221210.SAFE/GRANULE/L2A_T17TLH_A037961_20240612T162626/IMG_DATA/R20m/T17TLH_20240612T161829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/06/12/S2B_MSIL2A_20240612T161829_N0510_R040_T17TLH_20240612T221210.SAFE/GRANULE/L2A_T17TLH_A037961_20240612T162626/IMG_DATA/R10m/T17TLH_20240612T161829_TCI_10m.tif"
+      },
+      "selection_status": "selected",
+      "exclusion_reason": null,
+      "quality": {
+        "aoi_overlap_pct": 100.0,
+        "processing_baseline": "05.10"
+      }
+    },
+    {
+      "id": "8dbb9a75-0dfb-4b6f-93b0-eb92d9a055a3",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240727T161831_R040_T16TGN_20240727T233652",
+      "observed_at": "2024-07-27T16:18:31.024000+00:00",
+      "bbox": [
+        -84.4019695,
+        42.3024516,
+        -83.2062225,
+        43.036296
+      ],
+      "cloud_cover_pct": 0.102048,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/27/S2A_MSIL2A_20240727T161831_N0511_R040_T16TGN_20240727T233652.SAFE/GRANULE/L2A_T16TGN_A047513_20240727T163133/IMG_DATA/R10m/T16TGN_20240727T161831_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/27/S2A_MSIL2A_20240727T161831_N0511_R040_T16TGN_20240727T233652.SAFE/GRANULE/L2A_T16TGN_A047513_20240727T163133/IMG_DATA/R10m/T16TGN_20240727T161831_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/27/S2A_MSIL2A_20240727T161831_N0511_R040_T16TGN_20240727T233652.SAFE/GRANULE/L2A_T16TGN_A047513_20240727T163133/IMG_DATA/R20m/T16TGN_20240727T161831_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/27/S2A_MSIL2A_20240727T161831_N0511_R040_T16TGN_20240727T233652.SAFE/GRANULE/L2A_T16TGN_A047513_20240727T163133/IMG_DATA/R10m/T16TGN_20240727T161831_TCI_10m.tif"
+      },
+      "selection_status": "selected",
+      "exclusion_reason": null,
+      "quality": {
+        "aoi_overlap_pct": 50.68771923577115,
+        "processing_baseline": "05.11"
+      }
+    },
+    {
+      "id": "536c086a-5cf1-4983-95dd-1f3cb21a8860",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240831T161829_R040_T16TGN_20240831T202059",
+      "observed_at": "2024-08-31T16:18:29.024000+00:00",
+      "bbox": [
+        -84.4160399,
+        42.3024516,
+        -83.1818763,
+        43.314382
+      ],
+      "cloud_cover_pct": 0.075326,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/31/S2B_MSIL2A_20240831T161829_N0511_R040_T16TGN_20240831T202059.SAFE/GRANULE/L2A_T16TGN_A039105_20240831T162456/IMG_DATA/R10m/T16TGN_20240831T161829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/31/S2B_MSIL2A_20240831T161829_N0511_R040_T16TGN_20240831T202059.SAFE/GRANULE/L2A_T16TGN_A039105_20240831T162456/IMG_DATA/R10m/T16TGN_20240831T161829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/31/S2B_MSIL2A_20240831T161829_N0511_R040_T16TGN_20240831T202059.SAFE/GRANULE/L2A_T16TGN_A039105_20240831T162456/IMG_DATA/R20m/T16TGN_20240831T161829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/31/S2B_MSIL2A_20240831T161829_N0511_R040_T16TGN_20240831T202059.SAFE/GRANULE/L2A_T16TGN_A039105_20240831T162456/IMG_DATA/R10m/T16TGN_20240831T161829_TCI_10m.tif"
+      },
+      "selection_status": "selected",
+      "exclusion_reason": null,
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093,
+        "processing_baseline": "05.11"
+      }
+    },
+    {
+      "id": "8aa27497-b4a9-450a-9883-fa0918fa4618",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20241005T162141_R040_T16TGN_20241005T220355",
+      "observed_at": "2024-10-05T16:21:41.024000+00:00",
+      "bbox": [
+        -84.4039285,
+        42.3024516,
+        -83.1818763,
+        43.3140669
+      ],
+      "cloud_cover_pct": 0.000469,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/05/S2A_MSIL2A_20241005T162141_N0511_R040_T16TGN_20241005T220355.SAFE/GRANULE/L2A_T16TGN_A048514_20241005T163058/IMG_DATA/R10m/T16TGN_20241005T162141_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/05/S2A_MSIL2A_20241005T162141_N0511_R040_T16TGN_20241005T220355.SAFE/GRANULE/L2A_T16TGN_A048514_20241005T163058/IMG_DATA/R10m/T16TGN_20241005T162141_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/05/S2A_MSIL2A_20241005T162141_N0511_R040_T16TGN_20241005T220355.SAFE/GRANULE/L2A_T16TGN_A048514_20241005T163058/IMG_DATA/R20m/T16TGN_20241005T162141_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/05/S2A_MSIL2A_20241005T162141_N0511_R040_T16TGN_20241005T220355.SAFE/GRANULE/L2A_T16TGN_A048514_20241005T163058/IMG_DATA/R10m/T16TGN_20241005T162141_TCI_10m.tif"
+      },
+      "selection_status": "selected",
+      "exclusion_reason": null,
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093,
+        "processing_baseline": "05.11"
+      }
+    },
+    {
+      "id": "6167493e-61ab-4c6f-bb0e-11ce4ceaf6d8",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240401T162831_R083_T16TGN_20240402T015434",
+      "observed_at": "2024-04-01T16:28:31.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3024516,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 4.089323,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/01/S2A_MSIL2A_20240401T162831_N0510_R083_T16TGN_20240402T015434.SAFE/GRANULE/L2A_T16TGN_A045840_20240401T163914/IMG_DATA/R10m/T16TGN_20240401T162831_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/01/S2A_MSIL2A_20240401T162831_N0510_R083_T16TGN_20240402T015434.SAFE/GRANULE/L2A_T16TGN_A045840_20240401T163914/IMG_DATA/R10m/T16TGN_20240401T162831_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/01/S2A_MSIL2A_20240401T162831_N0510_R083_T16TGN_20240402T015434.SAFE/GRANULE/L2A_T16TGN_A045840_20240401T163914/IMG_DATA/R20m/T16TGN_20240401T162831_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/01/S2A_MSIL2A_20240401T162831_N0510_R083_T16TGN_20240402T015434.SAFE/GRANULE/L2A_T16TGN_A045840_20240401T163914/IMG_DATA/R10m/T16TGN_20240401T162831_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "987607f2-4e96-42c7-95ba-7abde6111ad2",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240401T162831_R083_T17TLH_20240402T014917",
+      "observed_at": "2024-04-01T16:28:31.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8385347,
+        43.3360813
+      ],
+      "cloud_cover_pct": 6.063411,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/01/S2A_MSIL2A_20240401T162831_N0510_R083_T17TLH_20240402T014917.SAFE/GRANULE/L2A_T17TLH_A045840_20240401T163914/IMG_DATA/R10m/T17TLH_20240401T162831_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/01/S2A_MSIL2A_20240401T162831_N0510_R083_T17TLH_20240402T014917.SAFE/GRANULE/L2A_T17TLH_A045840_20240401T163914/IMG_DATA/R10m/T17TLH_20240401T162831_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/01/S2A_MSIL2A_20240401T162831_N0510_R083_T17TLH_20240402T014917.SAFE/GRANULE/L2A_T17TLH_A045840_20240401T163914/IMG_DATA/R20m/T17TLH_20240401T162831_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/01/S2A_MSIL2A_20240401T162831_N0510_R083_T17TLH_20240402T014917.SAFE/GRANULE/L2A_T17TLH_A045840_20240401T163914/IMG_DATA/R10m/T17TLH_20240401T162831_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "08f4d5cb-bff5-4ea7-992b-e0ca60e701e8",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240406T162829_R083_T16TGN_20240406T224026",
+      "observed_at": "2024-04-06T16:28:29.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3024516,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 5.877307,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/06/S2B_MSIL2A_20240406T162829_N0510_R083_T16TGN_20240406T224026.SAFE/GRANULE/L2A_T16TGN_A037003_20240406T163148/IMG_DATA/R10m/T16TGN_20240406T162829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/06/S2B_MSIL2A_20240406T162829_N0510_R083_T16TGN_20240406T224026.SAFE/GRANULE/L2A_T16TGN_A037003_20240406T163148/IMG_DATA/R10m/T16TGN_20240406T162829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/06/S2B_MSIL2A_20240406T162829_N0510_R083_T16TGN_20240406T224026.SAFE/GRANULE/L2A_T16TGN_A037003_20240406T163148/IMG_DATA/R20m/T16TGN_20240406T162829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/06/S2B_MSIL2A_20240406T162829_N0510_R083_T16TGN_20240406T224026.SAFE/GRANULE/L2A_T16TGN_A037003_20240406T163148/IMG_DATA/R10m/T16TGN_20240406T162829_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "10fe8a66-be0a-4b00-a77f-e15c54d3dbaf",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240406T162829_R083_T17TLH_20240406T221725",
+      "observed_at": "2024-04-06T16:28:29.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8415092,
+        43.3360347
+      ],
+      "cloud_cover_pct": 7.194933,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/06/S2B_MSIL2A_20240406T162829_N0510_R083_T17TLH_20240406T221725.SAFE/GRANULE/L2A_T17TLH_A037003_20240406T163148/IMG_DATA/R10m/T17TLH_20240406T162829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/06/S2B_MSIL2A_20240406T162829_N0510_R083_T17TLH_20240406T221725.SAFE/GRANULE/L2A_T17TLH_A037003_20240406T163148/IMG_DATA/R10m/T17TLH_20240406T162829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/06/S2B_MSIL2A_20240406T162829_N0510_R083_T17TLH_20240406T221725.SAFE/GRANULE/L2A_T17TLH_A037003_20240406T163148/IMG_DATA/R20m/T17TLH_20240406T162829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/06/S2B_MSIL2A_20240406T162829_N0510_R083_T17TLH_20240406T221725.SAFE/GRANULE/L2A_T17TLH_A037003_20240406T163148/IMG_DATA/R10m/T17TLH_20240406T162829_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "5c76eedd-6ae1-47b4-8841-787c6c772f0d",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240408T161831_R040_T17TLH_20240410T211035",
+      "observed_at": "2024-04-08T16:18:31.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.0953092,
+        43.3474404
+      ],
+      "cloud_cover_pct": 3.906637,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/08/S2A_MSIL2A_20240408T161831_N0510_R040_T17TLH_20240410T211035.SAFE/GRANULE/L2A_T17TLH_A045940_20240408T162710/IMG_DATA/R10m/T17TLH_20240408T161831_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/08/S2A_MSIL2A_20240408T161831_N0510_R040_T17TLH_20240410T211035.SAFE/GRANULE/L2A_T17TLH_A045940_20240408T162710/IMG_DATA/R10m/T17TLH_20240408T161831_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/08/S2A_MSIL2A_20240408T161831_N0510_R040_T17TLH_20240410T211035.SAFE/GRANULE/L2A_T17TLH_A045940_20240408T162710/IMG_DATA/R20m/T17TLH_20240408T161831_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/08/S2A_MSIL2A_20240408T161831_N0510_R040_T17TLH_20240410T211035.SAFE/GRANULE/L2A_T17TLH_A045940_20240408T162710/IMG_DATA/R10m/T17TLH_20240408T161831_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "5ffcf6ec-2f86-41c9-90d7-18a678e4c67c",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240413T161829_R040_T16TGN_20240413T204122",
+      "observed_at": "2024-04-13T16:18:29.024000+00:00",
+      "bbox": [
+        -84.4160305,
+        42.3024516,
+        -83.1818763,
+        43.3143807
+      ],
+      "cloud_cover_pct": 0.021251,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/13/S2B_MSIL2A_20240413T161829_N0510_R040_T16TGN_20240413T204122.SAFE/GRANULE/L2A_T16TGN_A037103_20240413T162830/IMG_DATA/R10m/T16TGN_20240413T161829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/13/S2B_MSIL2A_20240413T161829_N0510_R040_T16TGN_20240413T204122.SAFE/GRANULE/L2A_T16TGN_A037103_20240413T162830/IMG_DATA/R10m/T16TGN_20240413T161829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/13/S2B_MSIL2A_20240413T161829_N0510_R040_T16TGN_20240413T204122.SAFE/GRANULE/L2A_T16TGN_A037103_20240413T162830/IMG_DATA/R20m/T16TGN_20240413T161829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/13/S2B_MSIL2A_20240413T161829_N0510_R040_T16TGN_20240413T204122.SAFE/GRANULE/L2A_T16TGN_A037103_20240413T162830/IMG_DATA/R10m/T16TGN_20240413T161829_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "3a967e05-a22e-4679-8cec-d4c42495a135",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240413T161829_R040_T17TLH_20240413T202718",
+      "observed_at": "2024-04-13T16:18:29.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.0953092,
+        43.3474404
+      ],
+      "cloud_cover_pct": 0.033596,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/13/S2B_MSIL2A_20240413T161829_N0510_R040_T17TLH_20240413T202718.SAFE/GRANULE/L2A_T17TLH_A037103_20240413T162830/IMG_DATA/R10m/T17TLH_20240413T161829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/13/S2B_MSIL2A_20240413T161829_N0510_R040_T17TLH_20240413T202718.SAFE/GRANULE/L2A_T17TLH_A037103_20240413T162830/IMG_DATA/R10m/T17TLH_20240413T161829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/13/S2B_MSIL2A_20240413T161829_N0510_R040_T17TLH_20240413T202718.SAFE/GRANULE/L2A_T17TLH_A037103_20240413T162830/IMG_DATA/R20m/T17TLH_20240413T161829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/13/S2B_MSIL2A_20240413T161829_N0510_R040_T17TLH_20240413T202718.SAFE/GRANULE/L2A_T17TLH_A037103_20240413T162830/IMG_DATA/R10m/T17TLH_20240413T161829_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "0c661cb1-5ec7-4d1e-a1b1-31dbd8247a46",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240416T162829_R083_T17TLH_20240416T221334",
+      "observed_at": "2024-04-16T16:28:29.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8558424,
+        43.3358103
+      ],
+      "cloud_cover_pct": 26.08318,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/16/S2B_MSIL2A_20240416T162829_N0510_R083_T17TLH_20240416T221334.SAFE/GRANULE/L2A_T17TLH_A037146_20240416T163921/IMG_DATA/R10m/T17TLH_20240416T162829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/16/S2B_MSIL2A_20240416T162829_N0510_R083_T17TLH_20240416T221334.SAFE/GRANULE/L2A_T17TLH_A037146_20240416T163921/IMG_DATA/R10m/T17TLH_20240416T162829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/16/S2B_MSIL2A_20240416T162829_N0510_R083_T17TLH_20240416T221334.SAFE/GRANULE/L2A_T17TLH_A037146_20240416T163921/IMG_DATA/R20m/T17TLH_20240416T162829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/16/S2B_MSIL2A_20240416T162829_N0510_R083_T17TLH_20240416T221334.SAFE/GRANULE/L2A_T17TLH_A037146_20240416T163921/IMG_DATA/R10m/T17TLH_20240416T162829_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 99.26680173751039
+      }
+    },
+    {
+      "id": "d62f580a-65c1-4ede-9635-f69c251decd2",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240421T162841_R083_T16TGN_20240422T011628",
+      "observed_at": "2024-04-21T16:28:41.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3027891,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 9.256974,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/21/S2A_MSIL2A_20240421T162841_N0510_R083_T16TGN_20240422T011628.SAFE/GRANULE/L2A_T16TGN_A046126_20240421T163119/IMG_DATA/R10m/T16TGN_20240421T162841_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/21/S2A_MSIL2A_20240421T162841_N0510_R083_T16TGN_20240422T011628.SAFE/GRANULE/L2A_T16TGN_A046126_20240421T163119/IMG_DATA/R10m/T16TGN_20240421T162841_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/21/S2A_MSIL2A_20240421T162841_N0510_R083_T16TGN_20240422T011628.SAFE/GRANULE/L2A_T16TGN_A046126_20240421T163119/IMG_DATA/R20m/T16TGN_20240421T162841_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/04/21/S2A_MSIL2A_20240421T162841_N0510_R083_T16TGN_20240422T011628.SAFE/GRANULE/L2A_T16TGN_A046126_20240421T163119/IMG_DATA/R10m/T16TGN_20240421T162841_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.687723801377985
+      }
+    },
+    {
+      "id": "715f2315-22a5-4519-8e40-8d951ee8d978",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240421T162841_R083_T17TLH_20240422T011407",
+      "observed_at": "2024-04-21T16:28:41.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8584282,
+        43.3357698
+      ],
+      "cloud_cover_pct": 8.473595,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/21/S2A_MSIL2A_20240421T162841_N0510_R083_T17TLH_20240422T011407.SAFE/GRANULE/L2A_T17TLH_A046126_20240421T163119/IMG_DATA/R10m/T17TLH_20240421T162841_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/21/S2A_MSIL2A_20240421T162841_N0510_R083_T17TLH_20240422T011407.SAFE/GRANULE/L2A_T17TLH_A046126_20240421T163119/IMG_DATA/R10m/T17TLH_20240421T162841_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/21/S2A_MSIL2A_20240421T162841_N0510_R083_T17TLH_20240422T011407.SAFE/GRANULE/L2A_T17TLH_A046126_20240421T163119/IMG_DATA/R20m/T17TLH_20240421T162841_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/04/21/S2A_MSIL2A_20240421T162841_N0510_R083_T17TLH_20240422T011407.SAFE/GRANULE/L2A_T17TLH_A046126_20240421T163119/IMG_DATA/R10m/T17TLH_20240421T162841_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 98.90995481869432
+      }
+    },
+    {
+      "id": "6873cafd-690c-4f3f-a4af-b103f4044267",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240501T162901_R083_T16TGN_20240502T013439",
+      "observed_at": "2024-05-01T16:29:01.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3026692,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 7.48603,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/01/S2A_MSIL2A_20240501T162901_N0510_R083_T16TGN_20240502T013439.SAFE/GRANULE/L2A_T16TGN_A046269_20240501T163950/IMG_DATA/R10m/T16TGN_20240501T162901_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/01/S2A_MSIL2A_20240501T162901_N0510_R083_T16TGN_20240502T013439.SAFE/GRANULE/L2A_T16TGN_A046269_20240501T163950/IMG_DATA/R10m/T16TGN_20240501T162901_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/01/S2A_MSIL2A_20240501T162901_N0510_R083_T16TGN_20240502T013439.SAFE/GRANULE/L2A_T16TGN_A046269_20240501T163950/IMG_DATA/R20m/T16TGN_20240501T162901_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/01/S2A_MSIL2A_20240501T162901_N0510_R083_T16TGN_20240502T013439.SAFE/GRANULE/L2A_T16TGN_A046269_20240501T163950/IMG_DATA/R10m/T16TGN_20240501T162901_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.687740757217455
+      }
+    },
+    {
+      "id": "df0da087-3011-4795-9361-2c50060b583c",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240501T162901_R083_T17TLH_20240502T012022",
+      "observed_at": "2024-05-01T16:29:01.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8523317,
+        43.3358653
+      ],
+      "cloud_cover_pct": 0.885375,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/01/S2A_MSIL2A_20240501T162901_N0510_R083_T17TLH_20240502T012022.SAFE/GRANULE/L2A_T17TLH_A046269_20240501T163950/IMG_DATA/R10m/T17TLH_20240501T162901_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/01/S2A_MSIL2A_20240501T162901_N0510_R083_T17TLH_20240502T012022.SAFE/GRANULE/L2A_T17TLH_A046269_20240501T163950/IMG_DATA/R10m/T17TLH_20240501T162901_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/01/S2A_MSIL2A_20240501T162901_N0510_R083_T17TLH_20240502T012022.SAFE/GRANULE/L2A_T17TLH_A046269_20240501T163950/IMG_DATA/R20m/T17TLH_20240501T162901_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/01/S2A_MSIL2A_20240501T162901_N0510_R083_T17TLH_20240502T012022.SAFE/GRANULE/L2A_T17TLH_A046269_20240501T163950/IMG_DATA/R10m/T17TLH_20240501T162901_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 99.65962135678593
+      }
+    },
+    {
+      "id": "e9e529f6-08c3-411c-9d55-be8b4dba9b24",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240508T161901_R040_T16TGN_20240509T011539",
+      "observed_at": "2024-05-08T16:19:01.024000+00:00",
+      "bbox": [
+        -84.4088145,
+        42.3024516,
+        -83.1818763,
+        43.3141867
+      ],
+      "cloud_cover_pct": 2.934674,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/08/S2A_MSIL2A_20240508T161901_N0510_R040_T16TGN_20240509T011539.SAFE/GRANULE/L2A_T16TGN_A046369_20240508T162903/IMG_DATA/R10m/T16TGN_20240508T161901_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/08/S2A_MSIL2A_20240508T161901_N0510_R040_T16TGN_20240509T011539.SAFE/GRANULE/L2A_T16TGN_A046369_20240508T162903/IMG_DATA/R10m/T16TGN_20240508T161901_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/08/S2A_MSIL2A_20240508T161901_N0510_R040_T16TGN_20240509T011539.SAFE/GRANULE/L2A_T16TGN_A046369_20240508T162903/IMG_DATA/R20m/T16TGN_20240508T161901_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/08/S2A_MSIL2A_20240508T161901_N0510_R040_T16TGN_20240509T011539.SAFE/GRANULE/L2A_T16TGN_A046369_20240508T162903/IMG_DATA/R10m/T16TGN_20240508T161901_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "407d896e-9f0f-4a50-99b2-ba33c940dfbf",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240508T161901_R040_T17TLH_20240509T011817",
+      "observed_at": "2024-05-08T16:19:01.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.0953092,
+        43.3474404
+      ],
+      "cloud_cover_pct": 5.644016,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/08/S2A_MSIL2A_20240508T161901_N0510_R040_T17TLH_20240509T011817.SAFE/GRANULE/L2A_T17TLH_A046369_20240508T162903/IMG_DATA/R10m/T17TLH_20240508T161901_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/08/S2A_MSIL2A_20240508T161901_N0510_R040_T17TLH_20240509T011817.SAFE/GRANULE/L2A_T17TLH_A046369_20240508T162903/IMG_DATA/R10m/T17TLH_20240508T161901_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/08/S2A_MSIL2A_20240508T161901_N0510_R040_T17TLH_20240509T011817.SAFE/GRANULE/L2A_T17TLH_A046369_20240508T162903/IMG_DATA/R20m/T17TLH_20240508T161901_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/08/S2A_MSIL2A_20240508T161901_N0510_R040_T17TLH_20240509T011817.SAFE/GRANULE/L2A_T17TLH_A046369_20240508T162903/IMG_DATA/R10m/T17TLH_20240508T161901_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "011b5dc2-77e8-4b99-a9a1-b40e7892e3ff",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240513T161829_R040_T16TGN_20240513T202043",
+      "observed_at": "2024-05-13T16:18:29.024000+00:00",
+      "bbox": [
+        -84.4036213,
+        42.3024516,
+        -83.1818763,
+        43.3140305
+      ],
+      "cloud_cover_pct": 13.537475,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/13/S2B_MSIL2A_20240513T161829_N0510_R040_T16TGN_20240513T202043.SAFE/GRANULE/L2A_T16TGN_A037532_20240513T162620/IMG_DATA/R10m/T16TGN_20240513T161829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/13/S2B_MSIL2A_20240513T161829_N0510_R040_T16TGN_20240513T202043.SAFE/GRANULE/L2A_T16TGN_A037532_20240513T162620/IMG_DATA/R10m/T16TGN_20240513T161829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/13/S2B_MSIL2A_20240513T161829_N0510_R040_T16TGN_20240513T202043.SAFE/GRANULE/L2A_T16TGN_A037532_20240513T162620/IMG_DATA/R20m/T16TGN_20240513T161829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/13/S2B_MSIL2A_20240513T161829_N0510_R040_T16TGN_20240513T202043.SAFE/GRANULE/L2A_T16TGN_A037532_20240513T162620/IMG_DATA/R10m/T16TGN_20240513T161829_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "4b8bcdd8-7f08-49b0-bc72-2644d7bd3ed2",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240513T161829_R040_T17TLH_20240513T204604",
+      "observed_at": "2024-05-13T16:18:29.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.0953092,
+        43.3474404
+      ],
+      "cloud_cover_pct": 18.689454,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/13/S2B_MSIL2A_20240513T161829_N0510_R040_T17TLH_20240513T204604.SAFE/GRANULE/L2A_T17TLH_A037532_20240513T162620/IMG_DATA/R10m/T17TLH_20240513T161829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/13/S2B_MSIL2A_20240513T161829_N0510_R040_T17TLH_20240513T204604.SAFE/GRANULE/L2A_T17TLH_A037532_20240513T162620/IMG_DATA/R10m/T17TLH_20240513T161829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/13/S2B_MSIL2A_20240513T161829_N0510_R040_T17TLH_20240513T204604.SAFE/GRANULE/L2A_T17TLH_A037532_20240513T162620/IMG_DATA/R20m/T17TLH_20240513T161829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/13/S2B_MSIL2A_20240513T161829_N0510_R040_T17TLH_20240513T204604.SAFE/GRANULE/L2A_T17TLH_A037532_20240513T162620/IMG_DATA/R10m/T17TLH_20240513T161829_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "f275f26e-341a-485f-b94c-f5d5312af68d",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240516T162829_R083_T16TGN_20240517T164101",
+      "observed_at": "2024-05-16T16:28:29.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3024516,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 28.455707,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/16/S2B_MSIL2A_20240516T162829_N0510_R083_T16TGN_20240517T164101.SAFE/GRANULE/L2A_T16TGN_A037575_20240516T162923/IMG_DATA/R10m/T16TGN_20240516T162829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/16/S2B_MSIL2A_20240516T162829_N0510_R083_T16TGN_20240517T164101.SAFE/GRANULE/L2A_T16TGN_A037575_20240516T162923/IMG_DATA/R10m/T16TGN_20240516T162829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/16/S2B_MSIL2A_20240516T162829_N0510_R083_T16TGN_20240517T164101.SAFE/GRANULE/L2A_T16TGN_A037575_20240516T162923/IMG_DATA/R20m/T16TGN_20240516T162829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/16/S2B_MSIL2A_20240516T162829_N0510_R083_T16TGN_20240517T164101.SAFE/GRANULE/L2A_T16TGN_A037575_20240516T162923/IMG_DATA/R10m/T16TGN_20240516T162829_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "3b22cb09-8bd7-4498-ad79-8c395dcae4aa",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240518T161831_R040_T16TGN_20240519T011104",
+      "observed_at": "2024-05-18T16:18:31.024000+00:00",
+      "bbox": [
+        -84.4040347,
+        42.3024516,
+        -83.1818763,
+        43.3140307
+      ],
+      "cloud_cover_pct": 4.133399,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/18/S2A_MSIL2A_20240518T161831_N0510_R040_T16TGN_20240519T011104.SAFE/GRANULE/L2A_T16TGN_A046512_20240518T163059/IMG_DATA/R10m/T16TGN_20240518T161831_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/18/S2A_MSIL2A_20240518T161831_N0510_R040_T16TGN_20240519T011104.SAFE/GRANULE/L2A_T16TGN_A046512_20240518T163059/IMG_DATA/R10m/T16TGN_20240518T161831_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/18/S2A_MSIL2A_20240518T161831_N0510_R040_T16TGN_20240519T011104.SAFE/GRANULE/L2A_T16TGN_A046512_20240518T163059/IMG_DATA/R20m/T16TGN_20240518T161831_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/18/S2A_MSIL2A_20240518T161831_N0510_R040_T16TGN_20240519T011104.SAFE/GRANULE/L2A_T16TGN_A046512_20240518T163059/IMG_DATA/R10m/T16TGN_20240518T161831_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "1d6eadab-d69e-4622-8648-a2735937121e",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240521T162901_R083_T16TGN_20240522T012717",
+      "observed_at": "2024-05-21T16:29:01.025000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3024516,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 26.245603,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/21/S2A_MSIL2A_20240521T162901_N0510_R083_T16TGN_20240522T012717.SAFE/GRANULE/L2A_T16TGN_A046555_20240521T163325/IMG_DATA/R10m/T16TGN_20240521T162901_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/21/S2A_MSIL2A_20240521T162901_N0510_R083_T16TGN_20240522T012717.SAFE/GRANULE/L2A_T16TGN_A046555_20240521T163325/IMG_DATA/R10m/T16TGN_20240521T162901_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/21/S2A_MSIL2A_20240521T162901_N0510_R083_T16TGN_20240522T012717.SAFE/GRANULE/L2A_T16TGN_A046555_20240521T163325/IMG_DATA/R20m/T16TGN_20240521T162901_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/21/S2A_MSIL2A_20240521T162901_N0510_R083_T16TGN_20240522T012717.SAFE/GRANULE/L2A_T16TGN_A046555_20240521T163325/IMG_DATA/R10m/T16TGN_20240521T162901_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "f215f6a0-9686-4e90-9701-9c7298738fc1",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240523T161829_R040_T16TGN_20240523T211544",
+      "observed_at": "2024-05-23T16:18:29.024000+00:00",
+      "bbox": [
+        -84.4018911,
+        42.3024516,
+        -83.1818763,
+        43.3139812
+      ],
+      "cloud_cover_pct": 4.842286,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/23/S2B_MSIL2A_20240523T161829_N0510_R040_T16TGN_20240523T211544.SAFE/GRANULE/L2A_T16TGN_A037675_20240523T162952/IMG_DATA/R10m/T16TGN_20240523T161829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/23/S2B_MSIL2A_20240523T161829_N0510_R040_T16TGN_20240523T211544.SAFE/GRANULE/L2A_T16TGN_A037675_20240523T162952/IMG_DATA/R10m/T16TGN_20240523T161829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/23/S2B_MSIL2A_20240523T161829_N0510_R040_T16TGN_20240523T211544.SAFE/GRANULE/L2A_T16TGN_A037675_20240523T162952/IMG_DATA/R20m/T16TGN_20240523T161829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/23/S2B_MSIL2A_20240523T161829_N0510_R040_T16TGN_20240523T211544.SAFE/GRANULE/L2A_T16TGN_A037675_20240523T162952/IMG_DATA/R10m/T16TGN_20240523T161829_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "1db7b705-5783-4814-88e9-9587eef89c05",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240523T161829_R040_T17TLH_20240523T221308",
+      "observed_at": "2024-05-23T16:18:29.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.0953092,
+        43.3474404
+      ],
+      "cloud_cover_pct": 3.781056,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/23/S2B_MSIL2A_20240523T161829_N0510_R040_T17TLH_20240523T221308.SAFE/GRANULE/L2A_T17TLH_A037675_20240523T162952/IMG_DATA/R10m/T17TLH_20240523T161829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/23/S2B_MSIL2A_20240523T161829_N0510_R040_T17TLH_20240523T221308.SAFE/GRANULE/L2A_T17TLH_A037675_20240523T162952/IMG_DATA/R10m/T17TLH_20240523T161829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/23/S2B_MSIL2A_20240523T161829_N0510_R040_T17TLH_20240523T221308.SAFE/GRANULE/L2A_T17TLH_A037675_20240523T162952/IMG_DATA/R20m/T17TLH_20240523T161829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/05/23/S2B_MSIL2A_20240523T161829_N0510_R040_T17TLH_20240523T221308.SAFE/GRANULE/L2A_T17TLH_A037675_20240523T162952/IMG_DATA/R10m/T17TLH_20240523T161829_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "712ef769-71a3-4caf-899a-242f1dad2c7b",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240531T162841_R083_T16TGN_20240601T010125",
+      "observed_at": "2024-05-31T16:28:41.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3025601,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 9.664245,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/31/S2A_MSIL2A_20240531T162841_N0510_R083_T16TGN_20240601T010125.SAFE/GRANULE/L2A_T16TGN_A046698_20240531T163405/IMG_DATA/R10m/T16TGN_20240531T162841_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/31/S2A_MSIL2A_20240531T162841_N0510_R083_T16TGN_20240601T010125.SAFE/GRANULE/L2A_T16TGN_A046698_20240531T163405/IMG_DATA/R10m/T16TGN_20240531T162841_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/31/S2A_MSIL2A_20240531T162841_N0510_R083_T16TGN_20240601T010125.SAFE/GRANULE/L2A_T16TGN_A046698_20240531T163405/IMG_DATA/R20m/T16TGN_20240531T162841_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/05/31/S2A_MSIL2A_20240531T162841_N0510_R083_T16TGN_20240601T010125.SAFE/GRANULE/L2A_T16TGN_A046698_20240531T163405/IMG_DATA/R10m/T16TGN_20240531T162841_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.687720179337816
+      }
+    },
+    {
+      "id": "edb6a683-b8a7-4e1b-a759-3e96985375c0",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240610T162901_R083_T16TGN_20240610T233952",
+      "observed_at": "2024-06-10T16:29:01.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3028214,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 20.251682,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/10/S2A_MSIL2A_20240610T162901_N0510_R083_T16TGN_20240610T233952.SAFE/GRANULE/L2A_T16TGN_A046841_20240610T163914/IMG_DATA/R10m/T16TGN_20240610T162901_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/10/S2A_MSIL2A_20240610T162901_N0510_R083_T16TGN_20240610T233952.SAFE/GRANULE/L2A_T16TGN_A046841_20240610T163914/IMG_DATA/R10m/T16TGN_20240610T162901_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/10/S2A_MSIL2A_20240610T162901_N0510_R083_T16TGN_20240610T233952.SAFE/GRANULE/L2A_T16TGN_A046841_20240610T163914/IMG_DATA/R20m/T16TGN_20240610T162901_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/10/S2A_MSIL2A_20240610T162901_N0510_R083_T16TGN_20240610T233952.SAFE/GRANULE/L2A_T16TGN_A046841_20240610T163914/IMG_DATA/R10m/T16TGN_20240610T162901_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68774367787723
+      }
+    },
+    {
+      "id": "0bb37700-a9c9-478c-87bb-947b6f7535cf",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240612T161829_R040_T16TGN_20240612T221355",
+      "observed_at": "2024-06-12T16:18:29.024000+00:00",
+      "bbox": [
+        -84.4119239,
+        42.3024516,
+        -83.1818763,
+        43.3142766
+      ],
+      "cloud_cover_pct": 0.833614,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/12/S2B_MSIL2A_20240612T161829_N0510_R040_T16TGN_20240612T221355.SAFE/GRANULE/L2A_T16TGN_A037961_20240612T162626/IMG_DATA/R10m/T16TGN_20240612T161829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/12/S2B_MSIL2A_20240612T161829_N0510_R040_T16TGN_20240612T221355.SAFE/GRANULE/L2A_T16TGN_A037961_20240612T162626/IMG_DATA/R10m/T16TGN_20240612T161829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/12/S2B_MSIL2A_20240612T161829_N0510_R040_T16TGN_20240612T221355.SAFE/GRANULE/L2A_T16TGN_A037961_20240612T162626/IMG_DATA/R20m/T16TGN_20240612T161829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/12/S2B_MSIL2A_20240612T161829_N0510_R040_T16TGN_20240612T221355.SAFE/GRANULE/L2A_T16TGN_A037961_20240612T162626/IMG_DATA/R10m/T16TGN_20240612T161829_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "8359ad6b-e82e-41c2-99f5-efde294a6bc4",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240615T162839_R083_T17TLH_20240615T205130",
+      "observed_at": "2024-06-15T16:28:39.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8479036,
+        43.3359346
+      ],
+      "cloud_cover_pct": 18.551803,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/06/15/S2B_MSIL2A_20240615T162839_N0510_R083_T17TLH_20240615T205130.SAFE/GRANULE/L2A_T17TLH_A038004_20240615T163558/IMG_DATA/R10m/T17TLH_20240615T162839_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/06/15/S2B_MSIL2A_20240615T162839_N0510_R083_T17TLH_20240615T205130.SAFE/GRANULE/L2A_T17TLH_A038004_20240615T163558/IMG_DATA/R10m/T17TLH_20240615T162839_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/06/15/S2B_MSIL2A_20240615T162839_N0510_R083_T17TLH_20240615T205130.SAFE/GRANULE/L2A_T17TLH_A038004_20240615T163558/IMG_DATA/R20m/T17TLH_20240615T162839_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/06/15/S2B_MSIL2A_20240615T162839_N0510_R083_T17TLH_20240615T205130.SAFE/GRANULE/L2A_T17TLH_A038004_20240615T163558/IMG_DATA/R10m/T17TLH_20240615T162839_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 99.98484212863096
+      }
+    },
+    {
+      "id": "5a3ecbd9-232f-439f-b70d-8088e8b93174",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240617T161911_R040_T16TGN_20240618T014743",
+      "observed_at": "2024-06-17T16:19:11.024000+00:00",
+      "bbox": [
+        -84.4156705,
+        42.3024516,
+        -83.1818763,
+        43.314354
+      ],
+      "cloud_cover_pct": 16.713533,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/17/S2A_MSIL2A_20240617T161911_N0510_R040_T16TGN_20240618T014743.SAFE/GRANULE/L2A_T16TGN_A046941_20240617T162839/IMG_DATA/R10m/T16TGN_20240617T161911_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/17/S2A_MSIL2A_20240617T161911_N0510_R040_T16TGN_20240618T014743.SAFE/GRANULE/L2A_T16TGN_A046941_20240617T162839/IMG_DATA/R10m/T16TGN_20240617T161911_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/17/S2A_MSIL2A_20240617T161911_N0510_R040_T16TGN_20240618T014743.SAFE/GRANULE/L2A_T16TGN_A046941_20240617T162839/IMG_DATA/R20m/T16TGN_20240617T161911_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/17/S2A_MSIL2A_20240617T161911_N0510_R040_T16TGN_20240618T014743.SAFE/GRANULE/L2A_T16TGN_A046941_20240617T162839/IMG_DATA/R10m/T16TGN_20240617T161911_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "5734de6f-f1c4-47a5-afee-fb843a1d5fd2",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240620T162901_R083_T16TGN_20240621T011157",
+      "observed_at": "2024-06-20T16:29:01.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3026625,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 26.782751,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/20/S2A_MSIL2A_20240620T162901_N0510_R083_T16TGN_20240621T011157.SAFE/GRANULE/L2A_T16TGN_A046984_20240620T163859/IMG_DATA/R10m/T16TGN_20240620T162901_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/20/S2A_MSIL2A_20240620T162901_N0510_R083_T16TGN_20240621T011157.SAFE/GRANULE/L2A_T16TGN_A046984_20240620T163859/IMG_DATA/R10m/T16TGN_20240620T162901_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/20/S2A_MSIL2A_20240620T162901_N0510_R083_T16TGN_20240621T011157.SAFE/GRANULE/L2A_T16TGN_A046984_20240620T163859/IMG_DATA/R20m/T16TGN_20240620T162901_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/20/S2A_MSIL2A_20240620T162901_N0510_R083_T16TGN_20240621T011157.SAFE/GRANULE/L2A_T16TGN_A046984_20240620T163859/IMG_DATA/R10m/T16TGN_20240620T162901_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68773803476642
+      }
+    },
+    {
+      "id": "79aab67e-2be3-4154-8992-a81f4d9384c2",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240627T161901_R040_T16TGN_20240628T014518",
+      "observed_at": "2024-06-27T16:19:01.024000+00:00",
+      "bbox": [
+        -84.4020784,
+        42.3024516,
+        -83.1818763,
+        43.3139868
+      ],
+      "cloud_cover_pct": 17.255439,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/27/S2A_MSIL2A_20240627T161901_N0510_R040_T16TGN_20240628T014518.SAFE/GRANULE/L2A_T16TGN_A047084_20240627T162738/IMG_DATA/R10m/T16TGN_20240627T161901_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/27/S2A_MSIL2A_20240627T161901_N0510_R040_T16TGN_20240628T014518.SAFE/GRANULE/L2A_T16TGN_A047084_20240627T162738/IMG_DATA/R10m/T16TGN_20240627T161901_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/27/S2A_MSIL2A_20240627T161901_N0510_R040_T16TGN_20240628T014518.SAFE/GRANULE/L2A_T16TGN_A047084_20240627T162738/IMG_DATA/R20m/T16TGN_20240627T161901_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/06/27/S2A_MSIL2A_20240627T161901_N0510_R040_T16TGN_20240628T014518.SAFE/GRANULE/L2A_T16TGN_A047084_20240627T162738/IMG_DATA/R10m/T16TGN_20240627T161901_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "8d98a188-736f-4168-81ed-f7bc5268f2e0",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240707T161901_R040_T16TGN_20240708T001127",
+      "observed_at": "2024-07-07T16:19:01.024000+00:00",
+      "bbox": [
+        -84.4041983,
+        42.3024516,
+        -83.1818763,
+        43.3140475
+      ],
+      "cloud_cover_pct": 18.189141,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/07/S2A_MSIL2A_20240707T161901_N0510_R040_T16TGN_20240708T001127.SAFE/GRANULE/L2A_T16TGN_A047227_20240707T162026/IMG_DATA/R10m/T16TGN_20240707T161901_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/07/S2A_MSIL2A_20240707T161901_N0510_R040_T16TGN_20240708T001127.SAFE/GRANULE/L2A_T16TGN_A047227_20240707T162026/IMG_DATA/R10m/T16TGN_20240707T161901_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/07/S2A_MSIL2A_20240707T161901_N0510_R040_T16TGN_20240708T001127.SAFE/GRANULE/L2A_T16TGN_A047227_20240707T162026/IMG_DATA/R20m/T16TGN_20240707T161901_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/07/S2A_MSIL2A_20240707T161901_N0510_R040_T16TGN_20240708T001127.SAFE/GRANULE/L2A_T16TGN_A047227_20240707T162026/IMG_DATA/R10m/T16TGN_20240707T161901_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "c5a26b11-c951-46ee-9d45-b1c6296bdea6",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240715T162839_R083_T16TGN_20240715T232656",
+      "observed_at": "2024-07-15T16:28:39.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3024516,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 15.430062,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/15/S2B_MSIL2A_20240715T162839_N0510_R083_T16TGN_20240715T232656.SAFE/GRANULE/L2A_T16TGN_A038433_20240715T163641/IMG_DATA/R10m/T16TGN_20240715T162839_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/15/S2B_MSIL2A_20240715T162839_N0510_R083_T16TGN_20240715T232656.SAFE/GRANULE/L2A_T16TGN_A038433_20240715T163641/IMG_DATA/R10m/T16TGN_20240715T162839_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/15/S2B_MSIL2A_20240715T162839_N0510_R083_T16TGN_20240715T232656.SAFE/GRANULE/L2A_T16TGN_A038433_20240715T163641/IMG_DATA/R20m/T16TGN_20240715T162839_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/15/S2B_MSIL2A_20240715T162839_N0510_R083_T16TGN_20240715T232656.SAFE/GRANULE/L2A_T16TGN_A038433_20240715T163641/IMG_DATA/R10m/T16TGN_20240715T162839_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "17861a39-febf-4b35-98fa-8a8239c1f236",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240715T162839_R083_T17TLH_20240715T225922",
+      "observed_at": "2024-07-15T16:28:39.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8435939,
+        43.3360021
+      ],
+      "cloud_cover_pct": 21.161787,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/07/15/S2B_MSIL2A_20240715T162839_N0510_R083_T17TLH_20240715T225922.SAFE/GRANULE/L2A_T17TLH_A038433_20240715T163641/IMG_DATA/R10m/T17TLH_20240715T162839_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/07/15/S2B_MSIL2A_20240715T162839_N0510_R083_T17TLH_20240715T225922.SAFE/GRANULE/L2A_T17TLH_A038433_20240715T163641/IMG_DATA/R10m/T17TLH_20240715T162839_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/07/15/S2B_MSIL2A_20240715T162839_N0510_R083_T17TLH_20240715T225922.SAFE/GRANULE/L2A_T17TLH_A038433_20240715T163641/IMG_DATA/R20m/T17TLH_20240715T162839_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/07/15/S2B_MSIL2A_20240715T162839_N0510_R083_T17TLH_20240715T225922.SAFE/GRANULE/L2A_T17TLH_A038433_20240715T163641/IMG_DATA/R10m/T17TLH_20240715T162839_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "b8ffa73b-dee5-4ee6-8e14-0d4adcff4e7f",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240717T161901_R040_T16TGN_20240718T002411",
+      "observed_at": "2024-07-17T16:19:01.024000+00:00",
+      "bbox": [
+        -84.3933776,
+        42.3024516,
+        -83.1818763,
+        43.3137421
+      ],
+      "cloud_cover_pct": 25.994709,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/17/S2A_MSIL2A_20240717T161901_N0510_R040_T16TGN_20240718T002411.SAFE/GRANULE/L2A_T16TGN_A047370_20240717T162009/IMG_DATA/R10m/T16TGN_20240717T161901_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/17/S2A_MSIL2A_20240717T161901_N0510_R040_T16TGN_20240718T002411.SAFE/GRANULE/L2A_T16TGN_A047370_20240717T162009/IMG_DATA/R10m/T16TGN_20240717T161901_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/17/S2A_MSIL2A_20240717T161901_N0510_R040_T16TGN_20240718T002411.SAFE/GRANULE/L2A_T16TGN_A047370_20240717T162009/IMG_DATA/R20m/T16TGN_20240717T161901_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/07/17/S2A_MSIL2A_20240717T161901_N0510_R040_T16TGN_20240718T002411.SAFE/GRANULE/L2A_T16TGN_A047370_20240717T162009/IMG_DATA/R10m/T16TGN_20240717T161901_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "afe895ab-fc76-4ce7-bfdc-3a7952a02ae7",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240727T161831_R040_T17TLH_20240727T233652",
+      "observed_at": "2024-07-27T16:18:31.024000+00:00",
+      "bbox": [
+        -83.4511049,
+        42.3383618,
+        -82.0953092,
+        42.9291526
+      ],
+      "cloud_cover_pct": 0.423235,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/07/27/S2A_MSIL2A_20240727T161831_N0511_R040_T17TLH_20240727T233652.SAFE/GRANULE/L2A_T17TLH_A047513_20240727T163133/IMG_DATA/R10m/T17TLH_20240727T161831_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/07/27/S2A_MSIL2A_20240727T161831_N0511_R040_T17TLH_20240727T233652.SAFE/GRANULE/L2A_T17TLH_A047513_20240727T163133/IMG_DATA/R10m/T17TLH_20240727T161831_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/07/27/S2A_MSIL2A_20240727T161831_N0511_R040_T17TLH_20240727T233652.SAFE/GRANULE/L2A_T17TLH_A047513_20240727T163133/IMG_DATA/R20m/T17TLH_20240727T161831_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/07/27/S2A_MSIL2A_20240727T161831_N0511_R040_T17TLH_20240727T233652.SAFE/GRANULE/L2A_T17TLH_A047513_20240727T163133/IMG_DATA/R10m/T17TLH_20240727T161831_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "647cc10d-46f2-4f9b-8b23-0f8a97edd94e",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240809T162901_R083_T16TGN_20240809T235751",
+      "observed_at": "2024-08-09T16:29:01.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3024516,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 9.519862,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/09/S2A_MSIL2A_20240809T162901_N0511_R083_T16TGN_20240809T235751.SAFE/GRANULE/L2A_T16TGN_A047699_20240809T163406/IMG_DATA/R10m/T16TGN_20240809T162901_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/09/S2A_MSIL2A_20240809T162901_N0511_R083_T16TGN_20240809T235751.SAFE/GRANULE/L2A_T16TGN_A047699_20240809T163406/IMG_DATA/R10m/T16TGN_20240809T162901_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/09/S2A_MSIL2A_20240809T162901_N0511_R083_T16TGN_20240809T235751.SAFE/GRANULE/L2A_T16TGN_A047699_20240809T163406/IMG_DATA/R20m/T16TGN_20240809T162901_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/09/S2A_MSIL2A_20240809T162901_N0511_R083_T16TGN_20240809T235751.SAFE/GRANULE/L2A_T16TGN_A047699_20240809T163406/IMG_DATA/R10m/T16TGN_20240809T162901_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "bf9b4c8c-248a-4039-9f73-46114d846801",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240809T162901_R083_T17TLH_20240809T235751",
+      "observed_at": "2024-08-09T16:29:01.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8381186,
+        43.3360878
+      ],
+      "cloud_cover_pct": 12.66025,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/09/S2A_MSIL2A_20240809T162901_N0511_R083_T17TLH_20240809T235751.SAFE/GRANULE/L2A_T17TLH_A047699_20240809T163406/IMG_DATA/R10m/T17TLH_20240809T162901_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/09/S2A_MSIL2A_20240809T162901_N0511_R083_T17TLH_20240809T235751.SAFE/GRANULE/L2A_T17TLH_A047699_20240809T163406/IMG_DATA/R10m/T17TLH_20240809T162901_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/09/S2A_MSIL2A_20240809T162901_N0511_R083_T17TLH_20240809T235751.SAFE/GRANULE/L2A_T17TLH_A047699_20240809T163406/IMG_DATA/R20m/T17TLH_20240809T162901_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/09/S2A_MSIL2A_20240809T162901_N0511_R083_T17TLH_20240809T235751.SAFE/GRANULE/L2A_T17TLH_A047699_20240809T163406/IMG_DATA/R10m/T17TLH_20240809T162901_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "a3395695-ec6e-4c89-856b-5c7db71aec99",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240814T162839_R083_T16TGN_20240814T203353",
+      "observed_at": "2024-08-14T16:28:39.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3026228,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 6.152819,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/14/S2B_MSIL2A_20240814T162839_N0511_R083_T16TGN_20240814T203353.SAFE/GRANULE/L2A_T16TGN_A038862_20240814T163617/IMG_DATA/R10m/T16TGN_20240814T162839_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/14/S2B_MSIL2A_20240814T162839_N0511_R083_T16TGN_20240814T203353.SAFE/GRANULE/L2A_T16TGN_A038862_20240814T163617/IMG_DATA/R10m/T16TGN_20240814T162839_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/14/S2B_MSIL2A_20240814T162839_N0511_R083_T16TGN_20240814T203353.SAFE/GRANULE/L2A_T16TGN_A038862_20240814T163617/IMG_DATA/R20m/T16TGN_20240814T162839_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/14/S2B_MSIL2A_20240814T162839_N0511_R083_T16TGN_20240814T203353.SAFE/GRANULE/L2A_T16TGN_A038862_20240814T163617/IMG_DATA/R10m/T16TGN_20240814T162839_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68774616358201
+      }
+    },
+    {
+      "id": "dd6b2a99-70df-4499-9ec8-da11b48af29f",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240814T162839_R083_T17TLH_20240814T203353",
+      "observed_at": "2024-08-14T16:28:39.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8513032,
+        43.3358814
+      ],
+      "cloud_cover_pct": 4.848565,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/14/S2B_MSIL2A_20240814T162839_N0511_R083_T17TLH_20240814T203353.SAFE/GRANULE/L2A_T17TLH_A038862_20240814T163617/IMG_DATA/R10m/T17TLH_20240814T162839_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/14/S2B_MSIL2A_20240814T162839_N0511_R083_T17TLH_20240814T203353.SAFE/GRANULE/L2A_T17TLH_A038862_20240814T163617/IMG_DATA/R10m/T17TLH_20240814T162839_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/14/S2B_MSIL2A_20240814T162839_N0511_R083_T17TLH_20240814T203353.SAFE/GRANULE/L2A_T17TLH_A038862_20240814T163617/IMG_DATA/R20m/T17TLH_20240814T162839_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/14/S2B_MSIL2A_20240814T162839_N0511_R083_T17TLH_20240814T203353.SAFE/GRANULE/L2A_T17TLH_A038862_20240814T163617/IMG_DATA/R10m/T17TLH_20240814T162839_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 99.81633224658633
+      }
+    },
+    {
+      "id": "80f8d4f2-a582-4886-ac93-5fa67bcd6672",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240824T162829_R083_T16TGN_20240824T204911",
+      "observed_at": "2024-08-24T16:28:29.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3024516,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 5.796115,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/24/S2B_MSIL2A_20240824T162829_N0511_R083_T16TGN_20240824T204911.SAFE/GRANULE/L2A_T16TGN_A039005_20240824T163435/IMG_DATA/R10m/T16TGN_20240824T162829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/24/S2B_MSIL2A_20240824T162829_N0511_R083_T16TGN_20240824T204911.SAFE/GRANULE/L2A_T16TGN_A039005_20240824T163435/IMG_DATA/R10m/T16TGN_20240824T162829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/24/S2B_MSIL2A_20240824T162829_N0511_R083_T16TGN_20240824T204911.SAFE/GRANULE/L2A_T16TGN_A039005_20240824T163435/IMG_DATA/R20m/T16TGN_20240824T162829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/24/S2B_MSIL2A_20240824T162829_N0511_R083_T16TGN_20240824T204911.SAFE/GRANULE/L2A_T16TGN_A039005_20240824T163435/IMG_DATA/R10m/T16TGN_20240824T162829_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "0913259b-1bf6-40db-bf9e-f6dd5ff9182a",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240824T162829_R083_T17TLH_20240824T204911",
+      "observed_at": "2024-08-24T16:28:29.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8402987,
+        43.3360536
+      ],
+      "cloud_cover_pct": 1.86604,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/24/S2B_MSIL2A_20240824T162829_N0511_R083_T17TLH_20240824T204911.SAFE/GRANULE/L2A_T17TLH_A039005_20240824T163435/IMG_DATA/R10m/T17TLH_20240824T162829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/24/S2B_MSIL2A_20240824T162829_N0511_R083_T17TLH_20240824T204911.SAFE/GRANULE/L2A_T17TLH_A039005_20240824T163435/IMG_DATA/R10m/T17TLH_20240824T162829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/24/S2B_MSIL2A_20240824T162829_N0511_R083_T17TLH_20240824T204911.SAFE/GRANULE/L2A_T17TLH_A039005_20240824T163435/IMG_DATA/R20m/T17TLH_20240824T162829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/24/S2B_MSIL2A_20240824T162829_N0511_R083_T17TLH_20240824T204911.SAFE/GRANULE/L2A_T17TLH_A039005_20240824T163435/IMG_DATA/R10m/T17TLH_20240824T162829_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "1b7c5a3e-0aa0-41a4-a442-a9ded0e7f251",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240826T161831_R040_T16TGN_20240826T234850",
+      "observed_at": "2024-08-26T16:18:31.024000+00:00",
+      "bbox": [
+        -84.3936442,
+        42.3024516,
+        -83.1818763,
+        43.3137733
+      ],
+      "cloud_cover_pct": 28.251442,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/26/S2A_MSIL2A_20240826T161831_N0511_R040_T16TGN_20240826T234850.SAFE/GRANULE/L2A_T16TGN_A047942_20240826T163023/IMG_DATA/R10m/T16TGN_20240826T161831_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/26/S2A_MSIL2A_20240826T161831_N0511_R040_T16TGN_20240826T234850.SAFE/GRANULE/L2A_T16TGN_A047942_20240826T163023/IMG_DATA/R10m/T16TGN_20240826T161831_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/26/S2A_MSIL2A_20240826T161831_N0511_R040_T16TGN_20240826T234850.SAFE/GRANULE/L2A_T16TGN_A047942_20240826T163023/IMG_DATA/R20m/T16TGN_20240826T161831_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/08/26/S2A_MSIL2A_20240826T161831_N0511_R040_T16TGN_20240826T234850.SAFE/GRANULE/L2A_T16TGN_A047942_20240826T163023/IMG_DATA/R10m/T16TGN_20240826T161831_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "e0b3edcf-74f7-498f-af5f-568dcdca8fde",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240826T161831_R040_T17TLH_20240826T234850",
+      "observed_at": "2024-08-26T16:18:31.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.0953092,
+        43.3474404
+      ],
+      "cloud_cover_pct": 6.699832,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/26/S2A_MSIL2A_20240826T161831_N0511_R040_T17TLH_20240826T234850.SAFE/GRANULE/L2A_T17TLH_A047942_20240826T163023/IMG_DATA/R10m/T17TLH_20240826T161831_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/26/S2A_MSIL2A_20240826T161831_N0511_R040_T17TLH_20240826T234850.SAFE/GRANULE/L2A_T17TLH_A047942_20240826T163023/IMG_DATA/R10m/T17TLH_20240826T161831_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/26/S2A_MSIL2A_20240826T161831_N0511_R040_T17TLH_20240826T234850.SAFE/GRANULE/L2A_T17TLH_A047942_20240826T163023/IMG_DATA/R20m/T17TLH_20240826T161831_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/26/S2A_MSIL2A_20240826T161831_N0511_R040_T17TLH_20240826T234850.SAFE/GRANULE/L2A_T17TLH_A047942_20240826T163023/IMG_DATA/R10m/T17TLH_20240826T161831_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "3bae7b81-efda-4996-b16a-b8fd41dc80d0",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240831T161829_R040_T17TLH_20240831T202059",
+      "observed_at": "2024-08-31T16:18:29.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.0953092,
+        43.3474404
+      ],
+      "cloud_cover_pct": 8.558827,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/31/S2B_MSIL2A_20240831T161829_N0511_R040_T17TLH_20240831T202059.SAFE/GRANULE/L2A_T17TLH_A039105_20240831T162456/IMG_DATA/R10m/T17TLH_20240831T161829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/31/S2B_MSIL2A_20240831T161829_N0511_R040_T17TLH_20240831T202059.SAFE/GRANULE/L2A_T17TLH_A039105_20240831T162456/IMG_DATA/R10m/T17TLH_20240831T161829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/31/S2B_MSIL2A_20240831T161829_N0511_R040_T17TLH_20240831T202059.SAFE/GRANULE/L2A_T17TLH_A039105_20240831T162456/IMG_DATA/R20m/T17TLH_20240831T161829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/08/31/S2B_MSIL2A_20240831T161829_N0511_R040_T17TLH_20240831T202059.SAFE/GRANULE/L2A_T17TLH_A039105_20240831T162456/IMG_DATA/R10m/T17TLH_20240831T161829_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "a6e5b37a-1325-4d66-8517-fa8cb1a2346e",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240903T162839_R083_T16TGN_20240903T204831",
+      "observed_at": "2024-09-03T16:28:39.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3027493,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 21.25192,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/09/03/S2B_MSIL2A_20240903T162839_N0511_R083_T16TGN_20240903T204831.SAFE/GRANULE/L2A_T16TGN_A039148_20240903T163015/IMG_DATA/R10m/T16TGN_20240903T162839_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/09/03/S2B_MSIL2A_20240903T162839_N0511_R083_T16TGN_20240903T204831.SAFE/GRANULE/L2A_T16TGN_A039148_20240903T163015/IMG_DATA/R10m/T16TGN_20240903T162839_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/09/03/S2B_MSIL2A_20240903T162839_N0511_R083_T16TGN_20240903T204831.SAFE/GRANULE/L2A_T16TGN_A039148_20240903T163015/IMG_DATA/R20m/T16TGN_20240903T162839_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/09/03/S2B_MSIL2A_20240903T162839_N0511_R083_T16TGN_20240903T204831.SAFE/GRANULE/L2A_T16TGN_A039148_20240903T163015/IMG_DATA/R10m/T16TGN_20240903T162839_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.687730433109444
+      }
+    },
+    {
+      "id": "d669e5d3-d33e-4661-ac38-22a72fae37c2",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240903T162839_R083_T17TLH_20240903T204831",
+      "observed_at": "2024-09-03T16:28:39.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8555465,
+        43.3358149
+      ],
+      "cloud_cover_pct": 5.049342,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/09/03/S2B_MSIL2A_20240903T162839_N0511_R083_T17TLH_20240903T204831.SAFE/GRANULE/L2A_T17TLH_A039148_20240903T163015/IMG_DATA/R10m/T17TLH_20240903T162839_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/09/03/S2B_MSIL2A_20240903T162839_N0511_R083_T17TLH_20240903T204831.SAFE/GRANULE/L2A_T17TLH_A039148_20240903T163015/IMG_DATA/R10m/T17TLH_20240903T162839_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/09/03/S2B_MSIL2A_20240903T162839_N0511_R083_T17TLH_20240903T204831.SAFE/GRANULE/L2A_T17TLH_A039148_20240903T163015/IMG_DATA/R20m/T17TLH_20240903T162839_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/09/03/S2B_MSIL2A_20240903T162839_N0511_R083_T17TLH_20240903T204831.SAFE/GRANULE/L2A_T17TLH_A039148_20240903T163015/IMG_DATA/R10m/T17TLH_20240903T162839_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 99.24360708269077
+      }
+    },
+    {
+      "id": "d6cddcd0-2c15-48a5-8b47-37852cae91aa",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240905T161831_R040_T16TGN_20240905T234351",
+      "observed_at": "2024-09-05T16:18:31.024000+00:00",
+      "bbox": [
+        -84.4075018,
+        42.3024516,
+        -83.1818763,
+        43.3141635
+      ],
+      "cloud_cover_pct": 14.922176,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/09/05/S2A_MSIL2A_20240905T161831_N0511_R040_T16TGN_20240905T234351.SAFE/GRANULE/L2A_T16TGN_A048085_20240905T163043/IMG_DATA/R10m/T16TGN_20240905T161831_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/09/05/S2A_MSIL2A_20240905T161831_N0511_R040_T16TGN_20240905T234351.SAFE/GRANULE/L2A_T16TGN_A048085_20240905T163043/IMG_DATA/R10m/T16TGN_20240905T161831_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/09/05/S2A_MSIL2A_20240905T161831_N0511_R040_T16TGN_20240905T234351.SAFE/GRANULE/L2A_T16TGN_A048085_20240905T163043/IMG_DATA/R20m/T16TGN_20240905T161831_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/09/05/S2A_MSIL2A_20240905T161831_N0511_R040_T16TGN_20240905T234351.SAFE/GRANULE/L2A_T16TGN_A048085_20240905T163043/IMG_DATA/R10m/T16TGN_20240905T161831_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "e24b9f23-5683-4930-a40a-b0153bf40466",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240905T161831_R040_T17TLH_20240905T234351",
+      "observed_at": "2024-09-05T16:18:31.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.0953092,
+        43.3474404
+      ],
+      "cloud_cover_pct": 0.266081,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/09/05/S2A_MSIL2A_20240905T161831_N0511_R040_T17TLH_20240905T234351.SAFE/GRANULE/L2A_T17TLH_A048085_20240905T163043/IMG_DATA/R10m/T17TLH_20240905T161831_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/09/05/S2A_MSIL2A_20240905T161831_N0511_R040_T17TLH_20240905T234351.SAFE/GRANULE/L2A_T17TLH_A048085_20240905T163043/IMG_DATA/R10m/T17TLH_20240905T161831_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/09/05/S2A_MSIL2A_20240905T161831_N0511_R040_T17TLH_20240905T234351.SAFE/GRANULE/L2A_T17TLH_A048085_20240905T163043/IMG_DATA/R20m/T17TLH_20240905T161831_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/09/05/S2A_MSIL2A_20240905T161831_N0511_R040_T17TLH_20240905T234351.SAFE/GRANULE/L2A_T17TLH_A048085_20240905T163043/IMG_DATA/R10m/T17TLH_20240905T161831_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "0773bcc4-eda1-4ca0-a0c6-e9c298448f60",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240908T162901_R083_T16TGN_20240909T000546",
+      "observed_at": "2024-09-08T16:29:01.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3025332,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 6.566714,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/09/08/S2A_MSIL2A_20240908T162901_N0511_R083_T16TGN_20240909T000546.SAFE/GRANULE/L2A_T16TGN_A048128_20240908T163538/IMG_DATA/R10m/T16TGN_20240908T162901_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/09/08/S2A_MSIL2A_20240908T162901_N0511_R083_T16TGN_20240909T000546.SAFE/GRANULE/L2A_T16TGN_A048128_20240908T163538/IMG_DATA/R10m/T16TGN_20240908T162901_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/09/08/S2A_MSIL2A_20240908T162901_N0511_R083_T16TGN_20240909T000546.SAFE/GRANULE/L2A_T16TGN_A048128_20240908T163538/IMG_DATA/R20m/T16TGN_20240908T162901_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/09/08/S2A_MSIL2A_20240908T162901_N0511_R083_T16TGN_20240909T000546.SAFE/GRANULE/L2A_T16TGN_A048128_20240908T163538/IMG_DATA/R10m/T16TGN_20240908T162901_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68772564843538
+      }
+    },
+    {
+      "id": "d213bf16-9c7d-4d3e-b225-70e76397194d",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20240908T162901_R083_T17TLH_20240909T000546",
+      "observed_at": "2024-09-08T16:29:01.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8483936,
+        43.3359269
+      ],
+      "cloud_cover_pct": 2.775132,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/09/08/S2A_MSIL2A_20240908T162901_N0511_R083_T17TLH_20240909T000546.SAFE/GRANULE/L2A_T17TLH_A048128_20240908T163538/IMG_DATA/R10m/T17TLH_20240908T162901_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/09/08/S2A_MSIL2A_20240908T162901_N0511_R083_T17TLH_20240909T000546.SAFE/GRANULE/L2A_T17TLH_A048128_20240908T163538/IMG_DATA/R10m/T17TLH_20240908T162901_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/09/08/S2A_MSIL2A_20240908T162901_N0511_R083_T17TLH_20240909T000546.SAFE/GRANULE/L2A_T17TLH_A048128_20240908T163538/IMG_DATA/R20m/T17TLH_20240908T162901_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/09/08/S2A_MSIL2A_20240908T162901_N0511_R083_T17TLH_20240909T000546.SAFE/GRANULE/L2A_T17TLH_A048128_20240908T163538/IMG_DATA/R10m/T17TLH_20240908T162901_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 99.97515037719468
+      }
+    },
+    {
+      "id": "5b903b5d-51a7-40a7-a5f0-657ef342b33b",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240910T161829_R040_T16TGN_20240910T204424",
+      "observed_at": "2024-09-10T16:18:29.024000+00:00",
+      "bbox": [
+        -84.4193824,
+        42.3024516,
+        -83.1818763,
+        43.3144681
+      ],
+      "cloud_cover_pct": 19.031873,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/09/10/S2B_MSIL2A_20240910T161829_N0511_R040_T16TGN_20240910T204424.SAFE/GRANULE/L2A_T16TGN_A039248_20240910T162741/IMG_DATA/R10m/T16TGN_20240910T161829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/09/10/S2B_MSIL2A_20240910T161829_N0511_R040_T16TGN_20240910T204424.SAFE/GRANULE/L2A_T16TGN_A039248_20240910T162741/IMG_DATA/R10m/T16TGN_20240910T161829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/09/10/S2B_MSIL2A_20240910T161829_N0511_R040_T16TGN_20240910T204424.SAFE/GRANULE/L2A_T16TGN_A039248_20240910T162741/IMG_DATA/R20m/T16TGN_20240910T161829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/09/10/S2B_MSIL2A_20240910T161829_N0511_R040_T16TGN_20240910T204424.SAFE/GRANULE/L2A_T16TGN_A039248_20240910T162741/IMG_DATA/R10m/T16TGN_20240910T161829_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "95fc80d4-c772-4455-8b64-5abc4c48f807",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20240910T161829_R040_T17TLH_20240910T204424",
+      "observed_at": "2024-09-10T16:18:29.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.0953092,
+        43.3474404
+      ],
+      "cloud_cover_pct": 8.701269,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/09/10/S2B_MSIL2A_20240910T161829_N0511_R040_T17TLH_20240910T204424.SAFE/GRANULE/L2A_T17TLH_A039248_20240910T162741/IMG_DATA/R10m/T17TLH_20240910T161829_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/09/10/S2B_MSIL2A_20240910T161829_N0511_R040_T17TLH_20240910T204424.SAFE/GRANULE/L2A_T17TLH_A039248_20240910T162741/IMG_DATA/R10m/T17TLH_20240910T161829_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/09/10/S2B_MSIL2A_20240910T161829_N0511_R040_T17TLH_20240910T204424.SAFE/GRANULE/L2A_T17TLH_A039248_20240910T162741/IMG_DATA/R20m/T17TLH_20240910T161829_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/09/10/S2B_MSIL2A_20240910T161829_N0511_R040_T17TLH_20240910T204424.SAFE/GRANULE/L2A_T17TLH_A039248_20240910T162741/IMG_DATA/R10m/T17TLH_20240910T161829_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "4623fcf6-8d15-40eb-ac10-9896502f81e4",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20241003T163029_R083_T16TGN_20241003T205354",
+      "observed_at": "2024-10-03T16:30:29.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3025908,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 25.27414,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/03/S2B_MSIL2A_20241003T163029_N0511_R083_T16TGN_20241003T205354.SAFE/GRANULE/L2A_T16TGN_A039577_20241003T163635/IMG_DATA/R10m/T16TGN_20241003T163029_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/03/S2B_MSIL2A_20241003T163029_N0511_R083_T16TGN_20241003T205354.SAFE/GRANULE/L2A_T16TGN_A039577_20241003T163635/IMG_DATA/R10m/T16TGN_20241003T163029_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/03/S2B_MSIL2A_20241003T163029_N0511_R083_T16TGN_20241003T205354.SAFE/GRANULE/L2A_T16TGN_A039577_20241003T163635/IMG_DATA/R20m/T16TGN_20241003T163029_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/03/S2B_MSIL2A_20241003T163029_N0511_R083_T16TGN_20241003T205354.SAFE/GRANULE/L2A_T16TGN_A039577_20241003T163635/IMG_DATA/R10m/T16TGN_20241003T163029_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.687759979817585
+      }
+    },
+    {
+      "id": "b88db5ae-c67a-4420-8d88-7614fa709633",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20241005T162141_R040_T17TLH_20241005T220355",
+      "observed_at": "2024-10-05T16:21:41.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.0953092,
+        43.3474404
+      ],
+      "cloud_cover_pct": 0.044237,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/05/S2A_MSIL2A_20241005T162141_N0511_R040_T17TLH_20241005T220355.SAFE/GRANULE/L2A_T17TLH_A048514_20241005T163058/IMG_DATA/R10m/T17TLH_20241005T162141_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/05/S2A_MSIL2A_20241005T162141_N0511_R040_T17TLH_20241005T220355.SAFE/GRANULE/L2A_T17TLH_A048514_20241005T163058/IMG_DATA/R10m/T17TLH_20241005T162141_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/05/S2A_MSIL2A_20241005T162141_N0511_R040_T17TLH_20241005T220355.SAFE/GRANULE/L2A_T17TLH_A048514_20241005T163058/IMG_DATA/R20m/T17TLH_20241005T162141_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/05/S2A_MSIL2A_20241005T162141_N0511_R040_T17TLH_20241005T220355.SAFE/GRANULE/L2A_T17TLH_A048514_20241005T163058/IMG_DATA/R10m/T17TLH_20241005T162141_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "93248927-8a79-4f26-ba7c-b6bee2ef365a",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20241008T163201_R083_T16TGN_20241008T222853",
+      "observed_at": "2024-10-08T16:32:01.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3024516,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 12.100138,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/08/S2A_MSIL2A_20241008T163201_N0511_R083_T16TGN_20241008T222853.SAFE/GRANULE/L2A_T16TGN_A048557_20241008T163831/IMG_DATA/R10m/T16TGN_20241008T163201_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/08/S2A_MSIL2A_20241008T163201_N0511_R083_T16TGN_20241008T222853.SAFE/GRANULE/L2A_T16TGN_A048557_20241008T163831/IMG_DATA/R10m/T16TGN_20241008T163201_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/08/S2A_MSIL2A_20241008T163201_N0511_R083_T16TGN_20241008T222853.SAFE/GRANULE/L2A_T16TGN_A048557_20241008T163831/IMG_DATA/R20m/T16TGN_20241008T163201_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/08/S2A_MSIL2A_20241008T163201_N0511_R083_T16TGN_20241008T222853.SAFE/GRANULE/L2A_T16TGN_A048557_20241008T163831/IMG_DATA/R10m/T16TGN_20241008T163201_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "74a8ec1b-2682-480e-8ba6-e242e9e8d237",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20241008T163201_R083_T17TLH_20241008T222853",
+      "observed_at": "2024-10-08T16:32:01.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8351704,
+        43.3361339
+      ],
+      "cloud_cover_pct": 28.822255,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/08/S2A_MSIL2A_20241008T163201_N0511_R083_T17TLH_20241008T222853.SAFE/GRANULE/L2A_T17TLH_A048557_20241008T163831/IMG_DATA/R10m/T17TLH_20241008T163201_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/08/S2A_MSIL2A_20241008T163201_N0511_R083_T17TLH_20241008T222853.SAFE/GRANULE/L2A_T17TLH_A048557_20241008T163831/IMG_DATA/R10m/T17TLH_20241008T163201_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/08/S2A_MSIL2A_20241008T163201_N0511_R083_T17TLH_20241008T222853.SAFE/GRANULE/L2A_T17TLH_A048557_20241008T163831/IMG_DATA/R20m/T17TLH_20241008T163201_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/08/S2A_MSIL2A_20241008T163201_N0511_R083_T17TLH_20241008T222853.SAFE/GRANULE/L2A_T17TLH_A048557_20241008T163831/IMG_DATA/R10m/T17TLH_20241008T163201_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "4afeca97-6d88-4cc0-a5f8-219d7dd7f5e4",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20241010T162119_R040_T16TGN_20241010T223103",
+      "observed_at": "2024-10-10T16:21:19.024000+00:00",
+      "bbox": [
+        -84.3994761,
+        42.3024516,
+        -83.1818763,
+        43.3138965
+      ],
+      "cloud_cover_pct": 0.354614,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/10/S2B_MSIL2A_20241010T162119_N0511_R040_T16TGN_20241010T223103.SAFE/GRANULE/L2A_T16TGN_A039677_20241010T162717/IMG_DATA/R10m/T16TGN_20241010T162119_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/10/S2B_MSIL2A_20241010T162119_N0511_R040_T16TGN_20241010T223103.SAFE/GRANULE/L2A_T16TGN_A039677_20241010T162717/IMG_DATA/R10m/T16TGN_20241010T162119_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/10/S2B_MSIL2A_20241010T162119_N0511_R040_T16TGN_20241010T223103.SAFE/GRANULE/L2A_T16TGN_A039677_20241010T162717/IMG_DATA/R20m/T16TGN_20241010T162119_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/10/S2B_MSIL2A_20241010T162119_N0511_R040_T16TGN_20241010T223103.SAFE/GRANULE/L2A_T16TGN_A039677_20241010T162717/IMG_DATA/R10m/T16TGN_20241010T162119_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "3363954f-bb09-4df2-801c-269e10805034",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20241010T162119_R040_T17TLH_20241010T223103",
+      "observed_at": "2024-10-10T16:21:19.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.0953092,
+        43.3474404
+      ],
+      "cloud_cover_pct": 13.3563,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/10/S2B_MSIL2A_20241010T162119_N0511_R040_T17TLH_20241010T223103.SAFE/GRANULE/L2A_T17TLH_A039677_20241010T162717/IMG_DATA/R10m/T17TLH_20241010T162119_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/10/S2B_MSIL2A_20241010T162119_N0511_R040_T17TLH_20241010T223103.SAFE/GRANULE/L2A_T17TLH_A039677_20241010T162717/IMG_DATA/R10m/T17TLH_20241010T162119_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/10/S2B_MSIL2A_20241010T162119_N0511_R040_T17TLH_20241010T223103.SAFE/GRANULE/L2A_T17TLH_A039677_20241010T162717/IMG_DATA/R20m/T17TLH_20241010T162119_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/10/S2B_MSIL2A_20241010T162119_N0511_R040_T17TLH_20241010T223103.SAFE/GRANULE/L2A_T17TLH_A039677_20241010T162717/IMG_DATA/R10m/T17TLH_20241010T162119_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "dbacc47f-ff88-46a7-9139-9d1d3c34ca32",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20241018T163311_R083_T16TGN_20241018T201649",
+      "observed_at": "2024-10-18T16:33:11.024000+00:00",
+      "bbox": [
+        -84.5727045,
+        42.3024615,
+        -83.1818763,
+        43.326257
+      ],
+      "cloud_cover_pct": 0.032727,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/18/S2A_MSIL2A_20241018T163311_N0511_R083_T16TGN_20241018T201649.SAFE/GRANULE/L2A_T16TGN_A048700_20241018T163447/IMG_DATA/R10m/T16TGN_20241018T163311_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/18/S2A_MSIL2A_20241018T163311_N0511_R083_T16TGN_20241018T201649.SAFE/GRANULE/L2A_T16TGN_A048700_20241018T163447/IMG_DATA/R10m/T16TGN_20241018T163311_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/18/S2A_MSIL2A_20241018T163311_N0511_R083_T16TGN_20241018T201649.SAFE/GRANULE/L2A_T16TGN_A048700_20241018T163447/IMG_DATA/R20m/T16TGN_20241018T163311_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/18/S2A_MSIL2A_20241018T163311_N0511_R083_T16TGN_20241018T201649.SAFE/GRANULE/L2A_T16TGN_A048700_20241018T163447/IMG_DATA/R10m/T16TGN_20241018T163311_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.687723186198376
+      }
+    },
+    {
+      "id": "8da45d2f-fd04-45ae-a188-9105cca97865",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2A_MSIL2A_20241018T163311_R083_T17TLH_20241018T201649",
+      "observed_at": "2024-10-18T16:33:11.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.844497,
+        43.3359879
+      ],
+      "cloud_cover_pct": 0.044194,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2A",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/18/S2A_MSIL2A_20241018T163311_N0511_R083_T17TLH_20241018T201649.SAFE/GRANULE/L2A_T17TLH_A048700_20241018T163447/IMG_DATA/R10m/T17TLH_20241018T163311_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/18/S2A_MSIL2A_20241018T163311_N0511_R083_T17TLH_20241018T201649.SAFE/GRANULE/L2A_T17TLH_A048700_20241018T163447/IMG_DATA/R10m/T17TLH_20241018T163311_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/18/S2A_MSIL2A_20241018T163311_N0511_R083_T17TLH_20241018T201649.SAFE/GRANULE/L2A_T17TLH_A048700_20241018T163447/IMG_DATA/R20m/T17TLH_20241018T163311_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/18/S2A_MSIL2A_20241018T163311_N0511_R083_T17TLH_20241018T201649.SAFE/GRANULE/L2A_T17TLH_A048700_20241018T163447/IMG_DATA/R10m/T17TLH_20241018T163311_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    },
+    {
+      "id": "bf556360-ebe6-4301-98ca-3dc2bfd414dd",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20241020T162219_R040_T16TGN_20241020T185340",
+      "observed_at": "2024-10-20T16:22:19.024000+00:00",
+      "bbox": [
+        -84.4152632,
+        42.3024516,
+        -83.1818763,
+        43.3143434
+      ],
+      "cloud_cover_pct": 0.233315,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/20/S2B_MSIL2A_20241020T162219_N0511_R040_T16TGN_20241020T185340.SAFE/GRANULE/L2A_T16TGN_A039820_20241020T162808/IMG_DATA/R10m/T16TGN_20241020T162219_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/20/S2B_MSIL2A_20241020T162219_N0511_R040_T16TGN_20241020T185340.SAFE/GRANULE/L2A_T16TGN_A039820_20241020T162808/IMG_DATA/R10m/T16TGN_20241020T162219_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/20/S2B_MSIL2A_20241020T162219_N0511_R040_T16TGN_20241020T185340.SAFE/GRANULE/L2A_T16TGN_A039820_20241020T162808/IMG_DATA/R20m/T16TGN_20241020T162219_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/16/T/GN/2024/10/20/S2B_MSIL2A_20241020T162219_N0511_R040_T16TGN_20241020T185340.SAFE/GRANULE/L2A_T16TGN_A039820_20241020T162808/IMG_DATA/R10m/T16TGN_20241020T162219_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 50.68771794056093
+      }
+    },
+    {
+      "id": "8cf96372-7531-48ad-aed0-cc909d009af0",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "stac_collection": "sentinel-2-l2a",
+      "stac_item_id": "S2B_MSIL2A_20241020T162219_R040_T17TLH_20241020T185340",
+      "observed_at": "2024-10-20T16:22:19.024000+00:00",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.0953092,
+        43.3474404
+      ],
+      "cloud_cover_pct": 12.542032,
+      "source_provider": "Microsoft Planetary Computer",
+      "platform": "Sentinel-2B",
+      "instruments": [
+        "msi"
+      ],
+      "assets": {
+        "nir": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/20/S2B_MSIL2A_20241020T162219_N0511_R040_T17TLH_20241020T185340.SAFE/GRANULE/L2A_T17TLH_A039820_20241020T162808/IMG_DATA/R10m/T17TLH_20241020T162219_B08_10m.tif",
+        "red": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/20/S2B_MSIL2A_20241020T162219_N0511_R040_T17TLH_20241020T185340.SAFE/GRANULE/L2A_T17TLH_A039820_20241020T162808/IMG_DATA/R10m/T17TLH_20241020T162219_B04_10m.tif",
+        "scl": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/20/S2B_MSIL2A_20241020T162219_N0511_R040_T17TLH_20241020T185340.SAFE/GRANULE/L2A_T17TLH_A039820_20241020T162808/IMG_DATA/R20m/T17TLH_20241020T162219_SCL_20m.tif",
+        "visual": "https://sentinel2l2a01.blob.core.windows.net/sentinel2-l2/17/T/LH/2024/10/20/S2B_MSIL2A_20241020T162219_N0511_R040_T17TLH_20241020T185340.SAFE/GRANULE/L2A_T17TLH_A039820_20241020T162808/IMG_DATA/R10m/T17TLH_20241020T162219_TCI_10m.tif"
+      },
+      "selection_status": "excluded",
+      "exclusion_reason": "not_selected_temporal_sampling",
+      "quality": {
+        "aoi_overlap_pct": 100.0
+      }
+    }
+  ],
+  "observations": [
+    {
+      "id": "ee3697cd-58d5-4545-8469-db4358ab1f40",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "d95534b3-936c-49bf-a24e-ad2b4b880add",
+      "ndvi_min": -1.0,
+      "ndvi_max": 1.0,
+      "ndvi_mean": 0.3847833111455496,
+      "ndvi_median": 0.40360239148139954,
+      "ndvi_std": 0.2504732719131757,
+      "ndvi_p10": 0.08529412001371384,
+      "ndvi_p25": 0.258601114153862,
+      "ndvi_p75": 0.5495541989803314,
+      "ndvi_p90": 0.6718550205230713,
+      "valid_pixel_count": 691263,
+      "masked_pixel_count": 45,
+      "aoi_pixel_count": 691308,
+      "valid_pixel_pct": 99.9935,
+      "zero_denominator_pixel_count": 25,
+      "mask_scl_classes": [
+        0,
+        1,
+        3,
+        8,
+        9,
+        10,
+        11
+      ],
+      "band_scaling": {
+        "scale": 0.0001,
+        "offset": -0.1,
+        "source": "baseline_heuristic"
+      },
+      "processing_params": {
+        "operation": "ndvi",
+        "resampling": "nearest",
+        "min_valid_pixel_pct": 10.0
+      },
+      "processing_seconds": 4.381
+    },
+    {
+      "id": "39ba30fa-9927-4846-96a1-4bc9e2194d22",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "3c829517-c667-4408-8664-2e60f2397887",
+      "ndvi_min": -0.8640776872634888,
+      "ndvi_max": 1.0,
+      "ndvi_mean": 0.6081721726320134,
+      "ndvi_median": 0.6840277910232544,
+      "ndvi_std": 0.2679388672137528,
+      "ndvi_p10": 0.1704917997121811,
+      "ndvi_p25": 0.43033114075660706,
+      "ndvi_p75": 0.8359853029251099,
+      "ndvi_p90": 0.8922338366508484,
+      "valid_pixel_count": 1366568,
+      "masked_pixel_count": 923,
+      "aoi_pixel_count": 1367491,
+      "valid_pixel_pct": 99.9325,
+      "zero_denominator_pixel_count": 0,
+      "mask_scl_classes": [
+        0,
+        1,
+        3,
+        8,
+        9,
+        10,
+        11
+      ],
+      "band_scaling": {
+        "scale": 0.0001,
+        "offset": -0.1,
+        "source": "baseline_heuristic"
+      },
+      "processing_params": {
+        "operation": "ndvi",
+        "resampling": "nearest",
+        "min_valid_pixel_pct": 10.0
+      },
+      "processing_seconds": 3.059
+    },
+    {
+      "id": "268c337c-961c-45f1-be3a-7dd391ef43f9",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "25e5ed0b-6414-4ccb-a0f0-b95a3f2de978",
+      "ndvi_min": -0.9473684430122375,
+      "ndvi_max": 1.0,
+      "ndvi_mean": 0.5916904813173054,
+      "ndvi_median": 0.666832447052002,
+      "ndvi_std": 0.2708784795019458,
+      "ndvi_p10": 0.15342085063457492,
+      "ndvi_p25": 0.4140408933162689,
+      "ndvi_p75": 0.8192264437675476,
+      "ndvi_p90": 0.8811468005180358,
+      "valid_pixel_count": 1367459,
+      "masked_pixel_count": 32,
+      "aoi_pixel_count": 1367491,
+      "valid_pixel_pct": 99.9977,
+      "zero_denominator_pixel_count": 0,
+      "mask_scl_classes": [
+        0,
+        1,
+        3,
+        8,
+        9,
+        10,
+        11
+      ],
+      "band_scaling": {
+        "scale": 0.0001,
+        "offset": -0.1,
+        "source": "baseline_heuristic"
+      },
+      "processing_params": {
+        "operation": "ndvi",
+        "resampling": "nearest",
+        "min_valid_pixel_pct": 10.0
+      },
+      "processing_seconds": 2.821
+    },
+    {
+      "id": "9a43abc2-eddf-479a-9a87-16efe1bac68f",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "8dbb9a75-0dfb-4b6f-93b0-eb92d9a055a3",
+      "ndvi_min": -0.6218905448913574,
+      "ndvi_max": 0.9402422904968262,
+      "ndvi_mean": 0.5968355530093563,
+      "ndvi_median": 0.6810370683670044,
+      "ndvi_std": 0.2700022523524697,
+      "ndvi_p10": 0.1496949315071106,
+      "ndvi_p25": 0.41813260316848755,
+      "ndvi_p75": 0.8261575698852539,
+      "ndvi_p90": 0.8758347630500793,
+      "valid_pixel_count": 691300,
+      "masked_pixel_count": 8,
+      "aoi_pixel_count": 691308,
+      "valid_pixel_pct": 99.9988,
+      "zero_denominator_pixel_count": 0,
+      "mask_scl_classes": [
+        0,
+        1,
+        3,
+        8,
+        9,
+        10,
+        11
+      ],
+      "band_scaling": {
+        "scale": 0.0001,
+        "offset": -0.1,
+        "source": "baseline_heuristic"
+      },
+      "processing_params": {
+        "operation": "ndvi",
+        "resampling": "nearest",
+        "min_valid_pixel_pct": 10.0
+      },
+      "processing_seconds": 3.041
+    },
+    {
+      "id": "dcc1bdbe-bf1c-4b9c-bcc1-7f6f1f5ad556",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "536c086a-5cf1-4983-95dd-1f3cb21a8860",
+      "ndvi_min": -0.9145299196243286,
+      "ndvi_max": 1.0,
+      "ndvi_mean": 0.6059256452365924,
+      "ndvi_median": 0.6996398568153381,
+      "ndvi_std": 0.2844006113389777,
+      "ndvi_p10": 0.14966735243797308,
+      "ndvi_p25": 0.4276488646864891,
+      "ndvi_p75": 0.841565728187561,
+      "ndvi_p90": 0.8883720636367798,
+      "valid_pixel_count": 691300,
+      "masked_pixel_count": 8,
+      "aoi_pixel_count": 691308,
+      "valid_pixel_pct": 99.9988,
+      "zero_denominator_pixel_count": 0,
+      "mask_scl_classes": [
+        0,
+        1,
+        3,
+        8,
+        9,
+        10,
+        11
+      ],
+      "band_scaling": {
+        "scale": 0.0001,
+        "offset": -0.1,
+        "source": "baseline_heuristic"
+      },
+      "processing_params": {
+        "operation": "ndvi",
+        "resampling": "nearest",
+        "min_valid_pixel_pct": 10.0
+      },
+      "processing_seconds": 2.7
+    },
+    {
+      "id": "cc018b9e-b70d-4904-88cd-301a233ed618",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "8aa27497-b4a9-450a-9883-fa0918fa4618",
+      "ndvi_min": -1.0,
+      "ndvi_max": 0.9896818399429321,
+      "ndvi_mean": 0.5797006548026676,
+      "ndvi_median": 0.6647628843784332,
+      "ndvi_std": 0.2814095845007886,
+      "ndvi_p10": 0.13892665654420858,
+      "ndvi_p25": 0.3942127078771591,
+      "ndvi_p75": 0.8110108822584152,
+      "ndvi_p90": 0.8712675094604492,
+      "valid_pixel_count": 691300,
+      "masked_pixel_count": 8,
+      "aoi_pixel_count": 691308,
+      "valid_pixel_pct": 99.9988,
+      "zero_denominator_pixel_count": 0,
+      "mask_scl_classes": [
+        0,
+        1,
+        3,
+        8,
+        9,
+        10,
+        11
+      ],
+      "band_scaling": {
+        "scale": 0.0001,
+        "offset": -0.1,
+        "source": "baseline_heuristic"
+      },
+      "processing_params": {
+        "operation": "ndvi",
+        "resampling": "nearest",
+        "min_valid_pixel_pct": 10.0
+      },
+      "processing_seconds": 2.519
+    }
+  ],
+  "artifacts": [
+    {
+      "id": "2fe79249-75c4-4a23-83fb-051224b91a57",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "d95534b3-936c-49bf-a24e-ad2b4b880add",
+      "artifact_type": "ndvi_preview",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2A_MSIL2A_20240408T161831_R040_T16TGN_20240410T211148/ndvi_preview.png",
+      "content_type": "image/png",
+      "size_bytes": 501911,
+      "sha256": "438d1d15d39d9889a71f00e05a456acc12ecc70ff2cc17c5867cdc323fbe7691",
+      "crs": "EPSG:32616",
+      "bbox": [
+        -84.4015433,
+        42.3024516,
+        -83.1818763,
+        43.3139785
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2A_MSIL2A_20240408T161831_R040_T16TGN_20240410T211148__ndvi_preview.png"
+    },
+    {
+      "id": "e215278c-12de-4c88-ad0e-9b65caffdd59",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "d95534b3-936c-49bf-a24e-ad2b4b880add",
+      "artifact_type": "scene_summary",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2A_MSIL2A_20240408T161831_R040_T16TGN_20240410T211148/summary.json",
+      "content_type": "application/json",
+      "size_bytes": 2291,
+      "sha256": "5b6093411864ef556ed040fb804603b122bf2d3cff89ea46d6d7665343a21441",
+      "crs": "EPSG:32616",
+      "bbox": [
+        -84.4015433,
+        42.3024516,
+        -83.1818763,
+        43.3139785
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2A_MSIL2A_20240408T161831_R040_T16TGN_20240410T211148__summary.json"
+    },
+    {
+      "id": "f2916cda-65df-4be2-ade2-a14ac390ec35",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "d95534b3-936c-49bf-a24e-ad2b4b880add",
+      "artifact_type": "true_color_preview",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2A_MSIL2A_20240408T161831_R040_T16TGN_20240410T211148/true_color.png",
+      "content_type": "image/png",
+      "size_bytes": 543961,
+      "sha256": "83b78d1eb46e9a1d1ef38ac73d21b6bf9bf2fc99c2907b27a52650520eea3ae7",
+      "crs": "EPSG:32616",
+      "bbox": [
+        -84.4015433,
+        42.3024516,
+        -83.1818763,
+        43.3139785
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2A_MSIL2A_20240408T161831_R040_T16TGN_20240410T211148__true_color.png"
+    },
+    {
+      "id": "b2526c21-f0b8-44cb-807b-daf5b8245b5c",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "3c829517-c667-4408-8664-2e60f2397887",
+      "artifact_type": "ndvi_preview",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2A_MSIL2A_20240531T162841_R083_T17TLH_20240601T010652/ndvi_preview.png",
+      "content_type": "image/png",
+      "size_bytes": 1004188,
+      "sha256": "e911de6ab9406ddc67e51eafa0d0b5b83a5619773c42ab07575cef0c30c182b6",
+      "crs": "EPSG:32617",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8488317,
+        43.3359201
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2A_MSIL2A_20240531T162841_R083_T17TLH_20240601T010652__ndvi_preview.png"
+    },
+    {
+      "id": "5da1eca5-3975-469b-9b0e-024382d91745",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "3c829517-c667-4408-8664-2e60f2397887",
+      "artifact_type": "scene_summary",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2A_MSIL2A_20240531T162841_R083_T17TLH_20240601T010652/summary.json",
+      "content_type": "application/json",
+      "size_bytes": 2309,
+      "sha256": "34987b621f605d22992aea56ffda4f30a535d9f520fb4b149141cd80cd77d903",
+      "crs": "EPSG:32617",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8488317,
+        43.3359201
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2A_MSIL2A_20240531T162841_R083_T17TLH_20240601T010652__summary.json"
+    },
+    {
+      "id": "de27dfe6-5173-4b73-afe4-40f95b5ed9d6",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "3c829517-c667-4408-8664-2e60f2397887",
+      "artifact_type": "true_color_preview",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2A_MSIL2A_20240531T162841_R083_T17TLH_20240601T010652/true_color.png",
+      "content_type": "image/png",
+      "size_bytes": 1049271,
+      "sha256": "90c883dfbb20675f1c142d3086734f4b0ed1e7cc0841e88471cee0e120c3e4ec",
+      "crs": "EPSG:32617",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.8488317,
+        43.3359201
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2A_MSIL2A_20240531T162841_R083_T17TLH_20240601T010652__true_color.png"
+    },
+    {
+      "id": "1ec928fa-b0cb-4a10-bc40-39f20f1abedc",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "25e5ed0b-6414-4ccb-a0f0-b95a3f2de978",
+      "artifact_type": "ndvi_preview",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2B_MSIL2A_20240612T161829_R040_T17TLH_20240612T221210/ndvi_preview.png",
+      "content_type": "image/png",
+      "size_bytes": 1012887,
+      "sha256": "7ce20bca2db57956d060eb20cdee9b26f87c15eadca886a30ea1e21eea6a541d",
+      "crs": "EPSG:32617",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.0953092,
+        43.3474404
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2B_MSIL2A_20240612T161829_R040_T17TLH_20240612T221210__ndvi_preview.png"
+    },
+    {
+      "id": "f0da29ea-f8fe-4186-8570-45f7a87b65ff",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "25e5ed0b-6414-4ccb-a0f0-b95a3f2de978",
+      "artifact_type": "scene_summary",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2B_MSIL2A_20240612T161829_R040_T17TLH_20240612T221210/summary.json",
+      "content_type": "application/json",
+      "size_bytes": 2307,
+      "sha256": "46c7043ab17ab31472f3bf89fde08afe0c5b510de387371e2c2bb0de9238cbce",
+      "crs": "EPSG:32617",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.0953092,
+        43.3474404
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2B_MSIL2A_20240612T161829_R040_T17TLH_20240612T221210__summary.json"
+    },
+    {
+      "id": "71bb2598-2c2b-469f-b563-1a91d764d5e1",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "25e5ed0b-6414-4ccb-a0f0-b95a3f2de978",
+      "artifact_type": "true_color_preview",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2B_MSIL2A_20240612T161829_R040_T17TLH_20240612T221210/true_color.png",
+      "content_type": "image/png",
+      "size_bytes": 1059548,
+      "sha256": "24484525d28ec9e5476f4c04067045d77a859e17a4d35ab0f153046e3ce3f1ab",
+      "crs": "EPSG:32617",
+      "bbox": [
+        -83.466782,
+        42.3383618,
+        -82.0953092,
+        43.3474404
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2B_MSIL2A_20240612T161829_R040_T17TLH_20240612T221210__true_color.png"
+    },
+    {
+      "id": "a5ea1ae1-2c80-4861-ba97-1cd473d6b5c6",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "8dbb9a75-0dfb-4b6f-93b0-eb92d9a055a3",
+      "artifact_type": "ndvi_preview",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2A_MSIL2A_20240727T161831_R040_T16TGN_20240727T233652/ndvi_preview.png",
+      "content_type": "image/png",
+      "size_bytes": 514020,
+      "sha256": "d956cbb3b4eb2693544e60043451b6fbf6a2b7eb6bae602417103c26b37d7d30",
+      "crs": "EPSG:32616",
+      "bbox": [
+        -84.4019695,
+        42.3024516,
+        -83.2062225,
+        43.036296
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2A_MSIL2A_20240727T161831_R040_T16TGN_20240727T233652__ndvi_preview.png"
+    },
+    {
+      "id": "02687369-9b00-4e77-802c-43306408b279",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "8dbb9a75-0dfb-4b6f-93b0-eb92d9a055a3",
+      "artifact_type": "scene_summary",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2A_MSIL2A_20240727T161831_R040_T16TGN_20240727T233652/summary.json",
+      "content_type": "application/json",
+      "size_bytes": 2319,
+      "sha256": "7f37b1b783e314e4bc047ce9a24f59f4198b3ec61e7eb1d9d00a86ef7cbee9b4",
+      "crs": "EPSG:32616",
+      "bbox": [
+        -84.4019695,
+        42.3024516,
+        -83.2062225,
+        43.036296
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2A_MSIL2A_20240727T161831_R040_T16TGN_20240727T233652__summary.json"
+    },
+    {
+      "id": "a117302a-4dfd-4535-a7d1-3a8554e316a2",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "8dbb9a75-0dfb-4b6f-93b0-eb92d9a055a3",
+      "artifact_type": "true_color_preview",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2A_MSIL2A_20240727T161831_R040_T16TGN_20240727T233652/true_color.png",
+      "content_type": "image/png",
+      "size_bytes": 539869,
+      "sha256": "d7f6ac83ae7693ec57f0afce8a000fc9c889b1bd914603567ff14292a9e9c16d",
+      "crs": "EPSG:32616",
+      "bbox": [
+        -84.4019695,
+        42.3024516,
+        -83.2062225,
+        43.036296
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2A_MSIL2A_20240727T161831_R040_T16TGN_20240727T233652__true_color.png"
+    },
+    {
+      "id": "1d3bc287-17f9-40b6-84e0-f2941b45fb9c",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "536c086a-5cf1-4983-95dd-1f3cb21a8860",
+      "artifact_type": "ndvi_preview",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2B_MSIL2A_20240831T161829_R040_T16TGN_20240831T202059/ndvi_preview.png",
+      "content_type": "image/png",
+      "size_bytes": 506705,
+      "sha256": "1151156c1347a19f5f6f4d23ff6ebb9256fb4242f567c12696d260895385c11e",
+      "crs": "EPSG:32616",
+      "bbox": [
+        -84.4160399,
+        42.3024516,
+        -83.1818763,
+        43.314382
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2B_MSIL2A_20240831T161829_R040_T16TGN_20240831T202059__ndvi_preview.png"
+    },
+    {
+      "id": "4e155dfe-b6e8-4b42-a2fd-69163538623a",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "536c086a-5cf1-4983-95dd-1f3cb21a8860",
+      "artifact_type": "scene_summary",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2B_MSIL2A_20240831T161829_R040_T16TGN_20240831T202059/summary.json",
+      "content_type": "application/json",
+      "size_bytes": 2303,
+      "sha256": "a6dee34708296fd11d6bc1884784481a302aa3fe0d45f33dc3db561a5956d799",
+      "crs": "EPSG:32616",
+      "bbox": [
+        -84.4160399,
+        42.3024516,
+        -83.1818763,
+        43.314382
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2B_MSIL2A_20240831T161829_R040_T16TGN_20240831T202059__summary.json"
+    },
+    {
+      "id": "fec7bae7-a1e2-4a3b-9cac-89a29ed90533",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "536c086a-5cf1-4983-95dd-1f3cb21a8860",
+      "artifact_type": "true_color_preview",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2B_MSIL2A_20240831T161829_R040_T16TGN_20240831T202059/true_color.png",
+      "content_type": "image/png",
+      "size_bytes": 542228,
+      "sha256": "8c3bb20c97c7cc5a513467a05dba5d098d3ddcd11dfdf1f944f0826df07ba659",
+      "crs": "EPSG:32616",
+      "bbox": [
+        -84.4160399,
+        42.3024516,
+        -83.1818763,
+        43.314382
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2B_MSIL2A_20240831T161829_R040_T16TGN_20240831T202059__true_color.png"
+    },
+    {
+      "id": "c60c0368-a674-4c0b-a4f7-6b2ab2ff5ee5",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "8aa27497-b4a9-450a-9883-fa0918fa4618",
+      "artifact_type": "ndvi_preview",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2A_MSIL2A_20241005T162141_R040_T16TGN_20241005T220355/ndvi_preview.png",
+      "content_type": "image/png",
+      "size_bytes": 514640,
+      "sha256": "bf749aa45accd3ded8344d50f8e6ce8c844c8407def32b86c627716f569d7f8d",
+      "crs": "EPSG:32616",
+      "bbox": [
+        -84.4039285,
+        42.3024516,
+        -83.1818763,
+        43.3140669
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2A_MSIL2A_20241005T162141_R040_T16TGN_20241005T220355__ndvi_preview.png"
+    },
+    {
+      "id": "de0cd7b6-90e4-41bb-8189-f1a5c0011431",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "8aa27497-b4a9-450a-9883-fa0918fa4618",
+      "artifact_type": "scene_summary",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2A_MSIL2A_20241005T162141_R040_T16TGN_20241005T220355/summary.json",
+      "content_type": "application/json",
+      "size_bytes": 2304,
+      "sha256": "61e6f6cb051d8f3316fcd1e35cac76782fb7162c1e90539e52074d7552432c07",
+      "crs": "EPSG:32616",
+      "bbox": [
+        -84.4039285,
+        42.3024516,
+        -83.1818763,
+        43.3140669
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2A_MSIL2A_20241005T162141_R040_T16TGN_20241005T220355__summary.json"
+    },
+    {
+      "id": "97844afc-186e-4220-9fde-d95a44141726",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": "8aa27497-b4a9-450a-9883-fa0918fa4618",
+      "artifact_type": "true_color_preview",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/scenes/S2A_MSIL2A_20241005T162141_R040_T16TGN_20241005T220355/true_color.png",
+      "content_type": "image/png",
+      "size_bytes": 539507,
+      "sha256": "1ff01253114b27ea053b03fb791ae24bebca1b16834e899847b10e50a7ae4899",
+      "crs": "EPSG:32616",
+      "bbox": [
+        -84.4039285,
+        42.3024516,
+        -83.1818763,
+        43.3140669
+      ],
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__scenes__S2A_MSIL2A_20241005T162141_R040_T16TGN_20241005T220355__true_color.png"
+    },
+    {
+      "id": "6e798f9d-da1d-4143-be01-03f0a6997e44",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": null,
+      "artifact_type": "timeseries_csv",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/timeseries.csv",
+      "content_type": "text/csv",
+      "size_bytes": 1822,
+      "sha256": "6ac1c5ec751579f6054762e4cdeb5b1bf4abc9ba867f899e876110afcc994adc",
+      "crs": null,
+      "bbox": null,
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__timeseries.csv"
+    },
+    {
+      "id": "2464fdcf-8d95-4bc3-9fb9-ff894396a208",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": null,
+      "artifact_type": "analysis_summary",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/summary.json",
+      "content_type": "application/json",
+      "size_bytes": 599,
+      "sha256": "4453da777724c3469a64f79b068fc8a76a992921cf6ae617269f1af2ccc5165b",
+      "crs": null,
+      "bbox": null,
+      "provenance": null,
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__summary.json"
+    },
+    {
+      "id": "953c4212-c04b-4c0a-b077-21cda7864609",
+      "analysis_id": "50e71c0c-6dac-4361-8e29-c78b7afcf5cd",
+      "scene_id": null,
+      "artifact_type": "provenance",
+      "container": "artifacts",
+      "blob_path": "analyses/50e71c0c-6dac-4361-8e29-c78b7afcf5cd/provenance.json",
+      "content_type": "application/json",
+      "size_bytes": 33104,
+      "sha256": "50a09c256f6de0392c2bddb176e95cc09a581f0dee1adaac9edace6b9f8a216f",
+      "crs": null,
+      "bbox": null,
+      "provenance": {
+        "schema_version": "1.0.0"
+      },
+      "file": "blobs/analyses__50e71c0c-6dac-4361-8e29-c78b7afcf5cd__provenance.json"
+    }
+  ]
+}
