@@ -1,0 +1,14 @@
+# Gitleaks configuration.
+# The only allowlisted value is Azurite's WELL-KNOWN development storage key,
+# published by Microsoft for local emulation. It is not a secret and grants
+# access to nothing outside a developer's own machine:
+# https://learn.microsoft.com/azure/storage/common/storage-use-azurite#well-known-storage-account-and-key
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Azurite well-known development credentials (published by Microsoft)"
+regexes = [
+    '''Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==''',
+]

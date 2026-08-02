@@ -1,0 +1,20 @@
+# Copy to terraform.tfvars for local applies. CI passes everything it needs
+# via -var flags, so this file is only for humans.
+
+# location = "eastus" # see variables.tf for the region tradeoff note
+
+# Optional: pin the suffix used in globally unique names (storage/ACR/KV/PG).
+# Leave unset to let Terraform generate one and keep it in state.
+# unique_suffix = "a1b2c3"
+
+# Image tag (usually a git SHA). Stage 1 can run with the default.
+# image_tag = "latest"
+
+# Stage 2 switch: create container apps + jobs after images exist in ACR.
+# deploy_workloads = true
+
+# Optional monthly cost guardrail — both must be set for the budget to exist.
+# budget_amount        = 50
+# budget_contact_email = "you@example.com"
+
+# artifacts_retention_days = 30

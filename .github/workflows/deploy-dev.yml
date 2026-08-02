@@ -1,0 +1,170 @@
+# Deploys the dev environment on every push to main (and on demand).
+#
+# BOOTSTRAP GATE: every job is guarded with `if: vars.AZURE_CLIENT_ID != ''`,
+# so until scripts/bootstrap-azure-github.sh has been run (which creates the
+# Azure OIDC identity and sets the repo variables) this workflow no-op-skips
+# cleanly instead of failing. That keeps main green on a fresh clone/fork.
+#
+# Two-stage apply solves the ACR chicken-and-egg:
+#   stage 1: terraform apply -var deploy_workloads=false  -> foundation only
+#   az acr build x3                                       -> images now exist
+#   stage 2: terraform apply -var deploy_workloads=true   -> apps + jobs
+# then: run migrations, seed, and smoke-test the live endpoints.
+#
+# Auth is GitHub OIDC only (azure/login@v2 + ARM_USE_OIDC) — no secrets are
+# stored in GitHub, and none are ever echoed.
+name: deploy-dev
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  id-token: write
+  contents: read
+
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+env:
+  TF_DIR: infra/environments/dev
+
+jobs:
+  deploy:
+    name: deploy dev
+    runs-on: ubuntu-latest
+    if: vars.AZURE_CLIENT_ID != ''
+    environment: dev
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: "true"
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
+      RESOURCE_GROUP: ${{ vars.AZURE_RESOURCE_GROUP }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          # No wrapper: we capture `terraform output -raw` values in bash.
+          terraform_wrapper: false
+
+      - name: Terraform init (remote state, OIDC)
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ vars.TF_STATE_RESOURCE_GROUP }}" \
+            -backend-config="storage_account_name=${{ vars.TF_STATE_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ vars.TF_STATE_CONTAINER }}" \
+            -backend-config="key=dev.tfstate" \
+            -backend-config="use_oidc=true" \
+            -backend-config="use_azuread_auth=true"
+
+      - name: "Stage 1: foundation (no workloads)"
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          terraform apply -auto-approve \
+            -var "deploy_workloads=false" \
+            -var "image_tag=${{ github.sha }}"
+
+      - name: Read foundation outputs
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          ACR_LOGIN_SERVER=$(terraform output -raw acr_login_server)
+          {
+            echo "ACR_LOGIN_SERVER=${ACR_LOGIN_SERVER}"
+            echo "ACR_NAME=${ACR_LOGIN_SERVER%%.*}"
+          } >> "$GITHUB_ENV"
+
+      - name: Build and push images (az acr build)
+        run: |
+          az acr build --registry "$ACR_NAME" \
+            --image "oeop-api:${{ github.sha }}" \
+            --file apps/api/Dockerfile \
+            --build-arg GIT_SHA=${{ github.sha }} \
+            .
+          az acr build --registry "$ACR_NAME" \
+            --image "oeop-worker:${{ github.sha }}" \
+            --file apps/worker/Dockerfile \
+            --build-arg GIT_SHA=${{ github.sha }} \
+            .
+          # Web resolves the API URL at runtime, so no build-time URL is needed.
+          az acr build --registry "$ACR_NAME" \
+            --image "oeop-web:${{ github.sha }}" \
+            --file apps/web/Dockerfile \
+            --build-arg GIT_SHA=${{ github.sha }} \
+            apps/web
+
+      - name: "Stage 2: workloads (apps + jobs)"
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          terraform apply -auto-approve \
+            -var "deploy_workloads=true" \
+            -var "image_tag=${{ github.sha }}"
+
+      - name: Read workload outputs
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          {
+            echo "API_URL=$(terraform output -raw api_url)"
+            echo "WEB_URL=$(terraform output -raw web_url)"
+            echo "MIGRATION_JOB=$(terraform output -raw migration_job_name)"
+            echo "SEED_JOB=$(terraform output -raw seed_job_name)"
+          } >> "$GITHUB_ENV"
+
+      - name: Install containerapp CLI extension
+        run: az extension add --name containerapp --upgrade --yes
+
+      - name: Run database migrations
+        run: |
+          set -euo pipefail
+          source .github/workflows/scripts/run-containerapp-job.sh
+          run_containerapp_job "$RESOURCE_GROUP" "$MIGRATION_JOB" 600
+
+      - name: Seed reference data
+        run: |
+          set -euo pipefail
+          source .github/workflows/scripts/run-containerapp-job.sh
+          run_containerapp_job "$RESOURCE_GROUP" "$SEED_JOB" 600
+
+      - name: Smoke tests
+        run: |
+          set -euo pipefail
+          wait_for() {
+            local url="$1" deadline=$((SECONDS + 120))
+            echo "Waiting for $url"
+            until curl -fsS --max-time 10 "$url" > /dev/null; do
+              if [ "$SECONDS" -ge "$deadline" ]; then
+                echo "::error::Timed out after 2 minutes waiting for $url"
+                return 1
+              fi
+              sleep 5
+            done
+            echo "OK: $url"
+          }
+          wait_for "$API_URL/health/live"
+          wait_for "$API_URL/health/ready"
+          wait_for "$WEB_URL/"
+
+      - name: Deployment summary
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          {
+            echo "## Dev deployment (${{ github.sha }})"
+            echo ""
+            echo "| Output | Value |"
+            echo "| --- | --- |"
+            terraform output -json \
+              | jq -r 'to_entries[] | select(.value.sensitive | not) | "| \(.key) | \(.value.value) |"'
+          } >> "$GITHUB_STEP_SUMMARY"

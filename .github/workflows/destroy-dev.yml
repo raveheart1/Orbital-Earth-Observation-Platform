@@ -1,0 +1,97 @@
+# =============================================================================
+# !!! DESTROYS THE ENTIRE DEV ENVIRONMENT !!!
+#
+# Manual-only (workflow_dispatch). Never triggered automatically. Requires
+# typing the exact resource group name (rg-oeop-dev) as confirmation. This
+# deletes the database, storage account (including all artifacts), container
+# registry (all images), Key Vault and every app — the data is NOT
+# recoverable beyond the short soft-delete windows configured for dev.
+# =============================================================================
+name: destroy-dev
+
+on:
+  workflow_dispatch:
+    inputs:
+      confirm:
+        description: 'Type the resource group name (rg-oeop-dev) to confirm destruction'
+        type: string
+        required: true
+
+permissions:
+  id-token: write
+  contents: read
+
+# Shares the deploy-dev group so a destroy never races a deploy for the state.
+concurrency:
+  group: deploy-dev
+  cancel-in-progress: false
+
+jobs:
+  destroy:
+    name: destroy dev
+    runs-on: ubuntu-latest
+    if: vars.AZURE_CLIENT_ID != ''
+    environment: dev
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: "true"
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
+    steps:
+      - name: Verify confirmation input
+        run: |
+          if [ "${{ inputs.confirm }}" != "${{ vars.AZURE_RESOURCE_GROUP }}" ]; then
+            echo "::error::Confirmation failed: input '${{ inputs.confirm }}' does not match the resource group name '${{ vars.AZURE_RESOURCE_GROUP }}'. Nothing was destroyed."
+            exit 1
+          fi
+          echo "Confirmation accepted — destroying ${{ vars.AZURE_RESOURCE_GROUP }}."
+
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      - name: Terraform init (remote state, OIDC)
+        working-directory: infra/environments/dev
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ vars.TF_STATE_RESOURCE_GROUP }}" \
+            -backend-config="storage_account_name=${{ vars.TF_STATE_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ vars.TF_STATE_CONTAINER }}" \
+            -backend-config="key=dev.tfstate" \
+            -backend-config="use_oidc=true" \
+            -backend-config="use_azuread_auth=true"
+
+      - name: Show destroy plan
+        working-directory: infra/environments/dev
+        run: |
+          terraform plan -destroy -var "deploy_workloads=true" -no-color \
+            | tee /tmp/destroy-plan.txt
+          {
+            echo "## Destroy plan (dev)"
+            echo '```'
+            tail -40 /tmp/destroy-plan.txt
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Terraform destroy
+        working-directory: infra/environments/dev
+        run: terraform destroy -auto-approve -var "deploy_workloads=true"
+
+      - name: List remaining resources in the resource group
+        if: always()
+        run: |
+          echo "Resources still present in ${{ vars.AZURE_RESOURCE_GROUP }} (should be empty):"
+          az resource list \
+            --resource-group "${{ vars.AZURE_RESOURCE_GROUP }}" \
+            --output table || true

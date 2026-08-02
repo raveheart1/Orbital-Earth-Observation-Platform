@@ -1,0 +1,8 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Security vulnerability
+    url: https://github.com/raveheart1/Orbital-Earth-Observation-Platform/security/advisories/new
+    about: Report vulnerabilities privately via GitHub Security Advisories, not public issues.
+  - name: Documentation
+    url: https://github.com/raveheart1/Orbital-Earth-Observation-Platform/tree/main/docs
+    about: Architecture, methodology, limitations, operations, and ADRs.

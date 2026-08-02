@@ -1,0 +1,126 @@
+# Terraform checks for pull requests touching infra/.
+#
+# SECURITY NOTE: a credentialed `terraform plan` is deliberately NOT run for
+# pull requests from forks. Fork PRs execute attacker-controlled workflow
+# changes and .tf files; giving them cloud credentials (even read-ish plan
+# credentials that can read state, data sources and provider secrets) would
+# let a malicious PR exfiltrate them. Static checks below run for every PR
+# with no credentials at all; the real plan job only runs for same-repo PRs
+# (github.event.pull_request.head.repo.full_name == github.repository) and
+# only once bootstrap has populated vars.AZURE_CLIENT_ID.
+name: terraform-plan
+
+on:
+  pull_request:
+    paths:
+      - "infra/**"
+      - ".github/workflows/terraform-plan.yml"
+      - ".tflint.hcl"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: terraform-plan-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  static-checks:
+    name: static checks (no credentials)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+
+      - name: Format check
+        run: terraform fmt -check -recursive
+        working-directory: infra
+
+      - name: Init (no backend)
+        run: terraform init -backend=false
+        working-directory: infra/environments/dev
+
+      - name: Validate
+        run: terraform validate
+        working-directory: infra/environments/dev
+
+      - uses: terraform-linters/setup-tflint@v4
+        continue-on-error: true
+
+      - name: TFLint
+        continue-on-error: true
+        working-directory: infra
+        run: |
+          tflint --init --config "${GITHUB_WORKSPACE}/.tflint.hcl"
+          tflint --recursive --config "${GITHUB_WORKSPACE}/.tflint.hcl"
+
+  plan:
+    name: plan (same-repo PRs only)
+    runs-on: ubuntu-latest
+    # Same-repo PRs only — see the security note at the top of this file.
+    # Also no-op-skips until scripts/bootstrap-azure-github.sh has been run.
+    if: vars.AZURE_CLIENT_ID != '' && github.event.pull_request.head.repo.full_name == github.repository
+    environment: dev
+    permissions:
+      id-token: write
+      contents: read
+    env:
+      ARM_CLIENT_ID: ${{ vars.AZURE_CLIENT_ID }}
+      ARM_TENANT_ID: ${{ vars.AZURE_TENANT_ID }}
+      ARM_SUBSCRIPTION_ID: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+      ARM_USE_OIDC: "true"
+      TF_IN_AUTOMATION: "true"
+      TF_INPUT: "false"
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: azure/login@v2
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.9.8
+          terraform_wrapper: false
+
+      - name: Terraform init (remote state, OIDC)
+        working-directory: infra/environments/dev
+        run: |
+          terraform init \
+            -backend-config="resource_group_name=${{ vars.TF_STATE_RESOURCE_GROUP }}" \
+            -backend-config="storage_account_name=${{ vars.TF_STATE_STORAGE_ACCOUNT }}" \
+            -backend-config="container_name=${{ vars.TF_STATE_CONTAINER }}" \
+            -backend-config="key=dev.tfstate" \
+            -backend-config="use_oidc=true" \
+            -backend-config="use_azuread_auth=true"
+
+      - name: Terraform plan
+        working-directory: infra/environments/dev
+        # -lock=false: read-only plan must not block a concurrent deploy.
+        run: |
+          terraform plan \
+            -lock=false \
+            -var "deploy_workloads=true" \
+            -out=tfplan
+
+      - name: Upload plan artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: terraform-plan-pr${{ github.event.pull_request.number }}
+          path: infra/environments/dev/tfplan
+          retention-days: 5
+
+      - name: Plan summary
+        working-directory: infra/environments/dev
+        run: |
+          {
+            echo "## Terraform plan (dev, first 200 lines)"
+            echo '```'
+            terraform show -no-color tfplan | head -200
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
