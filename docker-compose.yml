@@ -1,0 +1,108 @@
+# Local development stack: PostgreSQL+PostGIS, Azurite (Blob+Queue emulator),
+# API, worker, and web. No Azure account required.
+#
+#   make dev      # build + start everything
+#   make migrate  # apply database migrations
+#   make seed     # seed predefined regions
+#   make down     # stop
+#
+# The well-known Azurite development credentials below are published by
+# Microsoft for local emulation only — they are not secrets.
+
+name: oeop
+
+x-azurite-conn: &azurite_conn
+  OEOP_STORAGE_CONNECTION_STRING: "DefaultEndpointsProtocol=http;AccountName=devstoreaccount1;AccountKey=Eby8vdM02xNOcqFlqUwJPLlmEtlCDXJ1OUzFT50uSRZ6IFsuFq2UVErCz4I6tq/K1SZFPTOtr/KBHBeksoGMGw==;BlobEndpoint=http://azurite:10000/devstoreaccount1;QueueEndpoint=http://azurite:10001/devstoreaccount1;"
+
+x-app-env: &app_env
+  OEOP_ENVIRONMENT: local
+  OEOP_LOG_LEVEL: INFO
+  OEOP_DATABASE_URL: postgresql+asyncpg://oeop:oeop_local_dev@postgres:5432/oeop
+  <<: *azurite_conn
+
+services:
+  postgres:
+    image: postgis/postgis:16-3.4
+    environment:
+      POSTGRES_USER: oeop
+      POSTGRES_PASSWORD: oeop_local_dev
+      POSTGRES_DB: oeop
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U oeop -d oeop"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  azurite:
+    image: mcr.microsoft.com/azure-storage/azurite:latest
+    # --skipApiVersionCheck: the Azure SDK's service API version is often newer
+    # than the emulator's advertised ceiling; the operations we use are stable.
+    command: azurite --blobHost 0.0.0.0 --queueHost 0.0.0.0 --tableHost 0.0.0.0 --silent --skipApiVersionCheck
+    ports:
+      - "10000:10000"
+      - "10001:10001"
+    volumes:
+      - azurite_data:/data
+    healthcheck:
+      test: ["CMD-SHELL", "nc -z 127.0.0.1 10000 && nc -z 127.0.0.1 10001"]
+      interval: 5s
+      timeout: 3s
+      retries: 12
+
+  migrate:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    profiles: ["tools"]
+    environment: *app_env
+    working_dir: /app/apps/api
+    command: ["python", "-m", "alembic", "upgrade", "head"]
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  api:
+    build:
+      context: .
+      dockerfile: apps/api/Dockerfile
+    environment: *app_env
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      azurite:
+        condition: service_healthy
+    restart: unless-stopped
+
+  worker:
+    build:
+      context: .
+      dockerfile: apps/worker/Dockerfile
+    environment: *app_env
+    depends_on:
+      postgres:
+        condition: service_healthy
+      azurite:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    build:
+      context: apps/web
+      dockerfile: Dockerfile
+    environment:
+      API_BASE_URL: http://api:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  azurite_data:
