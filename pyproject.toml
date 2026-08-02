@@ -1,0 +1,158 @@
+[project]
+name = "oeop-workspace"
+version = "0.1.0"
+description = "Workspace root for the Orbital Earth Observation Platform monorepo"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "oeop-api",
+    "oeop-worker",
+]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = [
+    "packages/earth_observation",
+    "packages/platform_core",
+    "apps/api",
+    "apps/worker",
+]
+
+[tool.uv.sources]
+earth-observation = { workspace = true }
+oeop-core = { workspace = true }
+oeop-api = { workspace = true }
+oeop-worker = { workspace = true }
+
+[dependency-groups]
+dev = [
+    "pytest>=8.3",
+    "pytest-asyncio>=0.24",
+    "pytest-cov>=6.0",
+    "ruff>=0.9",
+    "mypy>=1.14",
+    "httpx>=0.28",
+    "aiosqlite>=0.20",
+    "types-requests",
+    "pandas-stubs",
+    "jupyter>=1.1",
+    "nbconvert>=7.16",
+    "matplotlib>=3.9",
+    "folium>=0.18",
+]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+src = [
+    "packages/earth_observation/src",
+    "packages/platform_core/src",
+    "apps/api/src",
+    "apps/worker/src",
+]
+extend-exclude = ["notebooks", "apps/web"]
+
+[tool.ruff.lint]
+select = [
+    "E",    # pycodestyle errors
+    "W",    # pycodestyle warnings
+    "F",    # pyflakes
+    "I",    # isort
+    "UP",   # pyupgrade
+    "B",    # bugbear
+    "SIM",  # simplify
+    "RUF",  # ruff-specific
+    "PL",   # pylint subset
+    "PT",   # pytest style
+    "RET",  # return
+    "C4",   # comprehensions
+    "DTZ",  # naive datetime
+]
+ignore = [
+    "PLR0913",  # many-argument scientific functions are expected here
+    "PLR0917",  # same: positional-argument counts in raster pipelines
+    "PLR2004",  # magic values in scientific thresholds are documented inline
+    "PLR0912",
+    "PLR0915",
+    "PLR0911",
+    "PLC0415",  # lazy imports are deliberate (optional Azure credential paths)
+    "SIM105",   # explicit try/except documents intent better than suppress()
+    "UP042",    # str+Enum is required for SQLAlchemy values_callable mapping
+]
+
+[tool.ruff.lint.per-file-ignores]
+"**/tests/**" = ["PLR2004", "S101", "PT018", "SIM115"]
+"**/alembic/**" = ["I001"]
+"packages/platform_core/src/oeop_core/telemetry.py" = ["PLW0603"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+warn_unused_ignores = false
+namespace_packages = true
+explicit_package_bases = true
+mypy_path = [
+    "packages/earth_observation/src",
+    "packages/platform_core/src",
+    "apps/api/src",
+    "apps/worker/src",
+]
+exclude = ["notebooks", "apps/web", "build", "dist"]
+
+[[tool.mypy.overrides]]
+module = [
+    "rasterio.*",
+    "rioxarray.*",
+    "planetary_computer.*",
+    "pystac.*",
+    "pystac_client.*",
+    "geoalchemy2.*",
+    "shapely.*",
+    "pyproj.*",
+    "rio_cogeo.*",
+    "affine.*",
+    "PIL.*",
+    "jsonschema.*",
+    "azure.*",
+    "opentelemetry.*",
+    "xarray.*",
+    "scipy.*",
+]
+ignore_missing_imports = true
+
+[[tool.mypy.overrides]]
+module = ["earth_observation.*", "oeop_core.*", "oeop_api.*", "oeop_worker.*"]
+disallow_untyped_defs = true
+
+[[tool.mypy.overrides]]
+module = ["*.tests.*", "tests.*"]
+disallow_untyped_defs = false
+check_untyped_defs = true
+
+[tool.pytest.ini_options]
+testpaths = [
+    "packages/earth_observation/tests",
+    "packages/platform_core/tests",
+    "apps/api/tests",
+    "apps/worker/tests",
+    "tests",
+]
+asyncio_mode = "auto"
+asyncio_default_fixture_loop_scope = "function"
+markers = [
+    "live: tests that call external services (Planetary Computer); excluded by default",
+    "integration: tests requiring docker services (PostGIS/Azurite)",
+]
+addopts = "-m 'not live' --import-mode=importlib"
+filterwarnings = [
+    "ignore::DeprecationWarning:pkg_resources",
+    # rasterio<->numpy 2.5 internal deprecation, not actionable here
+    "ignore:Setting the shape on a NumPy array:DeprecationWarning",
+]
+
+[tool.coverage.run]
+source_pkgs = ["earth_observation", "oeop_core", "oeop_api", "oeop_worker"]
+
+[tool.coverage.report]
+show_missing = true

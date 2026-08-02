@@ -1,0 +1,29 @@
+{
+  "$comment": "Predefined analysis regions. Bounding boxes are [min_lon, min_lat, max_lon, max_lat] in EPSG:4326. Kept deliberately small for inexpensive demonstration processing; geometry and area are derived at seed time.",
+  "regions": [
+    {
+      "name": "Southeast Michigan Demonstration Region",
+      "slug": "southeast-michigan-demo",
+      "description": "Suburban and exurban Oakland County in the Detroit metropolitan area — Pontiac, Auburn Hills, and Rochester Hills. A mix of deciduous tree cover, turf, wetlands, and impervious surfaces that shows a strong seasonal NDVI cycle. This is the region used for the precomputed demonstration analysis.",
+      "bbox": [-83.3, 42.55, -83.15, 42.65]
+    },
+    {
+      "name": "Detroit Urban Core",
+      "slug": "detroit-urban-core",
+      "description": "Central Detroit including Midtown, the riverfront, and Belle Isle. Dense impervious surface keeps baseline NDVI low; parks and street trees provide contrast.",
+      "bbox": [-83.15, 42.3, -83.0, 42.4]
+    },
+    {
+      "name": "Sleeping Bear Dunes Shoreline",
+      "slug": "sleeping-bear-dunes",
+      "description": "Lake Michigan shoreline at Sleeping Bear Dunes National Lakeshore — open dune, beach, and adjacent forest. Water and bare sand produce near-zero and negative NDVI next to vegetated dunes.",
+      "bbox": [-86.08, 44.85, -85.93, 44.95]
+    },
+    {
+      "name": "Hartwick Pines Forest",
+      "slug": "hartwick-pines-forest",
+      "description": "Old-growth and managed pine forest around Hartwick Pines State Park near Grayling in northern Lower Michigan. Predominantly coniferous cover with a damped seasonal NDVI cycle relative to deciduous regions.",
+      "bbox": [-84.72, 44.7, -84.6, 44.78]
+    }
+  ]
+}
