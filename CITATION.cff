@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+message: >-
+  If you use this software, please cite it using the metadata below. Results
+  derived from it additionally rest on Copernicus Sentinel-2 data and the
+  Microsoft Planetary Computer; please credit both (see notes).
+title: "Orbital Earth Observation Platform"
+type: software
+authors:
+  - family-names: McWain
+    given-names: Gordon
+year: 2026
+url: "https://github.com/raveheart1/Orbital-Earth-Observation-Platform"
+repository-code: "https://github.com/raveheart1/Orbital-Earth-Observation-Platform"
+license: MIT
+keywords:
+  - earth observation
+  - NDVI
+  - Sentinel-2
+  - STAC
+  - remote sensing
+notes: >-
+  Analyses produced by this software contain modified Copernicus Sentinel
+  data, processed by ESA, accessed via the Microsoft Planetary Computer.
+  When citing results, please also cite the Copernicus Sentinel-2 mission
+  (European Space Agency) and the Microsoft Planetary Computer as the data
+  access provider.

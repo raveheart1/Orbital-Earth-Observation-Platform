@@ -1,0 +1,306 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/raveheart1/Orbital-Earth-Observation-Platform/main/docs/schemas/provenance-1.0.0.json",
+  "title": "OEOP Analysis Provenance",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "analysis_id",
+    "created_at",
+    "data_source",
+    "request",
+    "scene_selection",
+    "processing",
+    "software",
+    "scenes",
+    "outputs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "1.0.0"
+    },
+    "analysis_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "data_source": {
+      "type": "object",
+      "required": [
+        "stac_endpoint",
+        "collection"
+      ],
+      "properties": {
+        "stac_endpoint": {
+          "type": "string",
+          "format": "uri"
+        },
+        "collection": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "license": {
+          "type": "string"
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "required": [
+        "aoi_geometry",
+        "start_date",
+        "end_date",
+        "max_cloud_cover_pct"
+      ],
+      "properties": {
+        "aoi_geometry": {
+          "type": "object"
+        },
+        "aoi_area_km2": {
+          "type": "number"
+        },
+        "start_date": {
+          "type": "string"
+        },
+        "end_date": {
+          "type": "string"
+        },
+        "max_cloud_cover_pct": {
+          "type": "number"
+        },
+        "scene_limit": {
+          "type": "integer"
+        }
+      }
+    },
+    "scene_selection": {
+      "type": "object",
+      "required": [
+        "algorithm",
+        "algorithm_version",
+        "selected_count",
+        "excluded"
+      ],
+      "properties": {
+        "algorithm": {
+          "type": "string"
+        },
+        "algorithm_version": {
+          "type": "string"
+        },
+        "selected_count": {
+          "type": "integer"
+        },
+        "excluded": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "item_id",
+              "reason"
+            ],
+            "properties": {
+              "item_id": {
+                "type": "string"
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "processing": {
+      "type": "object",
+      "required": [
+        "operation",
+        "config"
+      ],
+      "properties": {
+        "operation": {
+          "type": "string"
+        },
+        "config": {
+          "type": "object"
+        },
+        "masked_scl_classes": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "masked_scl_class_names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "software": {
+      "type": "object",
+      "required": [
+        "processing_version"
+      ],
+      "properties": {
+        "processing_version": {
+          "type": "string"
+        },
+        "git_commit_sha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "container_image": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "python_version": {
+          "type": "string"
+        },
+        "dependency_lock_sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "key_packages": {
+          "type": "object"
+        }
+      }
+    },
+    "scenes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "item_id",
+          "observed_at",
+          "assets"
+        ],
+        "properties": {
+          "item_id": {
+            "type": "string"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "cloud_cover_pct": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "processing_baseline": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "band_scaling": {
+            "type": "object"
+          },
+          "assets": {
+            "type": "object",
+            "description": "Original unsigned asset hrefs by role",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
+          "usable": {
+            "type": "boolean"
+          },
+          "unusable_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "raster": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "processing_seconds": {
+            "type": "number"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "artifact_type",
+          "path",
+          "sha256",
+          "size_bytes"
+        ],
+        "properties": {
+          "artifact_type": {
+            "type": "string"
+          },
+          "scene_item_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "size_bytes": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "timing": {
+      "type": "object",
+      "properties": {
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "duration_seconds": {
+          "type": "number"
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

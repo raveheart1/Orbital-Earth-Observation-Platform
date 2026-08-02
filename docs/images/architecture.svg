@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 500" width="900" height="500" role="img" aria-label="Orbital Earth Observation Platform architecture diagram">
+  <defs>
+    <marker id="arrow" markerWidth="9" markerHeight="7" refX="8" refY="3.5" orient="auto" markerUnits="userSpaceOnUse">
+      <path d="M0,0 L9,3.5 L0,7 Z" fill="#444444"/>
+    </marker>
+  </defs>
+
+  <style>
+    text { font-family: Helvetica, Arial, sans-serif; fill: #1a202c; }
+    .title { font-size: 16px; font-weight: bold; }
+    .box { font-size: 13px; font-weight: bold; }
+    .sub { font-size: 11px; fill: #4a5568; font-weight: normal; }
+    .lbl { font-size: 11px; fill: #444444; }
+    .note { font-size: 11px; fill: #666666; }
+    .edge { stroke: #444444; stroke-width: 1.4; fill: none; marker-end: url(#arrow); }
+    .app { fill: #e8eef7; stroke: #35507a; stroke-width: 1.4; }
+    .data { fill: #eaf3ea; stroke: #3d6b40; stroke-width: 1.4; }
+    .ext { fill: #f7efe3; stroke: #8a6d2f; stroke-width: 1.4; }
+    .supp { fill: #f4f4f4; stroke: #777777; stroke-width: 1.2; stroke-dasharray: 5 3; }
+  </style>
+
+  <text x="20" y="26" class="title">Orbital Earth Observation Platform — architecture</text>
+
+  <!-- Row 1: Browser -> Web -> API -->
+  <rect x="20" y="46" width="110" height="48" rx="6" class="app"/>
+  <text x="75" y="75" text-anchor="middle" class="box">Browser</text>
+
+  <rect x="180" y="46" width="190" height="48" rx="6" class="app"/>
+  <text x="275" y="66" text-anchor="middle" class="box">Next.js Web</text>
+  <text x="275" y="83" text-anchor="middle" class="sub">Container App · proxy /backend/*</text>
+
+  <rect x="420" y="46" width="170" height="48" rx="6" class="app"/>
+  <text x="505" y="66" text-anchor="middle" class="box">FastAPI</text>
+  <text x="505" y="83" text-anchor="middle" class="sub">Container App · /api/v1</text>
+
+  <path d="M130,70 L178,70" class="edge"/>
+  <path d="M370,70 L418,70" class="edge"/>
+
+  <!-- Row 2: PostgreSQL and Queue -->
+  <rect x="190" y="180" width="180" height="48" rx="6" class="data"/>
+  <text x="280" y="200" text-anchor="middle" class="box">PostgreSQL + PostGIS</text>
+  <text x="280" y="217" text-anchor="middle" class="sub">analyses · scenes · artifacts</text>
+
+  <rect x="440" y="180" width="150" height="48" rx="6" class="data"/>
+  <text x="515" y="200" text-anchor="middle" class="box">Storage Queue</text>
+  <text x="515" y="217" text-anchor="middle" class="sub">{analysis_id}</text>
+
+  <path d="M455,94 L305,177" class="edge"/>
+  <text x="345" y="128" text-anchor="middle" class="lbl">1. write analysis</text>
+
+  <path d="M515,94 L515,177" class="edge"/>
+  <text x="523" y="140" class="lbl">2. enqueue after commit</text>
+
+  <!-- Worker -->
+  <rect x="420" y="290" width="200" height="56" rx="6" class="app"/>
+  <text x="520" y="312" text-anchor="middle" class="box">Container Apps Job</text>
+  <text x="520" y="330" text-anchor="middle" class="sub">worker · KEDA · scale to zero</text>
+
+  <path d="M515,228 L518,287" class="edge"/>
+  <text x="526" y="262" class="lbl">scales 0 → N</text>
+
+  <path d="M430,290 L302,231" class="edge"/>
+  <text x="330" y="270" text-anchor="middle" class="lbl">scenes · stats · status</text>
+
+  <!-- Planetary Computer -->
+  <rect x="670" y="180" width="210" height="48" rx="6" class="ext"/>
+  <text x="775" y="200" text-anchor="middle" class="box">Planetary Computer STAC</text>
+  <text x="775" y="217" text-anchor="middle" class="sub">sentinel-2-l2a search</text>
+
+  <rect x="670" y="280" width="210" height="48" rx="6" class="ext"/>
+  <text x="775" y="300" text-anchor="middle" class="box">Sentinel-2 COG assets</text>
+  <text x="775" y="317" text-anchor="middle" class="sub">B04 · B08 · SCL · visual</text>
+
+  <path d="M620,298 L736,231" class="edge"/>
+  <text x="686" y="254" text-anchor="middle" class="lbl">STAC search</text>
+
+  <path d="M620,313 L667,306" class="edge"/>
+  <text x="775" y="345" text-anchor="middle" class="lbl">sign URLs · windowed AOI range reads</text>
+
+  <!-- Blob storage -->
+  <rect x="420" y="400" width="200" height="48" rx="6" class="data"/>
+  <text x="520" y="420" text-anchor="middle" class="box">Blob Storage (private)</text>
+  <text x="520" y="437" text-anchor="middle" class="sub">analyses/{id}/ · COG · PNG · CSV · JSON</text>
+
+  <path d="M520,346 L520,397" class="edge"/>
+  <text x="528" y="376" class="lbl">artifacts + provenance</text>
+
+  <!-- Supporting services -->
+  <rect x="40" y="290" width="180" height="48" rx="6" class="supp"/>
+  <text x="130" y="310" text-anchor="middle" class="box">Key Vault / Identity</text>
+  <text x="130" y="327" text-anchor="middle" class="sub">managed identity · no secrets</text>
+
+  <rect x="40" y="400" width="180" height="48" rx="6" class="supp"/>
+  <text x="130" y="420" text-anchor="middle" class="box">Application Insights</text>
+  <text x="130" y="437" text-anchor="middle" class="sub">logs · traces · metrics</text>
+
+  <text x="40" y="482" class="note">Private blobs: downloads are issued by the API as short-lived SAS URLs. All apps authenticate with the managed identity and emit telemetry to Application Insights.</text>
+</svg>
