@@ -146,6 +146,15 @@ jobs:
         with:
           fetch-depth: 0
 
-      - uses: gitleaks/gitleaks-action@v2
+      # Full-history scan with a pinned gitleaks release. The CLI is invoked
+      # directly (not via gitleaks-action) because the action derives a commit
+      # range from the push event, which is invalid for a repository's initial
+      # push (the root commit has no parent). Config: .gitleaks.toml at the
+      # repo root (allowlists only Azurite's published development key).
+      - name: Run gitleaks over the entire history
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITLEAKS_VERSION: 8.24.3
+        run: |
+          curl -fsSL "https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}/gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz" \
+            | tar -xz -C /tmp gitleaks
+          /tmp/gitleaks detect --source . --redact --exit-code 1 -v
