@@ -117,28 +117,44 @@ CLIENT_ID=$(az identity show --name "$IDENTITY_NAME" --resource-group "$BOOTSTRA
 PRINCIPAL_ID=$(az identity show --name "$IDENTITY_NAME" --resource-group "$BOOTSTRAP_RG" --query principalId -o tsv)
 printf '    clientId:    %s\n    principalId: %s\n' "$CLIENT_ID" "$PRINCIPAL_ID"
 
-# --- 6. Federated credential for GitHub OIDC ---------------------------------
+# --- 6. Federated credentials for GitHub OIDC --------------------------------
 
-log "Ensuring federated credential 'gh-dev-environment'"
-FC_SUBJECT="repo:${REPO}:environment:dev"
-EXISTING_SUBJECT=$(az identity federated-credential show \
-  --name gh-dev-environment \
-  --identity-name "$IDENTITY_NAME" \
-  --resource-group "$BOOTSTRAP_RG" \
-  --query subject -o tsv 2>/dev/null || true)
-if [ "$EXISTING_SUBJECT" = "$FC_SUBJECT" ]; then
-  printf '    Already present: %s\n' "$FC_SUBJECT"
-else
-  # create is also an update if the name exists with a different subject
+# GitHub presents one of two `sub` claim formats depending on repository
+# settings/era: the classic `repo:<owner>/<repo>:environment:dev` or the
+# ID-embedded immutable format `repo:<owner>@<ownerid>/<repo>@<repoid>:...`
+# (the default for newer repositories). We register a credential for each so
+# either token verifies. The authoritative prefix is exposed at
+#   GET /repos/{owner}/{repo}/actions/oidc/customization/sub
+SUB_PREFIX=$(gh api "repos/${REPO}/actions/oidc/customization/sub" -q .sub_claim_prefix 2>/dev/null || true)
+
+# ensure_fc <credential name> <subject>
+ensure_fc() {
+  local name="$1" subject="$2"
+  local existing
+  existing=$(az identity federated-credential show \
+    --name "$name" \
+    --identity-name "$IDENTITY_NAME" \
+    --resource-group "$BOOTSTRAP_RG" \
+    --query subject -o tsv 2>/dev/null || true)
+  if [ "$existing" = "$subject" ]; then
+    printf '    OK (exists): %s -> %s\n' "$name" "$subject"
+    return 0
+  fi
   az identity federated-credential create \
-    --name gh-dev-environment \
+    --name "$name" \
     --identity-name "$IDENTITY_NAME" \
     --resource-group "$BOOTSTRAP_RG" \
     --issuer "https://token.actions.githubusercontent.com" \
-    --subject "$FC_SUBJECT" \
+    --subject "$subject" \
     --audiences "api://AzureADTokenExchange" \
     --output none
-  printf '    Created for subject: %s\n' "$FC_SUBJECT"
+  printf '    Created:     %s -> %s\n' "$name" "$subject"
+}
+
+log "Ensuring federated credentials"
+ensure_fc gh-dev-environment "repo:${REPO}:environment:dev"
+if [ -n "$SUB_PREFIX" ] && [ "$SUB_PREFIX" != "repo:${REPO}" ]; then
+  ensure_fc gh-dev-environment-immutable "${SUB_PREFIX}:environment:dev"
 fi
 
 # --- 7. Role assignments ------------------------------------------------------
