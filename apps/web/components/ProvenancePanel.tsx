@@ -38,6 +38,7 @@ function KvList({ entries }: { entries: [string, string][] }) {
 export default function ProvenancePanel({ provenance }: { provenance: Provenance }) {
   const selection = provenance.scene_selection;
   const processing = provenance.processing;
+  const grid = provenance.canonical_grid;
   const software = provenance.software;
 
   return (
@@ -64,34 +65,120 @@ export default function ProvenancePanel({ provenance }: { provenance: Provenance
                   ][])
                 : []),
               ...(selection?.selected_count !== undefined
-                ? ([["selected scenes", String(selection.selected_count)]] as [
+                ? ([["selected acquisitions", String(selection.selected_count)]] as [
                     string,
                     string,
                   ][])
+                : []),
+              ...(selection?.min_aoi_coverage_pct !== undefined
+                ? ([
+                    [
+                      "required AOI coverage",
+                      `${selection.min_aoi_coverage_pct}%`,
+                    ],
+                  ] as [string, string][])
                 : []),
             ]}
           />
           {selection?.excluded && selection.excluded.length > 0 ? (
             <div>
               <h4 className="small" style={{ margin: "0.5rem 0 0.25rem" }}>
-                Excluded scenes
+                Excluded acquisitions
               </h4>
               <ul className="small" style={{ margin: 0, paddingLeft: "1.25rem" }}>
-                {selection.excluded.map((entry) => (
-                  <li key={entry.item_id}>
-                    <span className="mono" title={entry.item_id}>
-                      {truncateMiddle(entry.item_id, 30)}
-                    </span>{" "}
-                    — {entry.reason}
-                  </li>
-                ))}
+                {selection.excluded.map((entry, index) => {
+                  // 2.0.0 identifies an exclusion by acquisition; 1.x
+                  // documents carried a single item_id.
+                  const label =
+                    entry.primary_item_id ??
+                    entry.item_id ??
+                    entry.acquisition_key ??
+                    `exclusion ${index + 1}`;
+                  const coverage =
+                    entry.aoi_coverage_pct !== null &&
+                    entry.aoi_coverage_pct !== undefined
+                      ? ` (${entry.aoi_coverage_pct.toFixed(1)}% AOI coverage)`
+                      : "";
+                  return (
+                    <li key={`${label}-${index}`}>
+                      <span className="mono" title={label}>
+                        {truncateMiddle(label, 30)}
+                      </span>{" "}
+                      — {entry.reason}
+                      {coverage}
+                    </li>
+                  );
+                })}
               </ul>
             </div>
           ) : (
-            <p className="small muted">No scenes were excluded.</p>
+            <p className="small muted">No acquisitions were excluded.</p>
           )}
         </div>
       </details>
+
+      {grid ? (
+        <details className="panel">
+          <summary>Analytical grid</summary>
+          <div className="panel-body">
+            <p className="small muted" style={{ marginTop: 0 }}>
+              Every observation in this analysis was reprojected onto this single
+              grid, so all dates measure the identical ground.
+            </p>
+            <KvList
+              entries={[
+                ...(grid.crs ? ([["CRS", grid.crs]] as [string, string][]) : []),
+                ...(grid.width && grid.height
+                  ? ([["size", `${grid.width} x ${grid.height} px`]] as [
+                      string,
+                      string,
+                    ][])
+                  : []),
+                ...(grid.resolution?.length
+                  ? ([["resolution", `${grid.resolution[0]} m`]] as [
+                      string,
+                      string,
+                    ][])
+                  : []),
+                ...(grid.transform?.length
+                  ? ([["transform", grid.transform.join(", ")]] as [
+                      string,
+                      string,
+                    ][])
+                  : []),
+                ...(grid.bounds_projected?.length
+                  ? ([["projected bounds", grid.bounds_projected.join(", ")]] as [
+                      string,
+                      string,
+                    ][])
+                  : []),
+                ...(processing?.mosaic_method
+                  ? ([["mosaic method", processing.mosaic_method]] as [
+                      string,
+                      string,
+                    ][])
+                  : []),
+                ...(processing?.resampling_spectral
+                  ? ([
+                      [
+                        "resampling (spectral)",
+                        processing.resampling_spectral,
+                      ],
+                    ] as [string, string][])
+                  : []),
+                ...(processing?.resampling_categorical
+                  ? ([
+                      [
+                        "resampling (SCL, categorical)",
+                        processing.resampling_categorical,
+                      ],
+                    ] as [string, string][])
+                  : []),
+              ]}
+            />
+          </div>
+        </details>
+      ) : null}
 
       <details className="panel">
         <summary>Mask policy</summary>

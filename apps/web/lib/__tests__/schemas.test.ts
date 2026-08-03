@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   AnalysisSchema,
   ArtifactSchema,
+  ProvenanceSchema,
   PublicConfigSchema,
   SceneSchema,
   TimeseriesSchema,
@@ -188,5 +189,66 @@ describe("TimeseriesSchema", () => {
       points: [point],
     });
     expect(result.success).toBe(false);
+  });
+});
+
+describe("ProvenanceSchema", () => {
+  // Regression: the deployed provenance panel failed to parse a v2.0.0
+  // document because exclusions moved from `item_id` to `acquisition_key` /
+  // `primary_item_id` when selection became acquisition-based.
+  it("parses a 2.0.0 document with acquisition-based exclusions", () => {
+    const parsed = ProvenanceSchema.parse({
+      schema_version: "2.0.0",
+      canonical_grid: {
+        schema_version: "1.0.0",
+        crs: "EPSG:32617",
+        resolution: [10, 10],
+        transform: [10, 0, 322770, 0, -10, 4696430],
+        width: 1264,
+        height: 1141,
+        bounds_projected: [322770, 4685020, 335410, 4696430],
+        signature: "EPSG:32617:1264x1141:10,0,322770,0,-10,4.69643e+06",
+      },
+      scene_selection: {
+        algorithm: "temporal-stratified-lowest-cloud",
+        algorithm_version: "2.0.0",
+        selected_count: 6,
+        min_aoi_coverage_pct: 99,
+        excluded: [
+          {
+            acquisition_key: "sentinel-2-l2a|sentinel-2c|R040|2026-01-08T16:26:00+00:00",
+            primary_item_id: "S2C_MSIL2A_20260108T162651_R040_T17TLH_20260108T200411",
+            contributing_item_ids: [
+              "S2C_MSIL2A_20260108T162651_R040_T17TLH_20260108T200411",
+            ],
+            aoi_coverage_pct: 56.2,
+            reason: "insufficient_aoi_coverage",
+          },
+        ],
+      },
+      processing: {
+        operation: "ndvi",
+        mosaic_method: "first-valid-by-item-id",
+        resampling_spectral: "bilinear",
+        resampling_categorical: "nearest",
+      },
+    });
+    expect(parsed.canonical_grid?.width).toBe(1264);
+    expect(parsed.scene_selection?.excluded?.[0]?.reason).toBe(
+      "insufficient_aoi_coverage",
+    );
+    expect(parsed.scene_selection?.excluded?.[0]?.aoi_coverage_pct).toBe(56.2);
+    expect(parsed.processing?.resampling_categorical).toBe("nearest");
+  });
+
+  it("still parses a legacy 1.0.0 document with item_id exclusions", () => {
+    const parsed = ProvenanceSchema.parse({
+      schema_version: "1.0.0",
+      scene_selection: {
+        excluded: [{ item_id: "S2A_LEGACY_ITEM", reason: "cloud_cover_above_threshold" }],
+      },
+    });
+    expect(parsed.canonical_grid).toBeUndefined();
+    expect(parsed.scene_selection?.excluded?.[0]?.item_id).toBe("S2A_LEGACY_ITEM");
   });
 });

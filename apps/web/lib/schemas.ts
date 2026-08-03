@@ -304,13 +304,42 @@ export const ProvenanceSchema = z
     schema_version: z.union([z.string(), z.number()]).optional(),
     data_source: z.record(z.string(), z.unknown()).optional(),
     request: z.record(z.string(), z.unknown()).optional(),
+    // Present from provenance schema 2.0.0; absent on legacy documents.
+    canonical_grid: z
+      .object({
+        schema_version: z.string().optional(),
+        crs: z.string().optional(),
+        resolution: z.array(z.number()).optional(),
+        transform: z.array(z.number()).optional(),
+        width: z.number().optional(),
+        height: z.number().optional(),
+        bounds_projected: z.array(z.number()).optional(),
+        bounds_geographic: z.array(z.number()).optional(),
+        signature: z.string().optional(),
+      })
+      .passthrough()
+      .optional(),
     scene_selection: z
       .object({
         algorithm: z.string().optional(),
         algorithm_version: z.string().optional(),
         selected_count: z.number().optional(),
+        min_aoi_coverage_pct: z.number().optional(),
         excluded: z
-          .array(z.object({ item_id: z.string(), reason: z.string() }))
+          .array(
+            z
+              .object({
+                // 2.0.0 identifies exclusions by acquisition; 1.x used a
+                // single item_id. Accept either so legacy documents render.
+                acquisition_key: z.string().optional(),
+                primary_item_id: z.string().optional(),
+                item_id: z.string().optional(),
+                contributing_item_ids: z.array(z.string()).optional(),
+                aoi_coverage_pct: z.number().nullable().optional(),
+                reason: z.string(),
+              })
+              .passthrough(),
+          )
           .optional(),
       })
       .passthrough()
@@ -321,6 +350,9 @@ export const ProvenanceSchema = z
         config: z.record(z.string(), z.unknown()).optional(),
         masked_scl_classes: z.array(z.number()).optional(),
         masked_scl_class_names: z.array(z.string()).optional(),
+        mosaic_method: z.string().optional(),
+        resampling_spectral: z.string().optional(),
+        resampling_categorical: z.string().optional(),
       })
       .passthrough()
       .optional(),
