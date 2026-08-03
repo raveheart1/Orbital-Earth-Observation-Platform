@@ -58,27 +58,41 @@ of what is complete, partial, or blocked.
 - `terraform plan` for PRs runs static checks only unless the PR is from the
   same repository (fork-credential safety; documented in the workflow).
 
+## Azure deployment (completed 2026-08-03, after explicit owner approval)
+
+The initial build withheld deployment because the selected subscription
+(`ScoreSage - Prod`) is production-named. The owner subsequently and
+explicitly chose to deploy there; the bootstrap safety rail was overridden
+with `OEOP_ALLOW_PROD=1`. Deployment creates only the isolated resource
+groups `rg-oeop-bootstrap` and `rg-oeop-dev`.
+
+- [x] Bootstrap: OIDC federation (classic + immutable subject formats),
+      remote Terraform state, deployment identity and scoped roles,
+      GitHub environment + variables.
+- [x] Region: **eastus2** — the subscription is offer-restricted for
+      PostgreSQL Flexible Server in eastus (`LocationIsOfferRestricted`).
+- [x] `deploy-dev` workflow green end to end: foundation apply, three
+      `az acr build` images tagged with the commit SHA, workload apply,
+      migration job, region seeding, endpoint smoke tests.
+- [x] Public endpoints healthy:
+      web https://ca-oeop-dev-web.politeriver-f001c624.eastus2.azurecontainerapps.io
+      · API https://ca-oeop-dev-api.politeriver-f001c624.eastus2.azurecontainerapps.io
+- [x] Bounded cloud analysis succeeded (analysis
+      96dc489d-9e67-4630-afbc-23098eab7f87): the KEDA queue-scaled job woke
+      from zero and processed 3 real Sentinel-2 scenes; NDVI means match the
+      local runs exactly (0.592 / 0.597 / 0.606). User-delegation SAS
+      downloads and provenance (container image + git SHA) verified.
+
+Issues found and fixed during deployment (committed):
+1. GitHub's immutable OIDC subject format (owner/repo IDs embedded) —
+   bootstrap now registers federated credentials for both formats.
+2. eastus PostgreSQL offer restriction — location is now driven by the
+   `AZURE_LOCATION` repository variable end to end.
+3. Region-move tombstones: Key Vault purge requires a subscription-scoped
+   role (now granted by bootstrap); PostgreSQL server names now embed the
+   region because the RP reserves failed names against their location.
+4. `az acr build` has no BuildKit — Dockerfile cache mounts removed.
+
 ## Blocked
 
-- **Azure deployment — deliberately not executed (safety rule).** The
-  currently selected Azure subscription is `ScoreSage - Prod`
-  (7b5cf7e8-eeed-48cb-be16-831ee5cff535, tenant
-  13079765-18cb-4305-821b-1321446fc628). The build brief forbids automatic
-  deployment when the selected subscription clearly indicates a production
-  environment, and this account also has access to many third-party client
-  subscriptions, so no subscription switch was made autonomously.
-  - Everything needed to deploy is committed: Terraform for the full dev
-    environment, `scripts/bootstrap-azure-github.sh` (OIDC federation,
-    remote state, GitHub environment + variables), and `deploy-dev.yml`
-    (every job is gated on `vars.AZURE_CLIENT_ID != ''`, so pushes to main
-    skip deployment cleanly until bootstrap has been run).
-  - Remediation:
-    1. `az account set --subscription "<a non-production subscription>"`
-    2. `./scripts/bootstrap-azure-github.sh` (refuses subscriptions with
-       "prod" in the name unless `OEOP_ALLOW_PROD=1`)
-    3. Re-run the "Deploy dev" workflow (or push to main).
-  - Blocked acceptance criteria as a result: OIDC federation configured,
-    remote state initialized, dev infrastructure deployed, images in ACR,
-    cloud migrations, Container Apps health, public URLs, bounded cloud
-    analysis, GitHub deployment variables. All are exercised by the deploy
-    workflow once bootstrap runs.
+- None.
