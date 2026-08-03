@@ -17,13 +17,11 @@ COPY packages/earth_observation/pyproject.toml packages/earth_observation/pyproj
 COPY packages/platform_core/pyproject.toml packages/platform_core/pyproject.toml
 COPY apps/api/pyproject.toml apps/api/pyproject.toml
 COPY apps/worker/pyproject.toml apps/worker/pyproject.toml
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-install-workspace --package oeop-worker
+RUN uv sync --frozen --no-dev --no-install-workspace --package oeop-worker
 
 COPY packages packages
 COPY apps/worker apps/worker
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-editable --package oeop-worker
+RUN uv sync --frozen --no-dev --no-editable --package oeop-worker
 
 # --- Runtime ----------------------------------------------------------------
 FROM python:3.12-slim-bookworm

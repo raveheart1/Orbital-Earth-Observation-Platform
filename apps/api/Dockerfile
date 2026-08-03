@@ -18,14 +18,12 @@ COPY packages/earth_observation/pyproject.toml packages/earth_observation/pyproj
 COPY packages/platform_core/pyproject.toml packages/platform_core/pyproject.toml
 COPY apps/api/pyproject.toml apps/api/pyproject.toml
 COPY apps/worker/pyproject.toml apps/worker/pyproject.toml
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-install-workspace --package oeop-api
+RUN uv sync --frozen --no-dev --no-install-workspace --package oeop-api
 
 # Project layer: sources, installed non-editable so the venv is self-contained.
 COPY packages packages
 COPY apps/api apps/api
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-editable --package oeop-api
+RUN uv sync --frozen --no-dev --no-editable --package oeop-api
 
 # --- Runtime ----------------------------------------------------------------
 FROM python:3.12-slim-bookworm
