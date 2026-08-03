@@ -48,6 +48,62 @@ export function parseBboxInputs(values: {
   return parts as unknown as Bbox;
 }
 
+/** A linear ring of [lon, lat] positions. */
+export type LonLatRing = [number, number][];
+
+/**
+ * Extract the linear rings (outer boundaries and holes) of a permissively
+ * typed GeoJSON Polygon or MultiPolygon. Returns [] for anything else, so
+ * callers can fall back to the bbox outline.
+ */
+export function extractGeometryRings(
+  geometry: Record<string, unknown> | null | undefined,
+): LonLatRing[] {
+  if (!geometry) return [];
+  const { type, coordinates } = geometry;
+
+  const asRing = (value: unknown): LonLatRing | null => {
+    if (!Array.isArray(value)) return null;
+    const ring: LonLatRing = [];
+    for (const position of value) {
+      if (
+        !Array.isArray(position) ||
+        typeof position[0] !== "number" ||
+        typeof position[1] !== "number"
+      ) {
+        return null;
+      }
+      ring.push([position[0], position[1]]);
+    }
+    return ring.length >= 4 ? ring : null;
+  };
+
+  const ringsOf = (polygon: unknown): LonLatRing[] =>
+    Array.isArray(polygon)
+      ? polygon
+          .map(asRing)
+          .filter((ring): ring is LonLatRing => ring !== null)
+      : [];
+
+  if (type === "Polygon") return ringsOf(coordinates);
+  if (type === "MultiPolygon" && Array.isArray(coordinates)) {
+    return coordinates.flatMap(ringsOf);
+  }
+  return [];
+}
+
+/** The rectangular outline of a bbox as a closed [lon, lat] ring. */
+export function bboxRing(bbox: Bbox): LonLatRing {
+  const [minLon, minLat, maxLon, maxLat] = bbox;
+  return [
+    [minLon, minLat],
+    [maxLon, minLat],
+    [maxLon, maxLat],
+    [minLon, maxLat],
+    [minLon, minLat],
+  ];
+}
+
 /** GeoJSON polygon feature covering a bbox, for MapLibre sources. */
 export function bboxToPolygonFeature(bbox: Bbox): GeoJSON.Feature<GeoJSON.Polygon> {
   const [minLon, minLat, maxLon, maxLat] = bbox;

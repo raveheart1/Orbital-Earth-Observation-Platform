@@ -1,21 +1,25 @@
-"""Per-scene NDVI processing pipeline.
+"""Per-acquisition NDVI processing onto the canonical analysis grid.
 
-For each selected scene the pipeline:
+For each acquisition the pipeline:
 
 1. Signs asset URLs immediately before access (never persisted).
-2. Reads only the raster window covering the AOI from the cloud-optimized
-   assets (GDAL range reads — full scenes are never downloaded).
-3. Aligns the 20 m Scene Classification Layer to the 10 m band grid with
-   nearest-neighbour resampling (preserves class labels).
+2. Reads only the windows of every contributing granule that intersect the
+   canonical grid (COG range reads — full scenes are never downloaded) and
+   mosaics them onto that grid: bilinear for spectral bands, nearest for the
+   categorical Scene Classification Layer.
+3. Verifies geometric AOI coverage against the configured threshold, so an
+   acquisition whose granules do not cover the whole AOI is never presented as
+   comparable to one that does.
 4. Converts digital numbers to reflectance (handling the baseline-04.00
    additive offset), masks contaminated pixels, and computes NDVI.
-5. Clips to the exact AOI geometry and computes statistics over valid pixels.
-6. Writes a float32 NDVI COG, colorized NDVI preview, true-color preview,
-   and a per-scene summary JSON.
+5. Computes statistics over the canonical AOI mask — identical for every
+   observation in the analysis.
+6. Writes a float32 NDVI COG, colorized NDVI preview, true-color preview, and
+   a per-acquisition summary JSON, all on the canonical grid.
 
-Processing happens in the scene's native UTM CRS: the AOI is small, so
-keeping the source grid avoids an unnecessary resampling step; per-scene
-scalar statistics are unaffected by scenes falling in different UTM zones.
+Because step 2 targets the canonical grid directly, every usable observation of
+an analysis shares one CRS, transform, width, height, and AOI mask by
+construction; masking can change which pixels are valid, never the geometry.
 """
 
 from __future__ import annotations
@@ -27,98 +31,59 @@ from pathlib import Path
 from typing import Any
 
 import numpy as np
-import rasterio
-import rioxarray
-import xarray as xr
-from pyproj import Transformer
-from rasterio.enums import Resampling
-from rasterio.errors import RasterioIOError
-from rasterio.features import geometry_mask
-from rioxarray.exceptions import NoDataInBounds, OneDimensionalRaster
-from shapely.geometry import shape
-from shapely.ops import transform as shapely_transform
-from tenacity import retry, retry_if_exception_type, stop_after_attempt, wait_exponential
 
+from earth_observation.acquisition import Acquisition
 from earth_observation.cog import validate_cog, write_ndvi_cog
-from earth_observation.errors import DataError, TransientError
+from earth_observation.coverage import compute_coverage
+from earth_observation.errors import DataError
+from earth_observation.grid import CanonicalGrid
 from earth_observation.masking import scl_valid_mask
+from earth_observation.mosaic import mosaic_band, mosaic_rgb
 from earth_observation.ndvi import compute_ndvi, resolve_band_scaling, to_reflectance
 from earth_observation.previews import write_ndvi_preview, write_true_color_preview
 from earth_observation.stac import sign_href
 from earth_observation.stats import compute_scene_stats
 from earth_observation.types import (
+    AcquisitionSummary,
     ProcessingConfig,
     RasterInfo,
-    SceneCandidate,
     SceneOutputs,
     SceneResult,
     SceneStats,
 )
 
-#: GDAL options for efficient HTTP range reads against COGs.
-GDAL_ENV: dict[str, str] = {
-    "GDAL_DISABLE_READDIR_ON_OPEN": "EMPTY_DIR",
-    "GDAL_HTTP_MERGE_CONSECUTIVE_RANGES": "YES",
-    "GDAL_HTTP_MAX_RETRY": "3",
-    "GDAL_HTTP_RETRY_DELAY": "2",
-    "VSI_CACHE": "TRUE",
-    "VSI_CACHE_SIZE": "33554432",
-}
-
-#: Padding (in source-CRS units, meters for UTM) added around the AOI window
-#: so masking and clipping have full pixel coverage at the edges.
-_CLIP_PAD_M = 40.0
-
 SignFn = Callable[[str], str]
 
-_UNUSABLE_NO_OVERLAP = "no_raster_overlap_with_aoi"
-_UNUSABLE_INSUFFICIENT_VALID = "insufficient_valid_pixels"
-_UNUSABLE_FULLY_MASKED = "all_pixels_masked"
+UNUSABLE_INSUFFICIENT_COVERAGE = "insufficient_aoi_coverage"
+UNUSABLE_NO_OVERLAP = "no_raster_overlap_with_aoi"
+UNUSABLE_INSUFFICIENT_VALID = "insufficient_valid_pixels"
+UNUSABLE_FULLY_MASKED = "all_pixels_masked"
 
 
-@retry(
-    retry=retry_if_exception_type(RasterioIOError),
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, max=15),
-    reraise=True,
-)
-def _open_clipped(
-    href: str,
-    bounds: tuple[float, float, float, float],
-    *,
-    masked: bool,
-) -> xr.DataArray:
-    """Open a raster asset and clip it to ``bounds`` (asset CRS) via range reads."""
-    with rasterio.Env(**GDAL_ENV):
-        da = rioxarray.open_rasterio(href, masked=masked)
-        assert isinstance(da, xr.DataArray)
-        clipped: xr.DataArray = da.rio.clip_box(*bounds)
-        clipped.load()
-        da.close()
-        return clipped
-
-
-def _aoi_in_scene_crs(aoi_geojson: dict[str, Any], epsg: int) -> Any:
-    aoi = shape(aoi_geojson)
-    transformer = Transformer.from_crs("EPSG:4326", f"EPSG:{epsg}", always_xy=True)
-    return shapely_transform(transformer.transform, aoi)
-
-
-def _grids_match(a: xr.DataArray, b: xr.DataArray) -> bool:
-    return bool(
-        a.rio.shape == b.rio.shape
-        and a.rio.transform() == b.rio.transform()
-        and a.rio.crs == b.rio.crs
+def summarize(acquisition: Acquisition) -> AcquisitionSummary:
+    """Serializable identity of an acquisition, including every granule."""
+    return AcquisitionSummary(
+        key=acquisition.key,
+        primary_item_id=acquisition.primary_item_id,
+        observed_at=acquisition.observed_at,
+        collection=acquisition.collection,
+        platform=acquisition.platform,
+        relative_orbit=acquisition.relative_orbit,
+        cloud_cover_pct=acquisition.cloud_cover_pct,
+        contributing_item_ids=acquisition.item_ids,
+        tile_ids=acquisition.tile_ids,
+        processing_baselines=acquisition.processing_baselines,
+        assets={g.item_id: dict(g.assets) for g in acquisition.granules},
     )
 
 
-def _empty_stats(aoi_pixels: int, zero_denominator: int = 0) -> SceneStats:
+def _empty_stats(aoi_pixels: int) -> SceneStats:
     return SceneStats(
         valid_pixel_count=0,
         masked_pixel_count=aoi_pixels,
         aoi_pixel_count=aoi_pixels,
         valid_pixel_pct=0.0,
-        zero_denominator_pixel_count=zero_denominator,
+        zero_denominator_pixel_count=0,
         ndvi_min=None,
         ndvi_max=None,
         ndvi_mean=None,
@@ -131,185 +96,149 @@ def _empty_stats(aoi_pixels: int, zero_denominator: int = 0) -> SceneStats:
     )
 
 
-def _detect_epsg(candidate: SceneCandidate, sign: SignFn) -> int:
-    """Use the STAC projection metadata, falling back to reading the asset header."""
-    if candidate.epsg is not None:
-        return candidate.epsg
-    with rasterio.Env(**GDAL_ENV), rasterio.open(sign(candidate.assets["red"])) as src:
-        epsg = src.crs.to_epsg()
-    if epsg is None:
-        raise DataError(f"Cannot determine CRS for scene {candidate.item_id}")
-    return int(epsg)
-
-
-def _write_scene_summary(
+def _write_summary(
     path: Path,
-    candidate: SceneCandidate,
-    result_fields: dict[str, Any],
+    acquisition: Acquisition,
+    grid: CanonicalGrid,
+    fields: dict[str, Any],
 ) -> None:
     document = {
-        "item_id": candidate.item_id,
-        "collection": candidate.collection,
-        "observed_at": candidate.observed_at.isoformat(),
-        "stac_cloud_cover_pct": candidate.cloud_cover_pct,
-        "platform": candidate.platform,
-        "instruments": candidate.instruments,
-        "processing_baseline": candidate.processing_baseline,
-        "source_assets_unsigned": candidate.assets,
-        **result_fields,
+        "acquisition_key": acquisition.key,
+        "primary_item_id": acquisition.primary_item_id,
+        "contributing_item_ids": acquisition.item_ids,
+        "tile_ids": acquisition.tile_ids,
+        "granule_count": acquisition.granule_count,
+        "collection": acquisition.collection,
+        "observed_at": acquisition.observed_at.isoformat(),
+        "stac_cloud_cover_pct": acquisition.cloud_cover_pct,
+        "platform": acquisition.platform,
+        "relative_orbit": acquisition.relative_orbit,
+        "processing_baselines": acquisition.processing_baselines,
+        "source_assets_unsigned": {g.item_id: dict(g.assets) for g in acquisition.granules},
+        "canonical_grid": grid.to_dict(),
+        **fields,
     }
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(json.dumps(document, indent=2, sort_keys=True))
 
 
-def _true_color_preview(
-    candidate: SceneCandidate,
-    bounds: tuple[float, float, float, float],
-    aoi_mask: np.ndarray,
-    red_grid: xr.DataArray,
-    out_path: Path,
-    config: ProcessingConfig,
-    sign: SignFn,
-    warnings: list[str],
-) -> bool:
-    """Render the source-provided true-color (TCI) asset for the AOI window."""
-    visual_href = candidate.assets.get("visual")
-    if visual_href is None:
-        warnings.append("Scene has no true-color (visual) asset; preview skipped")
-        return False
-    try:
-        visual = _open_clipped(sign(visual_href), bounds, masked=False)
-    except (RasterioIOError, NoDataInBounds, OneDimensionalRaster) as exc:
-        warnings.append(f"True-color preview unavailable: {type(exc).__name__}")
-        return False
-    try:
-        if not _grids_match(visual, red_grid):
-            visual = visual.rio.reproject_match(red_grid, resampling=Resampling.bilinear)
-        data = np.asarray(visual.values)
-        if data.shape[0] < 3:
-            warnings.append("Visual asset has fewer than 3 bands; preview skipped")
-            return False
-        rgb = np.clip(data[:3], 0, 255).astype(np.uint8).transpose(1, 2, 0)
-        write_true_color_preview(out_path, rgb, valid_mask=aoi_mask, max_dim=config.preview_max_dim)
-        return True
-    finally:
-        visual.close()
-
-
-def process_scene(
-    candidate: SceneCandidate,
-    aoi_geojson: dict[str, Any],
+def process_acquisition(
+    acquisition: Acquisition,
+    grid: CanonicalGrid,
     config: ProcessingConfig,
     output_dir: Path,
     sign: SignFn = sign_href,
 ) -> SceneResult:
-    """Run the full per-scene pipeline; see module docstring.
+    """Process one acquisition onto the canonical grid. See module docstring.
 
     ``sign`` is injected so tests can process local synthetic rasters without
     contacting the Planetary Computer signing endpoint.
     """
     started = time.monotonic()
-    warnings: list[str] = []
-    scene_dir = output_dir / candidate.item_id
+    warnings: list[str] = list(acquisition.warnings)
+    scene_dir = output_dir / acquisition.primary_item_id
     scene_dir.mkdir(parents=True, exist_ok=True)
+    summary = summarize(acquisition)
+    aoi_mask = grid.aoi_mask()
+    aoi_pixels = int(np.count_nonzero(aoi_mask))
 
     def finish(**kwargs: Any) -> SceneResult:
         return SceneResult(
-            candidate=candidate,
+            acquisition=summary,
             processing_seconds=round(time.monotonic() - started, 3),
             warnings=warnings,
             **kwargs,
         )
 
-    epsg = _detect_epsg(candidate, sign)
-    aoi_scene = _aoi_in_scene_crs(aoi_geojson, epsg)
-    minx, miny, maxx, maxy = aoi_scene.bounds
-    bounds = (minx - _CLIP_PAD_M, miny - _CLIP_PAD_M, maxx + _CLIP_PAD_M, maxy + _CLIP_PAD_M)
+    def hrefs(role: str) -> dict[str, str]:
+        return {g.item_id: sign(g.assets[role]) for g in acquisition.granules if role in g.assets}
 
-    try:
-        red = _open_clipped(sign(candidate.assets["red"]), bounds, masked=True)
-        nir = _open_clipped(sign(candidate.assets["nir"]), bounds, masked=True)
-        scl = _open_clipped(sign(candidate.assets["scl"]), bounds, masked=True)
-    except (NoDataInBounds, OneDimensionalRaster):
-        return finish(usable=False, unusable_reason=_UNUSABLE_NO_OVERLAP)
-    except RasterioIOError as exc:
-        raise TransientError(
-            f"Raster read failed for scene {candidate.item_id} after retries: {exc}"
-        ) from exc
+    if acquisition.granule_count > 1:
+        warnings.append(
+            f"AOI spans {acquisition.granule_count} granules "
+            f"({', '.join(acquisition.tile_ids)}); mosaicked onto the canonical grid"
+        )
 
-    # Align everything to the red 10 m grid.
-    if not _grids_match(nir, red):
-        warnings.append("NIR grid differed from red grid; reprojected to match")
-        nir = nir.rio.reproject_match(red, resampling=Resampling.bilinear)
-    scl = scl.rio.reproject_match(red, resampling=Resampling.nearest)
+    red_band = mosaic_band(hrefs("red"), grid, categorical=False)
+    nir_band = mosaic_band(hrefs("nir"), grid, categorical=False)
+    scl_band = mosaic_band(hrefs("scl"), grid, categorical=True)
 
-    red2d = np.asarray(red.squeeze("band", drop=True).values, dtype=np.float64)
-    nir2d = np.asarray(nir.squeeze("band", drop=True).values, dtype=np.float64)
-    scl2d = np.asarray(scl.squeeze("band", drop=True).values)
+    covered = red_band.covered & nir_band.covered & scl_band.covered
+    covered_in_aoi = int(np.count_nonzero(covered & aoi_mask))
+    if covered_in_aoi == 0:
+        return finish(usable=False, unusable_reason=UNUSABLE_NO_OVERLAP)
 
-    # Exact-AOI footprint mask on the processing grid.
-    grid_transform = red.rio.transform()
-    aoi_mask = geometry_mask(
-        [aoi_scene],
-        out_shape=red2d.shape,
-        transform=grid_transform,
-        invert=True,
-    )
-    aoi_pixels = int(np.count_nonzero(aoi_mask))
-    if aoi_pixels == 0:
-        return finish(usable=False, unusable_reason=_UNUSABLE_NO_OVERLAP)
+    coverage_pct = 100.0 * covered_in_aoi / aoi_pixels if aoi_pixels else 0.0
 
-    scaling = resolve_band_scaling(None, candidate.processing_baseline)
-    red_refl = to_reflectance(red2d, scaling)
-    nir_refl = to_reflectance(nir2d, scaling)
+    scaling = resolve_band_scaling(None, _dominant_baseline(acquisition))
+    red_refl = to_reflectance(red_band.values, scaling)
+    nir_refl = to_reflectance(nir_band.values, scaling)
+    spectral_finite = np.isfinite(red_band.values) & np.isfinite(nir_band.values)
 
-    cloud_free = scl_valid_mask(scl2d, config.masked_scl_classes)
-    ndvi, zero_denominator = compute_ndvi(red_refl, nir_refl, cloud_free)
+    cloud_free = scl_valid_mask(scl_band.values, config.masked_scl_classes)
+    ndvi, zero_denominator = compute_ndvi(red_refl, nir_refl, cloud_free & spectral_finite)
     ndvi[~aoi_mask] = np.nan
 
+    contributing = sorted(
+        set(red_band.contributors) | set(nir_band.contributors) | set(scl_band.contributors)
+    )
+    coverage = compute_coverage(
+        aoi_mask=aoi_mask,
+        covered=covered,
+        scl=scl_band.values,
+        masked_classes=config.masked_scl_classes,
+        spectral_finite=spectral_finite,
+        ndvi_finite=np.isfinite(ndvi),
+        granule_count=acquisition.granule_count,
+        contributing_item_ids=contributing or acquisition.item_ids,
+        tile_ids=acquisition.tile_ids,
+    )
     stats = compute_scene_stats(ndvi, aoi_mask, zero_denominator)
-    result_common: dict[str, Any] = {"stats": stats, "scaling": scaling}
+    common: dict[str, Any] = {"stats": stats, "coverage": coverage, "scaling": scaling}
 
+    def reject(reason: str) -> SceneResult:
+        _write_summary(
+            scene_dir / "summary.json",
+            acquisition,
+            grid,
+            {
+                "usable": False,
+                "unusable_reason": reason,
+                "stats": stats.model_dump(),
+                "coverage": coverage.model_dump(),
+                "band_scaling": scaling.model_dump(),
+                "mask_policy_scl_classes": list(config.masked_scl_classes),
+                "warnings": warnings,
+            },
+        )
+        return finish(usable=False, unusable_reason=reason, **common)
+
+    # Coverage gate FIRST: an acquisition that does not cover the AOI is not
+    # comparable to one that does, however clean its pixels are.
+    if coverage_pct < config.min_aoi_coverage_pct:
+        warnings.append(
+            f"Geometric AOI coverage {coverage_pct:.2f}% is below the required "
+            f"{config.min_aoi_coverage_pct:.2f}%"
+        )
+        return reject(UNUSABLE_INSUFFICIENT_COVERAGE)
     if stats.valid_pixel_count == 0:
-        _write_scene_summary(
-            scene_dir / "summary.json",
-            candidate,
-            {
-                "usable": False,
-                "unusable_reason": _UNUSABLE_FULLY_MASKED,
-                "stats": stats.model_dump(),
-                "band_scaling": scaling.model_dump(),
-                "mask_policy_scl_classes": list(config.masked_scl_classes),
-            },
-        )
-        return finish(usable=False, unusable_reason=_UNUSABLE_FULLY_MASKED, **result_common)
+        return reject(UNUSABLE_FULLY_MASKED)
     if stats.valid_pixel_pct < config.min_valid_pixel_pct:
-        _write_scene_summary(
-            scene_dir / "summary.json",
-            candidate,
-            {
-                "usable": False,
-                "unusable_reason": _UNUSABLE_INSUFFICIENT_VALID,
-                "stats": stats.model_dump(),
-                "band_scaling": scaling.model_dump(),
-                "mask_policy_scl_classes": list(config.masked_scl_classes),
-            },
-        )
-        return finish(usable=False, unusable_reason=_UNUSABLE_INSUFFICIENT_VALID, **result_common)
+        return reject(UNUSABLE_INSUFFICIENT_VALID)
 
-    # Outputs.
     cog_path = scene_dir / "ndvi.tif"
     write_ndvi_cog(
         cog_path,
         ndvi,
-        transform=grid_transform,
-        crs=f"EPSG:{epsg}",
+        transform=grid.transform,
+        crs=grid.crs,
         nodata=config.output_nodata,
     )
-    is_valid, cog_errors, _cog_warnings = validate_cog(cog_path)
+    is_valid, cog_errors, _ = validate_cog(cog_path)
     if not is_valid:
         raise DataError(
-            f"Generated COG failed validation for scene {candidate.item_id}: {cog_errors}"
+            f"Generated COG failed validation for acquisition "
+            f"{acquisition.primary_item_id}: {cog_errors}"
         )
 
     ndvi_png = scene_dir / "ndvi_preview.png"
@@ -319,28 +248,50 @@ def process_scene(
         display_min=config.ndvi_display_min,
         display_max=config.ndvi_display_max,
         max_dim=config.preview_max_dim,
+        aoi_mask=aoi_mask,
+        covered_mask=covered,
     )
 
     true_color_png = scene_dir / "true_color.png"
-    has_true_color = _true_color_preview(
-        candidate, bounds, aoi_mask, red, true_color_png, config, sign, warnings
-    )
+    has_true_color = False
+    visual_hrefs = hrefs("visual")
+    if visual_hrefs:
+        rgb = mosaic_rgb(visual_hrefs, grid)
+        if rgb is not None:
+            write_true_color_preview(
+                true_color_png,
+                rgb,
+                valid_mask=aoi_mask & covered,
+                max_dim=config.preview_max_dim,
+            )
+            has_true_color = True
+    if not has_true_color:
+        warnings.append("True-color preview unavailable for this acquisition")
 
     raster_info = RasterInfo(
-        crs=f"EPSG:{epsg}",
-        transform=tuple(grid_transform)[:6],  # type: ignore[arg-type]
-        width=ndvi.shape[1],
-        height=ndvi.shape[0],
-        resolution=(abs(grid_transform.a), abs(grid_transform.e)),
+        crs=grid.crs,
+        transform=(
+            grid.transform.a,
+            grid.transform.b,
+            grid.transform.c,
+            grid.transform.d,
+            grid.transform.e,
+            grid.transform.f,
+        ),
+        width=grid.width,
+        height=grid.height,
+        resolution=grid.resolution,
         nodata=config.output_nodata,
     )
     summary_path = scene_dir / "summary.json"
-    _write_scene_summary(
+    _write_summary(
         summary_path,
-        candidate,
+        acquisition,
+        grid,
         {
             "usable": True,
             "stats": stats.model_dump(),
+            "coverage": coverage.model_dump(),
             "band_scaling": scaling.model_dump(),
             "mask_policy_scl_classes": list(config.masked_scl_classes),
             "raster": raster_info.model_dump(),
@@ -357,5 +308,16 @@ def process_scene(
             true_color_preview=str(true_color_png) if has_true_color else None,
             scene_summary=str(summary_path),
         ),
-        **result_common,
+        **common,
     )
+
+
+def _dominant_baseline(acquisition: Acquisition) -> str | None:
+    """Processing baseline used for reflectance scaling.
+
+    Granules of one acquisition normally share a baseline; when they differ we
+    take the lowest (most conservative offset assumption) and the mismatch is
+    already recorded as an acquisition warning.
+    """
+    baselines = acquisition.processing_baselines
+    return baselines[0] if baselines else None

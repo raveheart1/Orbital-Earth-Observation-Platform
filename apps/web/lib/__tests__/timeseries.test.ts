@@ -75,6 +75,7 @@ describe("findSceneArtifact", () => {
     created_at: "2024-06-01T14:03:00Z",
     download_url: "https://example.com/signed",
     download_url_expires_in_seconds: 3600,
+    grid_signature: null,
   });
 
   it("matches artifacts by STAC item id and type", () => {

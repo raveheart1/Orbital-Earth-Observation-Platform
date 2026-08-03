@@ -15,6 +15,11 @@ export interface ChartPoint {
   band: [number, number] | null;
   validPixelPct: number;
   cloudPct: number | null;
+  /** Geometric AOI coverage by the source granules (null on legacy points). */
+  aoiCoveragePct: number | null;
+  /** Number of source granules mosaicked into this observation. */
+  granuleCount: number;
+  tileIds: string[];
 }
 
 /**
@@ -40,6 +45,9 @@ export function toChartPoints(points: TimeseriesPoint[]): ChartPoint[] {
           : null,
       validPixelPct: p.valid_pixel_pct,
       cloudPct: p.stac_cloud_cover_pct,
+      aoiCoveragePct: p.aoi_coverage_pct,
+      granuleCount: p.granule_count,
+      tileIds: p.tile_ids,
     }));
 }
 

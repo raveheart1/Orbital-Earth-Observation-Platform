@@ -57,6 +57,21 @@ class ProcessingInfo(BaseModel):
     git_commit_sha: str | None
 
 
+class AnalysisGrid(BaseModel):
+    """The canonical analytical grid shared by every observation."""
+
+    schema_version: str
+    crs: str
+    epsg: int | None = None
+    resolution: list[float]
+    transform: list[float]
+    width: int
+    height: int
+    bounds_projected: list[float]
+    bounds_geographic: list[float]
+    signature: str
+
+
 class AnalysisLinks(BaseModel):
     self: str
     scenes: str
@@ -85,6 +100,11 @@ class AnalysisResponse(BaseModel):
     failure: FailureInfo | None
     retry_count: int
     summary: dict[str, Any] | None
+    grid: AnalysisGrid | None = Field(
+        default=None,
+        description="Canonical analytical grid; null for legacy analyses processed "
+        "before processing version 2.0.0",
+    )
     is_demo: bool
     links: AnalysisLinks
 
@@ -99,15 +119,30 @@ class AnalysisListResponse(BaseModel):
 class SceneResponse(BaseModel):
     id: uuid.UUID
     stac_collection: str
-    stac_item_id: str
-    observed_at: datetime
+    stac_item_id: str = Field(description="Primary/representative granule of the acquisition")
+    acquisition_key: str | None = None
+    contributing_item_ids: list[str] = Field(
+        default_factory=list,
+        description="Every STAC item mosaicked into this observation",
+    )
+    tile_ids: list[str] = Field(default_factory=list)
+    granule_count: int = 1
+    aoi_coverage_pct: float | None = Field(
+        default=None, description="Geometric AOI coverage by the source granules"
+    )
+    valid_pixel_pct: float | None = Field(
+        default=None, description="Percent of AOI pixels usable after masking"
+    )
+    observed_at: datetime = Field(description="Acquisition (sensing) time, not processing time")
     cloud_cover_pct: float | None
     platform: str | None
     instruments: list[str] | None
     selection_status: Literal["selected", "excluded"]
     exclusion_reason: str | None
     source_provider: str
-    assets: dict[str, str] = Field(description="Original unsigned STAC asset hrefs")
+    assets: dict[str, Any] = Field(
+        description="Original unsigned STAC asset hrefs, keyed by item id then role"
+    )
     quality: dict[str, Any] | None
     bbox: list[float] | None
 
@@ -129,6 +164,12 @@ class TimeseriesPoint(BaseModel):
     valid_pixel_count: int
     masked_pixel_count: int
     valid_pixel_pct: float
+    aoi_coverage_pct: float | None = None
+    valid_coverage_pct: float | None = None
+    missing_data_pct: float | None = None
+    granule_count: int = 1
+    contributing_item_ids: list[str] = Field(default_factory=list)
+    tile_ids: list[str] = Field(default_factory=list)
 
 
 class TimeseriesResponse(BaseModel):
@@ -146,6 +187,10 @@ class ArtifactResponse(BaseModel):
     sha256: str
     crs: str | None
     created_at: datetime
+    grid_signature: str | None = Field(
+        default=None,
+        description="Analytical grid identity; artifacts of one analysis must match",
+    )
     download_url: str = Field(description="Short-lived signed URL; regenerate by re-fetching")
     download_url_expires_in_seconds: int
 

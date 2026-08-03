@@ -13,9 +13,16 @@ from typing import Any
 from earth_observation.types import SceneResult
 
 TIMESERIES_COLUMNS = [
-    "item_id",
+    "acquisition_key",
+    "primary_item_id",
+    "contributing_item_ids",
+    "tile_ids",
+    "granule_count",
     "observed_at",
     "stac_cloud_cover_pct",
+    "aoi_coverage_pct",
+    "valid_coverage_pct",
+    "missing_data_pct",
     "valid_pixel_count",
     "masked_pixel_count",
     "valid_pixel_pct",
@@ -34,15 +41,23 @@ TIMESERIES_COLUMNS = [
 def timeseries_rows(results: list[SceneResult]) -> list[dict[str, Any]]:
     """Rows for usable scenes only, chronologically sorted."""
     rows: list[dict[str, Any]] = []
-    for result in sorted(results, key=lambda r: r.candidate.observed_at):
+    for result in sorted(results, key=lambda r: r.acquisition.observed_at):
         if not result.usable or result.stats is None:
             continue
         stats = result.stats
+        coverage = result.coverage
         rows.append(
             {
-                "item_id": result.candidate.item_id,
-                "observed_at": result.candidate.observed_at.isoformat(),
-                "stac_cloud_cover_pct": result.candidate.cloud_cover_pct,
+                "acquisition_key": result.acquisition.key,
+                "primary_item_id": result.acquisition.primary_item_id,
+                "contributing_item_ids": " ".join(result.acquisition.contributing_item_ids),
+                "tile_ids": " ".join(result.acquisition.tile_ids),
+                "granule_count": len(result.acquisition.contributing_item_ids),
+                "observed_at": result.acquisition.observed_at.isoformat(),
+                "stac_cloud_cover_pct": result.acquisition.cloud_cover_pct,
+                "aoi_coverage_pct": coverage.aoi_coverage_pct if coverage else None,
+                "valid_coverage_pct": coverage.valid_coverage_pct if coverage else None,
+                "missing_data_pct": coverage.missing_data_pct if coverage else None,
                 "valid_pixel_count": stats.valid_pixel_count,
                 "masked_pixel_count": stats.masked_pixel_count,
                 "valid_pixel_pct": stats.valid_pixel_pct,
@@ -86,7 +101,7 @@ def analysis_summary(results: list[SceneResult]) -> dict[str, Any]:
             "ndvi_mean_change": None,
             "mean_valid_pixel_pct": None,
         }
-    ordered = sorted(usable, key=lambda r: r.candidate.observed_at)
+    ordered = sorted(usable, key=lambda r: r.acquisition.observed_at)
     first, last = ordered[0], ordered[-1]
     assert first.stats is not None
     assert last.stats is not None
@@ -94,15 +109,24 @@ def analysis_summary(results: list[SceneResult]) -> dict[str, Any]:
     change: float | None = None
     if first.stats.ndvi_mean is not None and last.stats.ndvi_mean is not None:
         change = last.stats.ndvi_mean - first.stats.ndvi_mean
+    coverages = [r.coverage.aoi_coverage_pct for r in ordered if r.coverage is not None]
+    grids = {r.raster.crs + f":{r.raster.width}x{r.raster.height}" for r in ordered if r.raster}
     return {
         "usable_scene_count": len(usable),
         "unusable_scene_count": len(unusable),
-        "first_observation": first.candidate.observed_at.isoformat(),
-        "last_observation": last.candidate.observed_at.isoformat(),
+        "first_observation": first.acquisition.observed_at.isoformat(),
+        "last_observation": last.acquisition.observed_at.isoformat(),
         "ndvi_mean_first": first.stats.ndvi_mean,
         "ndvi_mean_last": last.stats.ndvi_mean,
         "ndvi_mean_change": change,
         "mean_valid_pixel_pct": sum(means) / len(means) if means else None,
+        "min_aoi_coverage_pct": min(coverages) if coverages else None,
+        "identical_analytical_grid": len(grids) <= 1,
+        "comparison_note": (
+            "Every observation above was computed on one canonical grid over "
+            "the identical AOI footprint, so the change between dates reflects "
+            "the same ground."
+        ),
         "interpretation_note": (
             "Values are observed spectral vegetation-index changes for the "
             "specific acquisition dates shown. They do not by themselves "

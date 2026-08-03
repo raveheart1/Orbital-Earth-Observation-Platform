@@ -1,0 +1,440 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://raw.githubusercontent.com/raveheart1/Orbital-Earth-Observation-Platform/main/docs/schemas/provenance-2.0.0.json",
+  "title": "OEOP Analysis Provenance",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "analysis_id",
+    "created_at",
+    "data_source",
+    "request",
+    "canonical_grid",
+    "scene_selection",
+    "processing",
+    "software",
+    "scenes",
+    "outputs"
+  ],
+  "properties": {
+    "schema_version": {
+      "const": "2.0.0"
+    },
+    "analysis_id": {
+      "type": "string",
+      "format": "uuid"
+    },
+    "created_at": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "canonical_grid": {
+      "type": "object",
+      "description": "The single analytical grid every observation in this analysis was reprojected onto. Identical CRS/transform/size for all usable observations by construction.",
+      "required": [
+        "schema_version",
+        "crs",
+        "resolution",
+        "transform",
+        "width",
+        "height",
+        "bounds_projected",
+        "bounds_geographic"
+      ],
+      "properties": {
+        "schema_version": {
+          "type": "string"
+        },
+        "crs": {
+          "type": "string"
+        },
+        "epsg": {
+          "type": "integer"
+        },
+        "resolution": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "transform": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          },
+          "minItems": 6,
+          "maxItems": 6
+        },
+        "width": {
+          "type": "integer"
+        },
+        "height": {
+          "type": "integer"
+        },
+        "bounds_projected": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "bounds_geographic": {
+          "type": "array",
+          "items": {
+            "type": "number"
+          }
+        },
+        "aoi_geometry_4326": {
+          "type": "object"
+        },
+        "signature": {
+          "type": "string"
+        }
+      }
+    },
+    "data_source": {
+      "type": "object",
+      "required": [
+        "stac_endpoint",
+        "collection"
+      ],
+      "properties": {
+        "stac_endpoint": {
+          "type": "string",
+          "format": "uri"
+        },
+        "collection": {
+          "type": "string"
+        },
+        "provider": {
+          "type": "string"
+        },
+        "license": {
+          "type": "string"
+        }
+      }
+    },
+    "request": {
+      "type": "object",
+      "required": [
+        "aoi_geometry",
+        "start_date",
+        "end_date",
+        "max_cloud_cover_pct"
+      ],
+      "properties": {
+        "aoi_geometry": {
+          "type": "object"
+        },
+        "aoi_area_km2": {
+          "type": "number"
+        },
+        "start_date": {
+          "type": "string"
+        },
+        "end_date": {
+          "type": "string"
+        },
+        "max_cloud_cover_pct": {
+          "type": "number"
+        },
+        "scene_limit": {
+          "type": "integer"
+        }
+      }
+    },
+    "scene_selection": {
+      "type": "object",
+      "required": [
+        "algorithm",
+        "algorithm_version",
+        "selected_count",
+        "excluded",
+        "min_aoi_coverage_pct"
+      ],
+      "properties": {
+        "algorithm": {
+          "type": "string"
+        },
+        "algorithm_version": {
+          "type": "string"
+        },
+        "selected_count": {
+          "type": "integer"
+        },
+        "min_aoi_coverage_pct": {
+          "type": "number"
+        },
+        "excluded": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": [
+              "acquisition_key",
+              "reason"
+            ],
+            "properties": {
+              "acquisition_key": {
+                "type": "string"
+              },
+              "primary_item_id": {
+                "type": "string"
+              },
+              "contributing_item_ids": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              },
+              "aoi_coverage_pct": {
+                "type": [
+                  "number",
+                  "null"
+                ]
+              },
+              "reason": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      }
+    },
+    "processing": {
+      "type": "object",
+      "required": [
+        "operation",
+        "config",
+        "mosaic_method"
+      ],
+      "properties": {
+        "operation": {
+          "type": "string"
+        },
+        "config": {
+          "type": "object"
+        },
+        "mosaic_method": {
+          "type": "string"
+        },
+        "resampling_spectral": {
+          "type": "string"
+        },
+        "resampling_categorical": {
+          "type": "string"
+        },
+        "window_pad_px": {
+          "type": "integer"
+        },
+        "masked_scl_classes": {
+          "type": "array",
+          "items": {
+            "type": "integer"
+          }
+        },
+        "masked_scl_class_names": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "software": {
+      "type": "object",
+      "required": [
+        "processing_version"
+      ],
+      "properties": {
+        "processing_version": {
+          "type": "string"
+        },
+        "git_commit_sha": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "container_image": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "python_version": {
+          "type": "string"
+        },
+        "dependency_lock_sha256": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "key_packages": {
+          "type": "object"
+        }
+      }
+    },
+    "scenes": {
+      "type": "array",
+      "description": "One entry per ACQUISITION (may aggregate several granules)",
+      "items": {
+        "type": "object",
+        "required": [
+          "acquisition_key",
+          "primary_item_id",
+          "contributing_item_ids",
+          "observed_at",
+          "assets"
+        ],
+        "properties": {
+          "acquisition_key": {
+            "type": "string"
+          },
+          "primary_item_id": {
+            "type": "string"
+          },
+          "contributing_item_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "minItems": 1
+          },
+          "tile_ids": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "granule_count": {
+            "type": "integer"
+          },
+          "observed_at": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Acquisition (sensing) time, not processing time"
+          },
+          "platform": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "relative_orbit": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "cloud_cover_pct": {
+            "type": [
+              "number",
+              "null"
+            ]
+          },
+          "processing_baselines": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "band_scaling": {
+            "type": "object"
+          },
+          "assets": {
+            "type": "object",
+            "description": "Original unsigned asset hrefs, keyed by contributing item id then role"
+          },
+          "coverage": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "usable": {
+            "type": "boolean"
+          },
+          "unusable_reason": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "raster": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "processing_seconds": {
+            "type": "number"
+          },
+          "warnings": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      }
+    },
+    "outputs": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "artifact_type",
+          "path",
+          "sha256",
+          "size_bytes"
+        ],
+        "properties": {
+          "artifact_type": {
+            "type": "string"
+          },
+          "scene_item_id": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "path": {
+            "type": "string"
+          },
+          "content_type": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[0-9a-f]{64}$"
+          },
+          "size_bytes": {
+            "type": "integer"
+          }
+        }
+      }
+    },
+    "timing": {
+      "type": "object",
+      "properties": {
+        "started_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "completed_at": {
+          "type": "string",
+          "format": "date-time"
+        },
+        "duration_seconds": {
+          "type": "number"
+        }
+      }
+    },
+    "warnings": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  }
+}

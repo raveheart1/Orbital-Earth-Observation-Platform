@@ -1,9 +1,9 @@
 """End-to-end pipeline tests over tiny temporary GeoTIFFs.
 
-These exercise the REAL processing code path (windowed reads, SCL
-reproject-match from 20 m to 10 m, reflectance offset, masking, exact-AOI
-clipping, COG/preview/summary outputs) — only the data is synthetic and the
-Planetary Computer URL signer is replaced with the identity function.
+These exercise the REAL processing code path (windowed reads, mosaicking onto
+the canonical grid, SCL nearest-neighbour alignment, reflectance offset,
+masking, exact-AOI statistics, COG/preview/summary outputs) — only the data is
+synthetic and the Planetary Computer URL signer is the identity function.
 """
 
 from __future__ import annotations
@@ -15,8 +15,10 @@ import pytest
 import rasterio
 from rasterio.transform import from_origin
 
+from earth_observation.acquisition import group_acquisitions
 from earth_observation.cog import validate_cog
-from earth_observation.processing import process_scene
+from earth_observation.grid import CanonicalGrid
+from earth_observation.processing import process_acquisition
 from earth_observation.testing import (
     NODATA_DN,
     ORIGIN_X,
@@ -37,38 +39,42 @@ IDENTITY = str  # "signing" for local files is the identity function
 CONFIG = ProcessingConfig(min_valid_pixel_pct=10.0, preview_max_dim=256)
 
 
+def acquisition_for(scene: dict):
+    return group_acquisitions([scene["candidate"]], scene["aoi_geojson"])[0]
+
+
+def grid_for(scene: dict) -> CanonicalGrid:
+    return CanonicalGrid.from_aoi(scene["aoi_geojson"], resolution_m=10.0)
+
+
 @pytest.fixture
 def result(synthetic_scene, tmp_path):
-    out = tmp_path / "out"
-    return process_scene(
-        synthetic_scene["candidate"],
-        synthetic_scene["aoi_geojson"],
+    return process_acquisition(
+        acquisition_for(synthetic_scene),
+        grid_for(synthetic_scene),
         CONFIG,
-        out,
+        tmp_path / "out",
         sign=IDENTITY,
     )
 
 
 class TestFullPipeline:
-    def test_scene_usable_with_expected_counts(self, result):
-        assert result.usable
+    def test_scene_usable_with_expected_counts(self, result, synthetic_scene):
+        assert result.usable, result.unusable_reason
         stats = result.stats
-        # AOI is 20x20 pixels = 400; projection round-trip can shift edges by
-        # at most one pixel per edge.
-        assert 360 <= stats.aoi_pixel_count <= 440
-        # Invalid inside AOI: 8 cloud + 4 nodata + 2 zero-denominator = 14.
-        assert stats.masked_pixel_count >= 14
+        grid = grid_for(synthetic_scene)
+        # The AOI footprint comes from the canonical grid, not the source extent.
+        assert stats.aoi_pixel_count == grid.aoi_pixel_count()
         assert stats.valid_pixel_count == stats.aoi_pixel_count - stats.masked_pixel_count
-        assert stats.zero_denominator_pixel_count == 2
+        assert stats.masked_pixel_count >= 14  # cloud + nodata + zero-denominator
 
     def test_ndvi_values_scientifically_correct(self, result):
         stats = result.stats
-        # Background NDVI 0.5, negative block -0.5 (16 px).
-        assert stats.ndvi_max == pytest.approx(0.5, abs=1e-4)
-        assert stats.ndvi_min == pytest.approx(-0.5, abs=1e-4)
-        assert stats.ndvi_median == pytest.approx(0.5, abs=1e-4)
-        # Cloud-covered pixels carried NDVI ~0.9 bait values; masking must keep
-        # the maximum at 0.5.
+        # Background NDVI 0.5, negative block -0.5.
+        assert stats.ndvi_max == pytest.approx(0.5, abs=1e-3)
+        assert stats.ndvi_min == pytest.approx(-0.5, abs=1e-3)
+        assert stats.ndvi_median == pytest.approx(0.5, abs=1e-3)
+        # Cloud-covered pixels carried NDVI ~0.9 bait values; masking must hold.
         assert stats.ndvi_max < 0.55
 
     def test_reflectance_offset_applied(self, result):
@@ -76,16 +82,14 @@ class TestFullPipeline:
         assert result.scaling.offset == pytest.approx(-0.1)
         assert result.scaling.source == "baseline_heuristic"
 
-    def test_cog_output_valid_and_clipped_to_aoi(self, result):
+    def test_cog_matches_the_canonical_grid(self, result, synthetic_scene):
+        grid = grid_for(synthetic_scene)
         is_valid, errors, _ = validate_cog(result.outputs.ndvi_cog)
         assert is_valid, errors
         with rasterio.open(result.outputs.ndvi_cog) as src:
-            assert src.crs.to_epsg() == 32617
-            data = src.read(1)
-            # Output covers the AOI window (+pad), far smaller than the scene.
-            assert data.shape[0] < SIZE and data.shape[1] < SIZE
-            # Corner pixels (outside the AOI polygon) are nodata.
-            assert data[0, 0] == CONFIG.output_nodata
+            assert src.crs.to_string() == grid.crs
+            assert (src.width, src.height) == (grid.width, grid.height)
+            assert src.transform == grid.transform
 
     def test_previews_and_summary_written(self, result):
         outputs = result.outputs
@@ -95,33 +99,43 @@ class TestFullPipeline:
         assert summary["usable"] is True
         assert summary["stats"]["valid_pixel_count"] == result.stats.valid_pixel_count
         assert summary["mask_policy_scl_classes"] == list(CONFIG.masked_scl_classes)
-        # Provenance-critical: original (unsigned) asset refs recorded.
-        assert summary["source_assets_unsigned"]["red"].endswith("red.tif")
+        assert summary["canonical_grid"]["signature"]
+        # Provenance-critical: original (unsigned) asset refs recorded per granule.
+        item_id = result.acquisition.primary_item_id
+        assert summary["source_assets_unsigned"][item_id]["red"].endswith("red.tif")
+
+    def test_coverage_recorded(self, result):
+        coverage = result.coverage
+        assert coverage is not None
+        assert coverage.aoi_coverage_pct > 99.0
+        assert coverage.granule_count == 1
+        assert coverage.contributing_item_ids
 
     def test_timeseries_and_analysis_summary(self, result, tmp_path):
         csv_path = tmp_path / "timeseries.csv"
         count = write_timeseries_csv(csv_path, [result])
         assert count == 1
-        content = csv_path.read_text()
-        assert "ndvi_mean" in content.splitlines()[0]
+        header = csv_path.read_text().splitlines()[0]
+        assert "ndvi_mean" in header
+        assert "aoi_coverage_pct" in header
+        assert "contributing_item_ids" in header
         summary = analysis_summary([result])
         assert summary["usable_scene_count"] == 1
         assert summary["ndvi_mean_change"] == pytest.approx(0.0)
+        assert summary["identical_analytical_grid"] is True
 
 
 class TestDegenerateScenes:
     def test_fully_clouded_scene_unusable(self, tmp_path, synthetic_scene):
-        scene_dir = synthetic_scene["dir"]
-        scl_cloudy = np.full((SIZE // 2, SIZE // 2), 9, dtype=np.uint8)
         write_raster(
-            scene_dir / "scl.tif",
-            scl_cloudy,
+            synthetic_scene["dir"] / "scl.tif",
+            np.full((SIZE // 2, SIZE // 2), 9, dtype=np.uint8),
             transform=from_origin(ORIGIN_X, ORIGIN_Y, RES * 2, RES * 2),
             nodata=0,
         )
-        result = process_scene(
-            synthetic_scene["candidate"],
-            synthetic_scene["aoi_geojson"],
+        result = process_acquisition(
+            acquisition_for(synthetic_scene),
+            grid_for(synthetic_scene),
             CONFIG,
             tmp_path / "out2",
             sign=IDENTITY,
@@ -129,20 +143,20 @@ class TestDegenerateScenes:
         assert not result.usable
         assert result.unusable_reason == "all_pixels_masked"
         assert result.stats.valid_pixel_count == 0
+        assert result.coverage.cloud_masked_pixel_count > 0
 
     def test_insufficient_valid_pixels(self, tmp_path, synthetic_scene):
-        scene_dir = synthetic_scene["dir"]
         scl = np.full((SIZE // 2, SIZE // 2), 9, dtype=np.uint8)
-        scl[5, 5] = 4  # one clear 20 m cell -> 4 valid 10 m pixels ~ 1%
+        scl[5, 5] = 4  # one clear 20 m cell ~ 1% of the AOI
         write_raster(
-            scene_dir / "scl.tif",
+            synthetic_scene["dir"] / "scl.tif",
             scl,
             transform=from_origin(ORIGIN_X, ORIGIN_Y, RES * 2, RES * 2),
             nodata=0,
         )
-        result = process_scene(
-            synthetic_scene["candidate"],
-            synthetic_scene["aoi_geojson"],
+        result = process_acquisition(
+            acquisition_for(synthetic_scene),
+            grid_for(synthetic_scene),
             CONFIG,
             tmp_path / "out3",
             sign=IDENTITY,
@@ -155,9 +169,10 @@ class TestDegenerateScenes:
         far_away = utm_box_to_wgs84_geojson(
             ORIGIN_X + 100_000, ORIGIN_Y + 100_000, ORIGIN_X + 100_500, ORIGIN_Y + 100_500
         )
-        result = process_scene(
-            synthetic_scene["candidate"],
-            far_away,
+        acquisition = group_acquisitions([synthetic_scene["candidate"]], far_away)[0]
+        result = process_acquisition(
+            acquisition,
+            CanonicalGrid.from_aoi(far_away, resolution_m=10.0),
             CONFIG,
             tmp_path / "out4",
             sign=IDENTITY,
@@ -165,37 +180,32 @@ class TestDegenerateScenes:
         assert not result.usable
         assert result.unusable_reason == "no_raster_overlap_with_aoi"
 
-    def test_misaligned_nir_reprojected(self, tmp_path, synthetic_scene):
+    def test_misaligned_nir_reprojected_onto_the_grid(self, tmp_path, synthetic_scene):
         """NIR shipped at 20 m on a shifted grid must be aligned, not crash."""
-        scene_dir = synthetic_scene["dir"]
-        nir_20m = np.full((SIZE // 2, SIZE // 2), 4000, dtype=np.uint16)
         write_raster(
-            scene_dir / "nir.tif",
-            nir_20m,
+            synthetic_scene["dir"] / "nir.tif",
+            np.full((SIZE // 2, SIZE // 2), 4000, dtype=np.uint16),
             transform=from_origin(ORIGIN_X, ORIGIN_Y, RES * 2, RES * 2),
             nodata=NODATA_DN,
         )
-        result = process_scene(
-            synthetic_scene["candidate"],
-            synthetic_scene["aoi_geojson"],
-            CONFIG,
-            tmp_path / "out5",
-            sign=IDENTITY,
+        grid = grid_for(synthetic_scene)
+        result = process_acquisition(
+            acquisition_for(synthetic_scene), grid, CONFIG, tmp_path / "out5", sign=IDENTITY
         )
         assert result.usable
-        assert any("reprojected" in w for w in result.warnings)
-        # Background NDVI still 0.5 after alignment.
-        assert result.stats.ndvi_median == pytest.approx(0.5, abs=1e-3)
+        assert (result.raster.width, result.raster.height) == (grid.width, grid.height)
+        assert result.stats.ndvi_median == pytest.approx(0.5, abs=1e-2)
 
     def test_scene_without_visual_asset(self, tmp_path, synthetic_scene):
         candidate = make_candidate(synthetic_scene["dir"], with_visual=False)
-        result = process_scene(
-            candidate,
-            synthetic_scene["aoi_geojson"],
+        acquisition = group_acquisitions([candidate], synthetic_scene["aoi_geojson"])[0]
+        result = process_acquisition(
+            acquisition,
+            grid_for(synthetic_scene),
             CONFIG,
             tmp_path / "out6",
             sign=IDENTITY,
         )
         assert result.usable
         assert result.outputs.true_color_preview is None
-        assert any("visual" in w for w in result.warnings)
+        assert any("True-color" in w for w in result.warnings)

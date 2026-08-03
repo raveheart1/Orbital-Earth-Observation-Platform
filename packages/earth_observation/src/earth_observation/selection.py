@@ -1,72 +1,89 @@
-"""Deterministic scene selection.
+"""Deterministic acquisition selection.
 
-When more candidate scenes match than the analysis scene limit, we must pick a
-subset. The strategy (``temporal-stratified-lowest-cloud`` v1.0.0) is fully
-deterministic and documented:
+Selection operates on ACQUISITIONS (one observation instant, possibly backed by
+several granules), not on individual STAC items. Selecting items directly is
+what previously let a single granule covering 56 % of a tile-crossing AOI stand
+in for a whole observation.
 
-1. Exclude candidates whose footprint covers less than
-   ``min_aoi_overlap_pct`` of the AOI ("insufficient_aoi_overlap").
-2. Exclude candidates above the requested cloud-cover threshold — defensive,
-   the STAC query already filters ("cloud_cover_above_threshold").
+Strategy ``temporal-stratified-lowest-cloud`` v2.0.0:
+
+1. Exclude acquisitions whose granules together cover less than
+   ``min_aoi_coverage_pct`` of the AOI ("insufficient_aoi_coverage") — a
+   partially covered date cannot be compared with a fully covered one.
+2. Exclude acquisitions above the requested cloud-cover threshold
+   ("cloud_cover_above_threshold").
 3. If the survivors fit within the limit, select them all.
 4. Otherwise split the requested date range into ``limit`` equal time buckets
-   and, within each bucket, select the candidate with the lowest
-   (cloud_cover, observed_at, item_id) sort key. This favours low cloud cover
-   while preserving temporal coverage across the whole range.
-5. If some buckets are empty, remaining slots are filled with the lowest-cloud
-   unselected survivors, in the same deterministic order.
+   and, within each, select the acquisition with the lowest
+   (cloud_cover, observed_at, key) sort key — favouring low cloud while
+   preserving temporal coverage.
+5. Fill any slots left by empty buckets with the lowest-cloud unselected
+   survivors, in the same deterministic order.
 
-Every excluded candidate is recorded with its reason.
+Every excluded acquisition is recorded with its reason.
 """
 
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from datetime import UTC, datetime
 
-from earth_observation import SCENE_SELECTION_ALGORITHM, SCENE_SELECTION_VERSION
-from earth_observation.types import ExcludedScene, SceneCandidate, SceneSelection
+from earth_observation.acquisition import Acquisition
 
-_REASON_OVERLAP = "insufficient_aoi_overlap"
-_REASON_CLOUD = "cloud_cover_above_threshold"
-_REASON_SAMPLED_OUT = "not_selected_temporal_sampling"
+SCENE_SELECTION_ALGORITHM = "temporal-stratified-lowest-cloud"
+SCENE_SELECTION_VERSION = "2.0.0"
 
-
-def _sort_key(candidate: SceneCandidate) -> tuple[float, datetime, str]:
-    cloud = candidate.cloud_cover_pct if candidate.cloud_cover_pct is not None else 101.0
-    return (cloud, candidate.observed_at, candidate.item_id)
+REASON_COVERAGE = "insufficient_aoi_coverage"
+REASON_CLOUD = "cloud_cover_above_threshold"
+REASON_SAMPLED_OUT = "not_selected_temporal_sampling"
 
 
-def select_scenes(
-    candidates: list[SceneCandidate],
+@dataclass
+class ExcludedAcquisition:
+    acquisition: Acquisition
+    reason: str
+
+
+@dataclass
+class AcquisitionSelection:
+    selected: list[Acquisition]
+    excluded: list[ExcludedAcquisition] = field(default_factory=list)
+    algorithm: str = SCENE_SELECTION_ALGORITHM
+    algorithm_version: str = SCENE_SELECTION_VERSION
+
+
+def _sort_key(acquisition: Acquisition) -> tuple[float, datetime, str]:
+    cloud = acquisition.cloud_cover_pct
+    return (cloud if cloud is not None else 101.0, acquisition.observed_at, acquisition.key)
+
+
+def select_acquisitions(
+    acquisitions: list[Acquisition],
     *,
     scene_limit: int,
     max_cloud_cover_pct: float,
-    min_aoi_overlap_pct: float,
+    min_aoi_coverage_pct: float,
     range_start: datetime,
     range_end: datetime,
-) -> SceneSelection:
+) -> AcquisitionSelection:
     """Apply the documented deterministic selection strategy."""
-    excluded: list[ExcludedScene] = []
-    survivors: list[SceneCandidate] = []
+    excluded: list[ExcludedAcquisition] = []
+    survivors: list[Acquisition] = []
 
-    for candidate in candidates:
-        overlap = candidate.aoi_overlap_pct
-        if overlap is not None and overlap < min_aoi_overlap_pct:
-            excluded.append(ExcludedScene(candidate=candidate, reason=_REASON_OVERLAP))
+    for acquisition in acquisitions:
+        if acquisition.aoi_coverage_pct < min_aoi_coverage_pct:
+            excluded.append(ExcludedAcquisition(acquisition, REASON_COVERAGE))
             continue
-        cloud = candidate.cloud_cover_pct
+        cloud = acquisition.cloud_cover_pct
         if cloud is not None and cloud > max_cloud_cover_pct:
-            excluded.append(ExcludedScene(candidate=candidate, reason=_REASON_CLOUD))
+            excluded.append(ExcludedAcquisition(acquisition, REASON_CLOUD))
             continue
-        survivors.append(candidate)
+        survivors.append(acquisition)
 
     if len(survivors) <= scene_limit:
-        chronological = sorted(survivors, key=lambda c: (c.observed_at, c.item_id))
-        return SceneSelection(
-            selected=chronological,
+        return AcquisitionSelection(
+            selected=sorted(survivors, key=lambda a: (a.observed_at, a.key)),
             excluded=excluded,
-            algorithm=SCENE_SELECTION_ALGORITHM,
-            algorithm_version=SCENE_SELECTION_VERSION,
         )
 
     if range_start.tzinfo is None:
@@ -76,36 +93,31 @@ def select_scenes(
     span_seconds = max((range_end - range_start).total_seconds(), 1.0)
     bucket_seconds = span_seconds / scene_limit
 
-    buckets: dict[int, list[SceneCandidate]] = {}
-    for candidate in survivors:
-        observed = candidate.observed_at
+    buckets: dict[int, list[Acquisition]] = {}
+    for acquisition in survivors:
+        observed = acquisition.observed_at
         if observed.tzinfo is None:
             observed = observed.replace(tzinfo=UTC)
         index = int((observed - range_start).total_seconds() // bucket_seconds)
         index = min(max(index, 0), scene_limit - 1)
-        buckets.setdefault(index, []).append(candidate)
+        buckets.setdefault(index, []).append(acquisition)
 
-    selected_ids: set[str] = set()
-    selected: list[SceneCandidate] = []
+    selected_keys: set[str] = set()
+    selected: list[Acquisition] = []
     for index in sorted(buckets):
         best = min(buckets[index], key=_sort_key)
         selected.append(best)
-        selected_ids.add(best.item_id)
+        selected_keys.add(best.key)
 
     if len(selected) < scene_limit:
-        leftovers = sorted((c for c in survivors if c.item_id not in selected_ids), key=_sort_key)
-        for candidate in leftovers[: scene_limit - len(selected)]:
-            selected.append(candidate)
-            selected_ids.add(candidate.item_id)
+        leftovers = sorted((a for a in survivors if a.key not in selected_keys), key=_sort_key)
+        for acquisition in leftovers[: scene_limit - len(selected)]:
+            selected.append(acquisition)
+            selected_keys.add(acquisition.key)
 
-    for candidate in survivors:
-        if candidate.item_id not in selected_ids:
-            excluded.append(ExcludedScene(candidate=candidate, reason=_REASON_SAMPLED_OUT))
+    for acquisition in survivors:
+        if acquisition.key not in selected_keys:
+            excluded.append(ExcludedAcquisition(acquisition, REASON_SAMPLED_OUT))
 
-    selected.sort(key=lambda c: (c.observed_at, c.item_id))
-    return SceneSelection(
-        selected=selected,
-        excluded=excluded,
-        algorithm=SCENE_SELECTION_ALGORITHM,
-        algorithm_version=SCENE_SELECTION_VERSION,
-    )
+    selected.sort(key=lambda a: (a.observed_at, a.key))
+    return AcquisitionSelection(selected=selected, excluded=excluded)

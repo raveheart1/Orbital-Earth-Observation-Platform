@@ -22,6 +22,11 @@ export const NdviLegendSchema = z.object({
   display_max: z.number(),
   stops: z.array(LegendStopSchema).min(1),
   masked_color: z.string(),
+  /** Label for cloud/shadow/snow-masked pixels (rendered transparent). */
+  masked_label: z.string().optional(),
+  /** Opaque fill used where no source granule covered the pixel. */
+  nodata_color: z.string().optional(),
+  nodata_label: z.string().optional(),
   note: z.string(),
 });
 export type NdviLegend = z.infer<typeof NdviLegendSchema>;
@@ -79,8 +84,36 @@ export const AnalysisSummarySchema = z.object({
   ndvi_mean_change: z.number().nullable(),
   mean_valid_pixel_pct: z.number().nullable(),
   interpretation_note: z.string().optional(),
+  /** Minimum geometric AOI coverage an acquisition needed to be usable. */
+  min_aoi_coverage_pct: z.number().nullish().default(null),
+  /** True when every usable observation shares one canonical analysis grid. */
+  identical_analytical_grid: z.boolean().optional().default(false),
+  comparison_note: z.string().optional(),
 });
 export type AnalysisSummary = z.infer<typeof AnalysisSummarySchema>;
+
+/**
+ * The canonical per-analysis raster grid (v2.0.0+). Every usable observation
+ * is reprojected onto this exact grid, so all COGs/previews share one extent.
+ * Null on legacy analyses processed before v2.0.0.
+ */
+export const AnalysisGridSchema = z.object({
+  schema_version: z.string(),
+  crs: z.string(),
+  epsg: z.number().nullable(),
+  resolution: z.array(z.number()),
+  /** Six affine transform coefficients (GDAL order). */
+  transform: z.array(z.number()),
+  width: z.number(),
+  height: z.number(),
+  /** [minx, miny, maxx, maxy] in the projected CRS. */
+  bounds_projected: z.array(z.number()),
+  /** [minLon, minLat, maxLon, maxLat] in WGS84. */
+  bounds_geographic: z.array(z.number()),
+  /** Stable identity string, e.g. "EPSG:32617:1272x1149:10,0,322730,0,-10,4696470". */
+  signature: z.string(),
+});
+export type AnalysisGrid = z.infer<typeof AnalysisGridSchema>;
 
 export const AnalysisSchema = z.object({
   id: z.string(),
@@ -111,6 +144,8 @@ export const AnalysisSchema = z.object({
     .nullable(),
   retry_count: z.number(),
   summary: AnalysisSummarySchema.nullable(),
+  /** Null = legacy analysis processed before v2.0.0 (no canonical grid). */
+  grid: AnalysisGridSchema.nullish().default(null),
   is_demo: z.boolean(),
   links: z.object({
     self: z.string(),
@@ -130,29 +165,69 @@ export const AnalysisListSchema = z.object({
 });
 export type AnalysisList = z.infer<typeof AnalysisListSchema>;
 
-export const SceneSchema = z.object({
-  id: z.string(),
-  stac_collection: z.string(),
-  stac_item_id: z.string(),
-  observed_at: z.string(),
-  cloud_cover_pct: z.number().nullable(),
-  platform: z.string().nullable(),
-  instruments: z.array(z.string()).nullable(),
-  selection_status: z.enum(["selected", "excluded"]),
-  exclusion_reason: z.string().nullable(),
-  source_provider: z.string(),
-  assets: z.record(z.string(), z.unknown()),
-  quality: z
-    .object({
-      aoi_overlap_pct: z.number().optional(),
-      processing_baseline: z.string().optional(),
-      unusable_reason: z.string().optional(),
-      valid_pixel_pct: z.number().optional(),
-      warnings: z.array(z.string()).optional(),
-    })
-    .nullable(),
-  bbox: BboxSchema.nullable(),
-});
+/** Normalized scene assets: STAC item id → asset role → href. */
+export type SceneAssets = Record<string, Record<string, string>>;
+
+/** v2.0.0+ shape: keyed by contributing item id, then asset role. */
+const NestedSceneAssetsSchema = z.record(
+  z.string(),
+  z.record(z.string(), z.string()),
+);
+/** Legacy shape (single granule): asset role → href. */
+const FlatSceneAssetsSchema = z.record(z.string(), z.string());
+
+/**
+ * Fold the legacy flat asset map into the nested shape, keyed by the scene's
+ * own STAC item id — legacy scenes were backed by exactly that one granule.
+ */
+export function normalizeSceneAssets(
+  assets: Record<string, string> | SceneAssets,
+  stacItemId: string,
+): SceneAssets {
+  const flat = Object.values(assets).some((v) => typeof v === "string");
+  if (!flat) return assets as SceneAssets;
+  return { [stacItemId]: assets as Record<string, string> };
+}
+
+export const SceneSchema = z
+  .object({
+    id: z.string(),
+    stac_collection: z.string(),
+    stac_item_id: z.string(),
+    /** Acquisition (sensing) time of the observation — not processing time. */
+    observed_at: z.string(),
+    cloud_cover_pct: z.number().nullable(),
+    platform: z.string().nullable(),
+    instruments: z.array(z.string()).nullable(),
+    selection_status: z.enum(["selected", "excluded"]),
+    exclusion_reason: z.string().nullable(),
+    source_provider: z.string(),
+    assets: z.union([NestedSceneAssetsSchema, FlatSceneAssetsSchema]),
+    quality: z
+      .object({
+        aoi_overlap_pct: z.number().optional(),
+        processing_baseline: z.string().optional(),
+        unusable_reason: z.string().optional(),
+        valid_pixel_pct: z.number().optional(),
+        warnings: z.array(z.string()).optional(),
+      })
+      .nullable(),
+    bbox: BboxSchema.nullable(),
+    acquisition_key: z.string().nullish().default(null),
+    /** Every granule mosaicked into this observation (may be more than one). */
+    contributing_item_ids: z.array(z.string()).optional().default([]),
+    /** MGRS tile ids of the contributing granules, e.g. ["T17TLG","T17TLH"]. */
+    tile_ids: z.array(z.string()).optional().default([]),
+    granule_count: z.number().optional().default(1),
+    /** Geometric AOI coverage by the union of source granules. */
+    aoi_coverage_pct: z.number().nullish().default(null),
+    /** Share of analysis-grid pixels that survived masking (selected scenes). */
+    valid_pixel_pct: z.number().nullish().default(null),
+  })
+  .transform((scene) => ({
+    ...scene,
+    assets: normalizeSceneAssets(scene.assets, scene.stac_item_id),
+  }));
 export type Scene = z.infer<typeof SceneSchema>;
 
 export const ScenesSchema = z.array(SceneSchema);
@@ -174,6 +249,13 @@ export const TimeseriesPointSchema = z.object({
   valid_pixel_count: z.number(),
   masked_pixel_count: z.number(),
   valid_pixel_pct: z.number(),
+  /** Geometric AOI coverage by the union of source granules. */
+  aoi_coverage_pct: z.number().nullish().default(null),
+  valid_coverage_pct: z.number().nullish().default(null),
+  missing_data_pct: z.number().nullish().default(null),
+  granule_count: z.number().optional().default(1),
+  contributing_item_ids: z.array(z.string()).optional().default([]),
+  tile_ids: z.array(z.string()).optional().default([]),
 });
 export type TimeseriesPoint = z.infer<typeof TimeseriesPointSchema>;
 
@@ -206,6 +288,8 @@ export const ArtifactSchema = z.object({
   created_at: z.string(),
   download_url: z.string(),
   download_url_expires_in_seconds: z.number(),
+  /** Identity of the analytical grid the artifact was produced on. */
+  grid_signature: z.string().nullish().default(null),
 });
 export type Artifact = z.infer<typeof ArtifactSchema>;
 

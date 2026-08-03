@@ -25,10 +25,13 @@ export const configFixture = {
       { value: 0.9, color: "#1a9641" },
     ],
     masked_color: "#b0a8b9",
-    note: "masked pixels are excluded from all statistics",
+    masked_label: "Masked (cloud, shadow, snow)",
+    nodata_color: "#686a72",
+    nodata_label: "No source imagery",
+    note: "masked pixels are transparent and excluded from all statistics; grey pixels had no source imagery",
   },
   demo_analysis_id: "0d3f9a52-6f89-4a2e-9f4e-0f8b0e5c1a77",
-  processing_version: "1.2.0",
+  processing_version: "2.0.0",
 };
 
 export const regionFixture = {
@@ -53,6 +56,20 @@ export const regionFixture = {
   is_predefined: true,
 };
 
+/** Canonical analysis grid (processing v2.0.0+). */
+export const gridFixture = {
+  schema_version: "1.0",
+  crs: "EPSG:32617",
+  epsg: 32617,
+  resolution: [10, 10],
+  transform: [10, 0, 322730, 0, -10, 4696470],
+  width: 1272,
+  height: 1149,
+  bounds_projected: [322730, 4684980, 335450, 4696470],
+  bounds_geographic: [-83.95, 42.2, -83.6, 42.35],
+  signature: "EPSG:32617:1272x1149:10,0,322730,0,-10,4696470",
+};
+
 export const analysisFixture = {
   id: "0d3f9a52-6f89-4a2e-9f4e-0f8b0e5c1a77",
   status: "succeeded",
@@ -68,7 +85,7 @@ export const analysisFixture = {
   scene_limit: 8,
   processing: {
     operation: "ndvi",
-    version: "1.2.0",
+    version: "2.0.0",
     git_commit_sha: "a1b2c3d4e5f60718293a4b5c6d7e8f9012345678",
   },
   submitted_at: "2024-06-01T14:00:00Z",
@@ -87,7 +104,12 @@ export const analysisFixture = {
     mean_valid_pixel_pct: 93.4,
     interpretation_note:
       "Observed change between first and last usable scenes; seasonality and acquisition timing may dominate.",
+    min_aoi_coverage_pct: 99,
+    identical_analytical_grid: true,
+    comparison_note:
+      "Every usable observation was resampled onto one canonical analytical grid, so imagery and statistics cover identical ground.",
   },
+  grid: gridFixture,
   is_demo: true,
   links: {
     self: "/api/v1/analyses/0d3f9a52-6f89-4a2e-9f4e-0f8b0e5c1a77",
@@ -119,11 +141,17 @@ export function timeseriesPointFixture(
     valid_pixel_count: number;
     masked_pixel_count: number;
     valid_pixel_pct: number;
+    aoi_coverage_pct: number | null;
+    valid_coverage_pct: number | null;
+    missing_data_pct: number | null;
+    granule_count: number;
+    contributing_item_ids: string[];
+    tile_ids: string[];
   }> = {},
 ) {
   return {
     scene_id: "scene-1",
-    stac_item_id: "S2A_MSIL2A_20230504T163211_R041_T17TKG",
+    stac_item_id: "S2A_MSIL2A_20230504T163211_R041_T17TLG",
     observed_at: "2023-05-04T16:32:11Z",
     stac_cloud_cover_pct: 4.2,
     ndvi_min: -0.11,
@@ -138,6 +166,72 @@ export function timeseriesPointFixture(
     valid_pixel_count: 812345,
     masked_pixel_count: 34567,
     valid_pixel_pct: 95.9,
+    aoi_coverage_pct: 100,
+    valid_coverage_pct: 95.9,
+    missing_data_pct: 0,
+    granule_count: 2,
+    contributing_item_ids: [
+      "S2A_MSIL2A_20230504T163211_R041_T17TLG",
+      "S2A_MSIL2A_20230504T163211_R041_T17TLH",
+    ],
+    tile_ids: ["T17TLG", "T17TLH"],
+    ...overrides,
+  };
+}
+
+/** Candidate scene as returned by /scenes (v2.0.0 contract). */
+export function sceneFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "scene-1",
+    stac_collection: "sentinel-2-l2a",
+    stac_item_id: "S2A_MSIL2A_20230504T163211_R041_T17TLG",
+    observed_at: "2023-05-04T16:32:11Z",
+    cloud_cover_pct: 4.2,
+    platform: "sentinel-2a",
+    instruments: ["msi"],
+    selection_status: "selected",
+    exclusion_reason: null,
+    source_provider: "earth-search-aws",
+    assets: {
+      S2A_MSIL2A_20230504T163211_R041_T17TLG: {
+        visual: "https://example.com/T17TLG/visual.tif",
+        red: "https://example.com/T17TLG/red.tif",
+      },
+      S2A_MSIL2A_20230504T163211_R041_T17TLH: {
+        visual: "https://example.com/T17TLH/visual.tif",
+        red: "https://example.com/T17TLH/red.tif",
+      },
+    },
+    quality: { valid_pixel_pct: 95.9 },
+    bbox: [-83.95, 42.2, -83.6, 42.35],
+    acquisition_key: "2023-05-04T163211",
+    contributing_item_ids: [
+      "S2A_MSIL2A_20230504T163211_R041_T17TLG",
+      "S2A_MSIL2A_20230504T163211_R041_T17TLH",
+    ],
+    tile_ids: ["T17TLG", "T17TLH"],
+    granule_count: 2,
+    aoi_coverage_pct: 100,
+    valid_pixel_pct: 95.9,
+    ...overrides,
+  };
+}
+
+/** Artifact as returned by /artifacts (v2.0.0 contract). */
+export function artifactFixture(overrides: Record<string, unknown> = {}) {
+  return {
+    id: "artifact-1",
+    scene_id: "scene-1",
+    stac_item_id: "S2A_MSIL2A_20230504T163211_R041_T17TLG",
+    artifact_type: "ndvi_preview",
+    content_type: "image/png",
+    size_bytes: 204800,
+    sha256: "ab".repeat(32),
+    crs: "EPSG:32617",
+    created_at: "2024-06-01T14:03:00Z",
+    download_url: "https://example.com/signed/preview.png",
+    download_url_expires_in_seconds: 3600,
+    grid_signature: gridFixture.signature,
     ...overrides,
   };
 }

@@ -155,6 +155,26 @@ export default function AnalysisDetail({ id }: { id: string }) {
           ) : null}
           {analysis.is_demo ? <span>Demonstration analysis</span> : null}
         </p>
+        {analysis.grid && analysis.summary?.identical_analytical_grid ? (
+          <p className="grid-chip" data-testid="grid-chip">
+            All observations on one analytical grid (
+            <span className="mono">
+              {analysis.grid.width}×{analysis.grid.height}
+            </span>{" "}
+            @{" "}
+            <span className="mono">
+              {Math.abs(analysis.grid.resolution[0] ?? 0)} m
+            </span>
+            , <span className="mono">{analysis.grid.crs}</span>)
+          </p>
+        ) : null}
+        {analysis.status === "succeeded" && analysis.grid === null ? (
+          <p className="small muted">
+            Legacy analysis: processed before v2.0.0, so observations are not
+            guaranteed to share one analytical grid and imagery extents may
+            differ between dates.
+          </p>
+        ) : null}
         {loadError ? (
           <p className="field-error" role="alert">
             Live status updates are failing ({loadError}); showing the last
@@ -322,6 +342,7 @@ export default function AnalysisDetail({ id }: { id: string }) {
                   {(arts) =>
                     config.state.status === "ok" ? (
                       <ComparePreviews
+                        analysis={analysis}
                         points={ts.points}
                         artifacts={arts.items}
                         legend={config.state.data.ndvi_legend}

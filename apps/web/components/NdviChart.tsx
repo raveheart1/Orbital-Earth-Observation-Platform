@@ -47,6 +47,15 @@ function ChartTooltip({ active, payload }: TooltipContentProps) {
         Valid pixels: <span className="num">{formatPct(point.validPixelPct)}</span>
       </p>
       <p>
+        AOI coverage: <span className="num">{formatPct(point.aoiCoveragePct)}</span>
+      </p>
+      <p>
+        Source granules: <span className="num">{point.granuleCount}</span>
+        {point.granuleCount > 1 && point.tileIds.length > 0
+          ? ` (${point.tileIds.join(", ")})`
+          : null}
+      </p>
+      <p>
         Scene cloud cover: <span className="num">{formatPct(point.cloudPct)}</span>
       </p>
     </div>
@@ -156,7 +165,8 @@ export default function NdviChart({ points }: { points: TimeseriesPoint[] }) {
         <div className="panel-body table-scroll" style={{ border: "none" }}>
           <table className="data">
             <caption>
-              NDVI statistics per usable scene, ordered by observation date.
+              NDVI statistics per usable scene, ordered by acquisition
+              (sensing) date.
             </caption>
             <thead>
               <tr>
@@ -177,6 +187,10 @@ export default function NdviChart({ points }: { points: TimeseriesPoint[] }) {
                   Valid px
                 </th>
                 <th scope="col" className="num">
+                  AOI cover
+                </th>
+                <th scope="col">Granules</th>
+                <th scope="col" className="num">
                   Cloud
                 </th>
               </tr>
@@ -190,6 +204,13 @@ export default function NdviChart({ points }: { points: TimeseriesPoint[] }) {
                   <td className="num">{formatNumber(d.p25)}</td>
                   <td className="num">{formatNumber(d.p75)}</td>
                   <td className="num">{formatPct(d.validPixelPct)}</td>
+                  <td className="num">{formatPct(d.aoiCoveragePct)}</td>
+                  <td>
+                    <span className="mono">{d.granuleCount}</span>
+                    {d.granuleCount > 1 && d.tileIds.length > 0 ? (
+                      <span className="small muted"> · {d.tileIds.join(", ")}</span>
+                    ) : null}
+                  </td>
                   <td className="num">{formatPct(d.cloudPct)}</td>
                 </tr>
               ))}

@@ -14,11 +14,14 @@ from typing import Any
 
 import jsonschema
 
-PROVENANCE_SCHEMA_VERSION = "1.0.0"
+#: 2.0.0 adds the canonical analysis grid, per-acquisition coverage accounting,
+#: and every contributing granule/tile id. 1.0.0 documents predate the grid and
+#: recorded a single STAC item per observation.
+PROVENANCE_SCHEMA_VERSION = "2.0.0"
 
 PROVENANCE_SCHEMA: dict[str, Any] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://raw.githubusercontent.com/raveheart1/Orbital-Earth-Observation-Platform/main/docs/schemas/provenance-1.0.0.json",
+    "$id": "https://raw.githubusercontent.com/raveheart1/Orbital-Earth-Observation-Platform/main/docs/schemas/provenance-2.0.0.json",
     "title": "OEOP Analysis Provenance",
     "type": "object",
     "required": [
@@ -27,6 +30,7 @@ PROVENANCE_SCHEMA: dict[str, Any] = {
         "created_at",
         "data_source",
         "request",
+        "canonical_grid",
         "scene_selection",
         "processing",
         "software",
@@ -37,6 +41,42 @@ PROVENANCE_SCHEMA: dict[str, Any] = {
         "schema_version": {"const": PROVENANCE_SCHEMA_VERSION},
         "analysis_id": {"type": "string", "format": "uuid"},
         "created_at": {"type": "string", "format": "date-time"},
+        "canonical_grid": {
+            "type": "object",
+            "description": (
+                "The single analytical grid every observation in this analysis "
+                "was reprojected onto. Identical CRS/transform/size for all "
+                "usable observations by construction."
+            ),
+            "required": [
+                "schema_version",
+                "crs",
+                "resolution",
+                "transform",
+                "width",
+                "height",
+                "bounds_projected",
+                "bounds_geographic",
+            ],
+            "properties": {
+                "schema_version": {"type": "string"},
+                "crs": {"type": "string"},
+                "epsg": {"type": "integer"},
+                "resolution": {"type": "array", "items": {"type": "number"}},
+                "transform": {
+                    "type": "array",
+                    "items": {"type": "number"},
+                    "minItems": 6,
+                    "maxItems": 6,
+                },
+                "width": {"type": "integer"},
+                "height": {"type": "integer"},
+                "bounds_projected": {"type": "array", "items": {"type": "number"}},
+                "bounds_geographic": {"type": "array", "items": {"type": "number"}},
+                "aoi_geometry_4326": {"type": "object"},
+                "signature": {"type": "string"},
+            },
+        },
         "data_source": {
             "type": "object",
             "required": ["stac_endpoint", "collection"],
@@ -61,18 +101,31 @@ PROVENANCE_SCHEMA: dict[str, Any] = {
         },
         "scene_selection": {
             "type": "object",
-            "required": ["algorithm", "algorithm_version", "selected_count", "excluded"],
+            "required": [
+                "algorithm",
+                "algorithm_version",
+                "selected_count",
+                "excluded",
+                "min_aoi_coverage_pct",
+            ],
             "properties": {
                 "algorithm": {"type": "string"},
                 "algorithm_version": {"type": "string"},
                 "selected_count": {"type": "integer"},
+                "min_aoi_coverage_pct": {"type": "number"},
                 "excluded": {
                     "type": "array",
                     "items": {
                         "type": "object",
-                        "required": ["item_id", "reason"],
+                        "required": ["acquisition_key", "reason"],
                         "properties": {
-                            "item_id": {"type": "string"},
+                            "acquisition_key": {"type": "string"},
+                            "primary_item_id": {"type": "string"},
+                            "contributing_item_ids": {
+                                "type": "array",
+                                "items": {"type": "string"},
+                            },
+                            "aoi_coverage_pct": {"type": ["number", "null"]},
                             "reason": {"type": "string"},
                         },
                     },
@@ -81,10 +134,14 @@ PROVENANCE_SCHEMA: dict[str, Any] = {
         },
         "processing": {
             "type": "object",
-            "required": ["operation", "config"],
+            "required": ["operation", "config", "mosaic_method"],
             "properties": {
                 "operation": {"type": "string"},
                 "config": {"type": "object"},
+                "mosaic_method": {"type": "string"},
+                "resampling_spectral": {"type": "string"},
+                "resampling_categorical": {"type": "string"},
+                "window_pad_px": {"type": "integer"},
                 "masked_scl_classes": {
                     "type": "array",
                     "items": {"type": "integer"},
@@ -109,20 +166,43 @@ PROVENANCE_SCHEMA: dict[str, Any] = {
         },
         "scenes": {
             "type": "array",
+            "description": "One entry per ACQUISITION (may aggregate several granules)",
             "items": {
                 "type": "object",
-                "required": ["item_id", "observed_at", "assets"],
+                "required": [
+                    "acquisition_key",
+                    "primary_item_id",
+                    "contributing_item_ids",
+                    "observed_at",
+                    "assets",
+                ],
                 "properties": {
-                    "item_id": {"type": "string"},
-                    "observed_at": {"type": "string", "format": "date-time"},
+                    "acquisition_key": {"type": "string"},
+                    "primary_item_id": {"type": "string"},
+                    "contributing_item_ids": {
+                        "type": "array",
+                        "items": {"type": "string"},
+                        "minItems": 1,
+                    },
+                    "tile_ids": {"type": "array", "items": {"type": "string"}},
+                    "granule_count": {"type": "integer"},
+                    "observed_at": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "Acquisition (sensing) time, not processing time",
+                    },
+                    "platform": {"type": ["string", "null"]},
+                    "relative_orbit": {"type": ["string", "null"]},
                     "cloud_cover_pct": {"type": ["number", "null"]},
-                    "processing_baseline": {"type": ["string", "null"]},
+                    "processing_baselines": {"type": "array", "items": {"type": "string"}},
                     "band_scaling": {"type": "object"},
                     "assets": {
                         "type": "object",
-                        "description": "Original unsigned asset hrefs by role",
-                        "additionalProperties": {"type": "string"},
+                        "description": (
+                            "Original unsigned asset hrefs, keyed by contributing item id then role"
+                        ),
                     },
+                    "coverage": {"type": ["object", "null"]},
                     "usable": {"type": "boolean"},
                     "unusable_reason": {"type": ["string", "null"]},
                     "raster": {"type": ["object", "null"]},
@@ -173,6 +253,7 @@ def build_provenance(
     analysis_id: str,
     created_at: str,
     config: Any,
+    grid: Any,
     aoi_geometry: dict[str, Any],
     aoi_area_km2: float,
     start_date: str,
@@ -189,10 +270,12 @@ def build_provenance(
     """Assemble and validate a complete provenance document.
 
     ``config`` is a :class:`~earth_observation.types.ProcessingConfig`,
-    ``selection`` a :class:`~earth_observation.types.SceneSelection`, and
-    ``results`` a list of :class:`~earth_observation.types.SceneResult`;
-    typed as ``Any`` to avoid a circular import with :mod:`.types`.
+    ``grid`` a :class:`~earth_observation.grid.CanonicalGrid`, ``selection`` an
+    :class:`~earth_observation.selection.AcquisitionSelection`, and ``results``
+    a list of :class:`~earth_observation.types.SceneResult`; typed as ``Any``
+    to avoid circular imports.
     """
+    from earth_observation.mosaic import mosaic_metadata
     from earth_observation.types import SCLClass
 
     document: dict[str, Any] = {
@@ -213,12 +296,21 @@ def build_provenance(
             "max_cloud_cover_pct": max_cloud_cover_pct,
             "scene_limit": scene_limit,
         },
+        "canonical_grid": grid.to_dict(),
         "scene_selection": {
             "algorithm": selection.algorithm,
             "algorithm_version": selection.algorithm_version,
             "selected_count": len(selection.selected),
+            "min_aoi_coverage_pct": config.min_aoi_coverage_pct,
             "excluded": [
-                {"item_id": e.candidate.item_id, "reason": e.reason} for e in selection.excluded
+                {
+                    "acquisition_key": e.acquisition.key,
+                    "primary_item_id": e.acquisition.primary_item_id,
+                    "contributing_item_ids": e.acquisition.item_ids,
+                    "aoi_coverage_pct": round(e.acquisition.aoi_coverage_pct, 4),
+                    "reason": e.reason,
+                }
+                for e in selection.excluded
             ],
         },
         "processing": {
@@ -226,16 +318,24 @@ def build_provenance(
             "config": config.model_dump(),
             "masked_scl_classes": list(config.masked_scl_classes),
             "masked_scl_class_names": [SCLClass(c).name for c in config.masked_scl_classes],
+            **mosaic_metadata(),
         },
         "software": software,
         "scenes": [
             {
-                "item_id": r.candidate.item_id,
-                "observed_at": r.candidate.observed_at.isoformat(),
-                "cloud_cover_pct": r.candidate.cloud_cover_pct,
-                "processing_baseline": r.candidate.processing_baseline,
+                "acquisition_key": r.acquisition.key,
+                "primary_item_id": r.acquisition.primary_item_id,
+                "contributing_item_ids": r.acquisition.contributing_item_ids,
+                "tile_ids": r.acquisition.tile_ids,
+                "granule_count": len(r.acquisition.contributing_item_ids),
+                "observed_at": r.acquisition.observed_at.isoformat(),
+                "platform": r.acquisition.platform,
+                "relative_orbit": r.acquisition.relative_orbit,
+                "cloud_cover_pct": r.acquisition.cloud_cover_pct,
+                "processing_baselines": r.acquisition.processing_baselines,
                 "band_scaling": r.scaling.model_dump() if r.scaling else {},
-                "assets": r.candidate.assets,
+                "assets": r.acquisition.assets,
+                "coverage": r.coverage.model_dump() if r.coverage else None,
                 "usable": r.usable,
                 "unusable_reason": r.unusable_reason,
                 "raster": r.raster.model_dump() if r.raster else None,

@@ -38,14 +38,18 @@ program, accessed through the Microsoft Planetary Computer STAC API
 | `visual` | True Color Image (TCI) | 10 m | Human-readable preview only |
 
 Only the raster window covering the AOI is read (HTTP range reads against
-cloud-optimized GeoTIFFs); full scenes are never downloaded. The 20 m SCL is
-aligned to the 10 m band grid with **nearest-neighbor** resampling — SCL
-values are class labels, and any interpolating resampler would invent
-meaningless intermediate classes.
+cloud-optimized GeoTIFFs); full scenes are never downloaded.
 
-Processing happens in each scene's **native UTM CRS**: the AOI polygon is
-transformed into the scene CRS and rasters are clipped exactly to it, with no
-reprojection of the measurement grid ([ADR 0004](adr/0004-native-utm-processing.md)).
+A single acquisition is distributed as **one item per MGRS tile**, so an AOI
+that crosses a tile boundary matches several items for the same observation
+instant. All of them are read and mosaicked (§2.5). Every asset is reprojected
+onto the analysis-wide **canonical grid** (§2.4) — the 20 m SCL with
+nearest-neighbor resampling, because its values are class labels and any
+interpolating resampler would invent meaningless intermediate classes.
+
+The grid CRS is the UTM zone of the AOI centroid, so for most AOIs this remains
+the scenes' native CRS ([ADR 0004](adr/0004-native-utm-processing.md),
+[ADR 0007](adr/0007-canonical-analysis-grid.md)).
 
 ---
 
@@ -134,44 +138,121 @@ exact class list used is stored with every run; the defaults
   either band, or has a zero denominator (both bands zero after clipping).
 - Zero-denominator pixels are **counted separately** — they indicate
   degenerate reflectance, not clouds, and the count is reported.
-- The result is clipped to the exact AOI polygon in the scene's native UTM
-  grid. NDVI values outside the AOI are NaN.
+- The result is clipped to the exact AOI polygon on the canonical grid (§2.4).
+  NDVI values outside the AOI are NaN.
 - The output COG stores nodata as −9999 (float32, deflate-compressed,
   validated with rio-cogeo).
 
-### 2.4 Scene selection algorithm (deterministic)
+### 2.4 Canonical analysis grid (spatial comparability)
 
-Algorithm `temporal-stratified-lowest-cloud`, version `1.0.0`
-(`earth_observation/selection.py`). Given the chronologically sorted STAC
-candidates (at most 200 fetched, each annotated with its AOI overlap
-percent):
+Every analysis derives **one** analytical grid from its AOI, and every
+observation is reprojected onto it (`earth_observation/grid.py`):
 
-1. **Exclude** candidates whose footprint covers less than 25% of the AOI
-   (configurable `min_aoi_overlap_pct`). Recorded reason:
-   `insufficient_aoi_overlap`.
-2. **Exclude** candidates above the requested cloud-cover threshold
-   (defensive; the STAC query already filters `eo:cloud_cover <` threshold).
-   Recorded reason: `cloud_cover_above_threshold`.
+| Property | Value |
+|---|---|
+| CRS | WGS84 UTM zone of the AOI centroid (native CRS of Sentinel-2 assets) |
+| Resolution | 10 m (native GSD of B04/B08), configurable |
+| Bounds | projected AOI bounds snapped **outward** to the resolution lattice anchored at the CRS origin |
+| AOI mask | the AOI polygon rasterized on that grid — the analytical footprint |
+
+Because the grid is fixed before any imagery is read, **every usable
+observation shares an identical CRS, transform, width, height, bounds, and AOI
+mask**. Cloud masking changes which pixels are valid; it can never change the
+geographic region a date is measured over. The worker refuses to publish an
+analysis whose observations disagree on their grid.
+
+Snapping to the CRS origin (rather than to the AOI corner) means two analyses
+over overlapping areas produce co-registered pixels.
+
+### 2.5 Acquisition grouping and mosaicking
+
+One Sentinel-2 acquisition is distributed as **one STAC item per MGRS tile**.
+An AOI straddling a tile boundary therefore matches several items representing
+the *same* observation instant — Detroit Urban Core matches T17TLG (100 % of
+the AOI) and T17TLH (56 %).
+
+Granules are grouped into acquisitions by observation time (rounded to the
+minute), platform, relative orbit, and collection
+(`earth_observation/acquisition.py`). The tile id and the *processing*
+timestamp are deliberately excluded: granules of one acquisition are routinely
+processed at different times, so keying on that would split them.
+
+For each acquisition, every intersecting granule is read over its window only
+and reprojected onto the canonical grid:
+
+| Data | Resampling | Rationale |
+|---|---|---|
+| Red, NIR (continuous reflectance) | **bilinear** | Avoids aliasing when source and canonical grids are offset. Applied to both bands identically and *before* the ratio, so NDVI is not systematically biased. Cubic was rejected: its overshoot can push reflectance outside the physical range at water/land edges. |
+| Scene Classification Layer (categorical) | **nearest** | Mandatory. Averaging class labels would invent classes that do not exist — interpolating cloud (9) and vegetation (4) would yield water (6). |
+| True-color composite (visual only) | bilinear | Preview product, not analytical. |
+
+Overlapping pixels resolve **first-valid-by-item-id**. Within one acquisition
+the overlap observes the same ground at the same instant, so any consistent
+rule is scientifically equivalent; determinism is what matters, and every
+contributing item id is recorded in provenance.
+
+### 2.6 Coverage validation
+
+Geometric AOI coverage is computed for every acquisition. Acquisitions below
+`min_aoi_coverage_pct` (default **99 %**) are marked unusable with reason
+`insufficient_aoi_coverage` and excluded from the time series.
+
+The coverage check runs **before** any cloud statistics: a partially observed
+date is not comparable to a fully observed one regardless of how clean its
+pixels are. Prior to version 2.0.0 this gate did not exist, and a granule
+covering 56 % of an AOI could stand in for a whole observation
+([ADR 0007](adr/0007-canonical-analysis-grid.md)).
+
+Every AOI pixel is classified exactly once, in this precedence order (a pixel
+cannot be "cloudy" over ground the sensor never saw):
+
+1. **uncovered** — no source granule reached this pixel
+2. **nodata** — covered, but the source carried no value
+3. **cloud / shadow / cirrus** — masked by SCL policy
+4. **snow / ice** — masked by SCL policy
+5. **other masked** — saturated or defective
+6. **invalid spectral** — non-finite reflectance or zero NDVI denominator
+7. **valid** — contributes to statistics
+
+These counts are reported per observation via the API and provenance, so a low
+valid-pixel percentage can always be attributed to a specific cause.
+
+### 2.7 Acquisition selection algorithm (deterministic)
+
+Algorithm `temporal-stratified-lowest-cloud`, version `2.0.0`
+(`earth_observation/selection.py`). Selection operates on **acquisitions**,
+not individual STAC items — selecting items directly is what previously
+allowed a single partial granule to represent an observation. Given the
+chronologically sorted acquisitions:
+
+1. **Exclude** acquisitions whose granules together cover less than
+   `min_aoi_coverage_pct` of the AOI. Reason: `insufficient_aoi_coverage`.
+2. **Exclude** acquisitions above the requested cloud-cover threshold. Reason:
+   `cloud_cover_above_threshold`. (Cloud cover is the coverage-weighted mean
+   across contributing granules.)
 3. If the survivors fit within the scene limit, **select them all**
    (chronological order).
 4. Otherwise, split the requested date range into `scene_limit` **equal time
-   buckets**. Within each non-empty bucket select the candidate with the
-   lowest sort key `(cloud_cover, observed_at, item_id)`.
+   buckets**. Within each non-empty bucket select the acquisition with the
+   lowest sort key `(cloud_cover, observed_at, acquisition_key)`.
 5. If some buckets were empty, **fill remaining slots** with the lowest-key
    unselected survivors, in the same deterministic order.
 6. Every survivor not selected is recorded with reason
    `not_selected_temporal_sampling`.
 
 The tuple sort key makes the algorithm fully deterministic: identical inputs
-always produce identical selections, and ties (equal cloud cover, equal
-timestamp) break on `item_id`. Every exclusion is recorded with its reason in
-the analysis provenance ([ADR 0003](adr/0003-scene-selection-strategy.md)).
+always produce identical selections. Every exclusion is recorded with its
+reason in the analysis provenance
+([ADR 0003](adr/0003-scene-selection-strategy.md),
+[ADR 0007](adr/0007-canonical-analysis-grid.md)).
 
-### 2.5 Per-scene statistics
+### 2.8 Per-observation statistics
 
 All statistics are computed **over valid pixels only** — pixels inside the
-AOI that survived masking and had a computable NDVI
-(`earth_observation/stats.py`):
+**canonical AOI mask** that survived masking and had a computable NDVI
+(`earth_observation/stats.py`). Because the mask comes from the canonical grid
+rather than from each scene's own footprint, every observation is measured over
+exactly the same ground:
 
 - `ndvi_min`, `ndvi_max`, `ndvi_mean`, `ndvi_median`, `ndvi_std`
 - Percentiles: `ndvi_p10`, `ndvi_p25`, `ndvi_p75`, `ndvi_p90`
@@ -187,7 +268,7 @@ scenes would contaminate the series.
 The time-series CSV contains **actual observation dates only**. Missing dates
 are never interpolated; gaps are visible as gaps.
 
-### 2.6 Display range vs analytical range
+### 2.9 Display range vs analytical range
 
 Colorized NDVI previews use a fixed display range of **−0.2 to 0.9** with a
 brown → yellow → green ramp and transparency where masked. This range is a

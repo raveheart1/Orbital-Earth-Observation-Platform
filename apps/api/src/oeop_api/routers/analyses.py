@@ -155,6 +155,7 @@ async def list_artifacts(
                 sha256=artifact.sha256,
                 crs=artifact.crs,
                 created_at=artifact.created_at,
+                grid_signature=(artifact.provenance or {}).get("grid_signature"),
                 download_url=url,
                 download_url_expires_in_seconds=settings.download_url_ttl_seconds,
             )

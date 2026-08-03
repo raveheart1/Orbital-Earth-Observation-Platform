@@ -38,7 +38,9 @@ export class ApiError extends Error {
 
 async function apiFetch<T>(
   path: string,
-  schema: z.ZodType<T>,
+  // Input type is `unknown` so schemas with defaults/transforms (whose input
+  // shape differs from their output shape) are accepted.
+  schema: z.ZodType<T, z.ZodTypeDef, unknown>,
   init?: RequestInit,
 ): Promise<T> {
   let res: Response;

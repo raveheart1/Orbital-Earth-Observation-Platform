@@ -10,8 +10,10 @@ It deliberately has no database or Azure dependencies so that the science is
 testable and reusable outside the platform (see ``notebooks/``).
 """
 
-PROCESSING_VERSION = "1.0.0"
-SCENE_SELECTION_ALGORITHM = "temporal-stratified-lowest-cloud"
-SCENE_SELECTION_VERSION = "1.0.0"
+#: Bumped to 2.0.0 when processing moved to a per-analysis canonical grid with
+#: acquisition-level mosaicking (see docs/adr/0007-canonical-analysis-grid.md).
+#: Results produced by 1.x are NOT comparable with 2.x for AOIs that cross
+#: Sentinel-2 tile boundaries.
+PROCESSING_VERSION = "2.0.0"
 
 __version__ = PROCESSING_VERSION

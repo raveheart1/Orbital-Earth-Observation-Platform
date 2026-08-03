@@ -50,6 +50,46 @@ of what is complete, partial, or blocked.
       +6 stack-integration tests that run when the compose stack is up),
       **48 frontend tests**, 3 Playwright e2e/screenshot specs.
 
+## Spatial comparability fix (processing version 2.0.0, 2026-08-03)
+
+An audit of the deployed Detroit Urban Core analysis
+(`b4b9935e-5123-41e9-a58b-22a57811dc75`) found a genuine scientific defect,
+not a display problem: the AOI straddles the T17TLG/T17TLH Sentinel-2 tile
+boundary, and v1 selected ONE granule per date. Dates backed by T17TLH covered
+only 56.2% of the AOI, producing 1272x627 rasters against 1272x1149 for
+T17TLG dates, and NDVI statistics computed over 751,081 vs 1,372,771 pixels —
+different ground. See
+[docs/audit-2026-08-03-spatial-comparability.md](docs/audit-2026-08-03-spatial-comparability.md).
+
+- [x] **Canonical analysis grid** per analysis (UTM CRS, 10 m, snapped
+      bounds, fixed transform/size/AOI mask), persisted and echoed in
+      provenance.
+- [x] **Acquisition grouping + mosaicking**: granules of one acquisition are
+      grouped by time/platform/orbit/collection and mosaicked onto the grid
+      (bilinear spectral, nearest categorical SCL, deterministic overlap
+      resolution).
+- [x] **Coverage validation**: geometric/valid/masked/missing accounting per
+      acquisition, configurable threshold (default 99%), with uncovered vs
+      nodata vs cloud vs snow vs invalid distinguished.
+- [x] **Identical analytical footprint** enforced; the worker refuses to
+      publish an analysis whose observations disagree on their grid.
+- [x] Previews on the canonical grid with identical dimensions, fixed legend
+      range, and opaque grey for "no source imagery".
+- [x] Frontend: fixed comparison viewport (no distortion), coverage/valid/
+      granule metadata, AOI overlay, grid-mismatch alert, valid-pixel % in the
+      scene table, acquisition dates labelled.
+- [x] Provenance schema 2.0.0 with grid, coverage, and every contributing
+      STAC item and tile id.
+- [x] Regression tests with synthetic adjacent-granule fixtures (no network).
+- [x] Demonstration bundle regenerated: all six observations now mosaic
+      T16TGN + T17TLH **across a UTM zone boundary** onto one EPSG:32617 grid
+      (v1 produced those in two different CRSs).
+
+**Quantified impact:** reprocessing Detroit reproduced the full-coverage date
+2026-02-27 exactly (0.1574), while the partial-coverage date 2026-05-30
+corrected from 0.4233 to 0.3671 (-0.056). The previously reported -0.053
+earliest-to-latest difference was not a valid measurement.
+
 ## Known limitations (accepted for MVP, documented)
 
 - Submission rate limiting is in-memory per replica (docs/security.md).

@@ -90,6 +90,24 @@ Much of Southeast Michigan is urban or suburban. There:
   provenance documents make results reproducible after deletion (see
   [data-provenance.md](data-provenance.md)).
 
+## Comparing observations across dates
+
+Since processing version 2.0.0 every observation in an analysis is computed on
+one canonical grid over an identical AOI footprint, so a change between two
+dates reflects the surface, not a change of measurement area.
+
+Two caveats remain:
+
+* **Results from processing version 1.x are not comparable across dates when
+  the AOI crossed a Sentinel-2 tile boundary.** In that version a single
+  granule could represent an observation while covering only part of the AOI.
+  Such analyses report `grid: null` via the API and are labelled accordingly in
+  the interface. Re-run them to obtain comparable results.
+* Acquisitions that do not cover at least 99% of the AOI are excluded
+  entirely. This is deliberate — but it means a cloudy or edge-of-swath period
+  may yield fewer observations than the requested scene limit, and the
+  remaining dates are not a random sample of the period.
+
 ## Known technical caveats
 
 - No BRDF/sun-angle normalization is applied; cross-season comparisons carry

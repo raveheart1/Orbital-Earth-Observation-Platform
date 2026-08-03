@@ -33,15 +33,17 @@ from sqlalchemy import delete, update
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from earth_observation import PROCESSING_VERSION
+from earth_observation.acquisition import group_acquisitions
 from earth_observation.errors import (
     DataError,
     NoUsableScenesError,
     TransientError,
     UserInputError,
 )
-from earth_observation.processing import process_scene
+from earth_observation.grid import CanonicalGrid
+from earth_observation.processing import process_acquisition
 from earth_observation.provenance import build_provenance
-from earth_observation.selection import select_scenes
+from earth_observation.selection import select_acquisitions
 from earth_observation.stac import search_scenes
 from earth_observation.timeseries import analysis_summary, write_timeseries_csv
 from earth_observation.types import ProcessingConfig, SceneResult
@@ -318,7 +320,23 @@ async def _run_pipeline(
     aoi_geojson = await _aoi_geojson(session, analysis)
     aoi_bounds = shape(aoi_geojson).bounds
 
-    # --- 1. Discover candidate scenes --------------------------------------
+    # ONE grid per analysis; every observation is reprojected onto it, so all
+    # dates share an identical footprint by construction.
+    grid = CanonicalGrid.from_aoi(aoi_geojson, resolution_m=config.grid_resolution_m)
+    await session.execute(
+        update(Analysis).where(Analysis.id == analysis_id).values(grid=grid.to_dict())
+    )
+    await session.commit()
+    logger.info(
+        "canonical_grid_derived",
+        analysis_id=str(analysis_id),
+        crs=grid.crs,
+        width=grid.width,
+        height=grid.height,
+        signature=grid.signature(),
+    )
+
+    # --- 1. Canonical grid + candidate discovery ---------------------------
     stac_started = time.monotonic()
     candidates = search_scenes(
         config,
@@ -336,62 +354,75 @@ async def _run_pipeline(
         )
     _check_deadline(deadline)
 
-    # --- 2. Deterministic selection ----------------------------------------
-    selection = select_scenes(
-        candidates,
+    # --- 2. Group granules into acquisitions, then select ------------------
+    acquisitions = group_acquisitions(candidates, aoi_geojson)
+    multi = [a for a in acquisitions if a.granule_count > 1]
+    logger.info(
+        "acquisitions_grouped",
+        analysis_id=str(analysis_id),
+        acquisitions=len(acquisitions),
+        multi_granule=len(multi),
+    )
+    selection = select_acquisitions(
+        acquisitions,
         scene_limit=analysis.scene_limit,
         max_cloud_cover_pct=analysis.max_cloud_cover_pct,
-        min_aoi_overlap_pct=config.min_aoi_overlap_pct,
+        min_aoi_coverage_pct=config.min_aoi_coverage_pct,
         range_start=datetime.combine(analysis.start_date, datetime.min.time(), UTC),
         range_end=datetime.combine(analysis.end_date, datetime.max.time(), UTC),
     )
-    scene_rows: dict[str, Scene] = {}
-    for candidate in selection.selected:
-        row = Scene(
+    if not selection.selected:
+        raise NoUsableScenesError(
+            "No acquisition covers at least "
+            f"{config.min_aoi_coverage_pct:.0f}% of the area of interest within the "
+            "requested dates and cloud-cover threshold. Widen the date range or "
+            "raise the cloud-cover threshold."
+        )
+
+    def _scene_row(acq: Any, *, selected: bool, reason: str | None = None) -> Scene:
+        return Scene(
             analysis_id=analysis_id,
-            stac_collection=candidate.collection,
-            stac_item_id=candidate.item_id,
-            observed_at=candidate.observed_at,
+            stac_collection=acq.collection,
+            stac_item_id=acq.primary_item_id,
+            acquisition_key=acq.key,
+            observed_at=acq.observed_at,
             geometry=None,
-            bbox=list(candidate.bbox),
-            cloud_cover_pct=candidate.cloud_cover_pct,
-            platform=candidate.platform,
-            instruments=candidate.instruments,
-            assets=candidate.assets,
-            selection_status=SceneSelectionStatus.SELECTED,
+            bbox=list(acq.granules[0].bbox),
+            cloud_cover_pct=acq.cloud_cover_pct,
+            platform=acq.platform,
+            instruments=acq.granules[0].instruments,
+            assets={g.item_id: dict(g.assets) for g in acq.granules},
+            contributing_item_ids=acq.item_ids,
+            tile_ids=acq.tile_ids,
+            granule_count=acq.granule_count,
+            aoi_coverage_pct=round(acq.aoi_coverage_pct, 4),
+            selection_status=(
+                SceneSelectionStatus.SELECTED if selected else SceneSelectionStatus.EXCLUDED
+            ),
+            exclusion_reason=reason,
             quality={
-                "aoi_overlap_pct": candidate.aoi_overlap_pct,
-                "processing_baseline": candidate.processing_baseline,
+                "geometric_aoi_coverage_pct": round(acq.aoi_coverage_pct, 4),
+                "relative_orbit": acq.relative_orbit,
+                "processing_baselines": acq.processing_baselines,
             },
         )
+
+    scene_rows: dict[str, Scene] = {}
+    for acq in selection.selected:
+        row = _scene_row(acq, selected=True)
         session.add(row)
-        scene_rows[candidate.item_id] = row
+        scene_rows[acq.key] = row
     for excluded in selection.excluded:
-        session.add(
-            Scene(
-                analysis_id=analysis_id,
-                stac_collection=excluded.candidate.collection,
-                stac_item_id=excluded.candidate.item_id,
-                observed_at=excluded.candidate.observed_at,
-                bbox=list(excluded.candidate.bbox),
-                cloud_cover_pct=excluded.candidate.cloud_cover_pct,
-                platform=excluded.candidate.platform,
-                instruments=excluded.candidate.instruments,
-                assets=excluded.candidate.assets,
-                selection_status=SceneSelectionStatus.EXCLUDED,
-                exclusion_reason=excluded.reason,
-                quality={"aoi_overlap_pct": excluded.candidate.aoi_overlap_pct},
-            )
-        )
+        session.add(_scene_row(excluded.acquisition, selected=False, reason=excluded.reason))
     await session.commit()
     logger.info(
-        "scenes_selected",
+        "acquisitions_selected",
         analysis_id=str(analysis_id),
         selected=len(selection.selected),
         excluded=len(selection.excluded),
     )
 
-    # --- 3. Process each scene ---------------------------------------------
+    # --- 3. Process each acquisition onto the canonical grid ---------------
     budget = _StorageBudget(settings.per_analysis_storage_limit_mb, str(analysis_id))
     output_prefix = f"analyses/{analysis_id}"
     results: list[SceneResult] = []
@@ -399,30 +430,52 @@ async def _run_pipeline(
 
     with tempfile.TemporaryDirectory(prefix="oeop-") as tmp:
         workdir = Path(tmp)
-        for candidate in selection.selected:
+        for acq in selection.selected:
             _check_deadline(deadline)
-            result = process_scene(candidate, aoi_geojson, config, workdir)
+            result = process_acquisition(acq, grid, config, workdir)
             results.append(result)
             metrics.scene_duration.record(result.processing_seconds)
-            scene_row = scene_rows[candidate.item_id]
+            scene_row = scene_rows[acq.key]
             logger.info(
-                "scene_processed",
+                "acquisition_processed",
                 analysis_id=str(analysis_id),
-                item_id=candidate.item_id,
+                acquisition_key=acq.key,
+                granules=acq.granule_count,
+                tiles=acq.tile_ids,
                 usable=result.usable,
                 seconds=result.processing_seconds,
+                aoi_coverage_pct=result.coverage.aoi_coverage_pct if result.coverage else None,
                 valid_pct=result.stats.valid_pixel_pct if result.stats else None,
             )
 
             if result.stats is not None:
                 metrics.valid_pixel_pct.record(result.stats.valid_pixel_pct)
+
+            # Coverage and valid-pixel figures are recorded for EVERY scene row,
+            # selected or not, so the UI never has to show a dash.
+            quality = dict(scene_row.quality or {})
+            quality["warnings"] = result.warnings
+            if result.coverage is not None:
+                quality.update(
+                    {
+                        "aoi_coverage_pct": result.coverage.aoi_coverage_pct,
+                        "valid_coverage_pct": result.coverage.valid_coverage_pct,
+                        "masked_pct": result.coverage.masked_pct,
+                        "missing_data_pct": result.coverage.missing_data_pct,
+                        "contributing_item_ids": result.coverage.contributing_item_ids,
+                    }
+                )
+            if result.stats is not None:
+                quality["valid_pixel_pct"] = result.stats.valid_pixel_pct
             if not result.usable:
-                quality = dict(scene_row.quality or {})
                 quality["unusable_reason"] = result.unusable_reason
-                quality["warnings"] = result.warnings
-                if result.stats is not None:
-                    quality["valid_pixel_pct"] = result.stats.valid_pixel_pct
-                scene_row.quality = quality
+            scene_row.quality = quality
+            if result.coverage is not None:
+                scene_row.valid_pixel_pct = result.stats.valid_pixel_pct if result.stats else None
+                scene_row.aoi_coverage_pct = result.coverage.aoi_coverage_pct
+            if not result.usable:
+                scene_row.selection_status = SceneSelectionStatus.EXCLUDED
+                scene_row.exclusion_reason = result.unusable_reason
                 continue
 
             assert result.stats is not None
@@ -446,18 +499,32 @@ async def _run_pipeline(
                     aoi_pixel_count=stats.aoi_pixel_count,
                     valid_pixel_pct=stats.valid_pixel_pct,
                     zero_denominator_pixel_count=stats.zero_denominator_pixel_count,
+                    uncovered_pixel_count=(
+                        result.coverage.uncovered_pixel_count if result.coverage else 0
+                    ),
+                    aoi_coverage_pct=(
+                        result.coverage.aoi_coverage_pct if result.coverage else 100.0
+                    ),
+                    valid_coverage_pct=(
+                        result.coverage.valid_coverage_pct if result.coverage else 0.0
+                    ),
+                    missing_data_pct=(result.coverage.missing_data_pct if result.coverage else 0.0),
+                    granule_count=(result.coverage.granule_count if result.coverage else 1),
                     mask_scl_classes=list(config.masked_scl_classes),
                     band_scaling=result.scaling.model_dump() if result.scaling else {},
                     processing_params={
                         "operation": "ndvi",
-                        "resampling": config.resampling,
+                        "resampling_spectral": "bilinear",
+                        "resampling_categorical": "nearest",
                         "min_valid_pixel_pct": config.min_valid_pixel_pct,
+                        "min_aoi_coverage_pct": config.min_aoi_coverage_pct,
+                        "grid_signature": grid.signature(),
                     },
                     processing_seconds=result.processing_seconds,
                 )
             )
 
-            scene_prefix = f"{output_prefix}/scenes/{candidate.item_id}"
+            scene_prefix = f"{output_prefix}/scenes/{acq.primary_item_id}"
             raster = result.raster
             uploads = [
                 (ArtifactType.NDVI_COG, result.outputs.ndvi_cog, "image/tiff", "ndvi.tif"),
@@ -496,18 +563,39 @@ async def _run_pipeline(
                     blob_path=f"{scene_prefix}/{name}",
                     content_type=content_type,
                     crs=raster.crs if raster else None,
-                    bbox=list(candidate.bbox),
+                    bbox=list(grid.bounds_geographic),
+                    provenance={
+                        "grid_signature": grid.signature(),
+                        "width": grid.width,
+                        "height": grid.height,
+                        "contributing_item_ids": acq.item_ids,
+                    },
                 )
-                record["scene_item_id"] = candidate.item_id
+                record["scene_item_id"] = acq.primary_item_id
                 provenance_outputs.append(record)
             await session.commit()
 
         usable = [r for r in results if r.usable]
         if not usable:
+            reasons = sorted({r.unusable_reason for r in results if r.unusable_reason})
             raise NoUsableScenesError(
-                "Every selected scene was unusable after cloud masking "
-                "(insufficient valid pixels). Try different dates or a lower "
-                "cloud-cover threshold."
+                "No acquisition produced a usable observation over the full area "
+                f"of interest ({', '.join(reasons) or 'unknown'}). Try different "
+                "dates or a lower cloud-cover threshold."
+            )
+
+        # Hard invariant: comparability is the whole point of the canonical
+        # grid, so refuse to publish an analysis whose observations somehow
+        # ended up on different grids.
+        signatures = {
+            f"{r.raster.crs}:{r.raster.width}x{r.raster.height}:{r.raster.transform}"
+            for r in usable
+            if r.raster is not None
+        }
+        if len(signatures) > 1:
+            raise DataError(
+                "Internal consistency check failed: usable observations do not "
+                f"share one analytical grid ({len(signatures)} distinct grids)."
             )
 
         # --- 4. Analysis-level outputs -------------------------------------
@@ -541,6 +629,7 @@ async def _run_pipeline(
             analysis_id=str(analysis_id),
             created_at=completed_at.isoformat(),
             config=config,
+            grid=grid,
             aoi_geometry=aoi_geojson,
             aoi_area_km2=analysis.area_km2,
             start_date=analysis.start_date.isoformat(),

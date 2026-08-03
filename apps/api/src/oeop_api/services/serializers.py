@@ -9,6 +9,7 @@ from geoalchemy2.shape import to_shape
 from shapely.geometry import mapping
 
 from oeop_api.schemas import (
+    AnalysisGrid,
     AnalysisLinks,
     AnalysisResponse,
     FailureInfo,
@@ -72,6 +73,7 @@ def serialize_analysis(analysis: Analysis, *, region: Region | None) -> Analysis
         failure=failure,
         retry_count=analysis.retry_count,
         summary=analysis.summary,
+        grid=AnalysisGrid(**analysis.grid) if analysis.grid else None,
         is_demo=analysis.is_demo,
         links=AnalysisLinks(
             self=base,
@@ -88,6 +90,12 @@ def serialize_scene(scene: Scene) -> SceneResponse:
         id=scene.id,
         stac_collection=scene.stac_collection,
         stac_item_id=scene.stac_item_id,
+        acquisition_key=scene.acquisition_key,
+        contributing_item_ids=list(scene.contributing_item_ids or [scene.stac_item_id]),
+        tile_ids=list(scene.tile_ids or []),
+        granule_count=scene.granule_count,
+        aoi_coverage_pct=scene.aoi_coverage_pct,
+        valid_pixel_pct=scene.valid_pixel_pct,
         observed_at=scene.observed_at,
         cloud_cover_pct=scene.cloud_cover_pct,
         platform=scene.platform,
@@ -119,4 +127,10 @@ def serialize_timeseries_point(observation: Observation, scene: Scene) -> Timese
         valid_pixel_count=observation.valid_pixel_count,
         masked_pixel_count=observation.masked_pixel_count,
         valid_pixel_pct=observation.valid_pixel_pct,
+        aoi_coverage_pct=observation.aoi_coverage_pct,
+        valid_coverage_pct=observation.valid_coverage_pct,
+        missing_data_pct=observation.missing_data_pct,
+        granule_count=observation.granule_count,
+        contributing_item_ids=list(scene.contributing_item_ids or [scene.stac_item_id]),
+        tile_ids=list(scene.tile_ids or []),
     )

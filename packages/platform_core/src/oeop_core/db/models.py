@@ -118,6 +118,11 @@ class Analysis(Base):
     scene_limit: Mapped[int] = mapped_column(Integer)
     operation: Mapped[str] = mapped_column(String(40), default="ndvi")
     processing_config: Mapped[dict[str, Any]] = mapped_column(JSONVariant)
+    grid: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONVariant,
+        nullable=True,
+        comment="Canonical analysis grid every observation is aligned to",
+    )
     processing_version: Mapped[str] = mapped_column(String(40))
     git_commit_sha: Mapped[str | None] = mapped_column(String(64), nullable=True)
     status: Mapped[AnalysisStatus] = mapped_column(
@@ -162,8 +167,26 @@ class Scene(Base):
         ForeignKey("analyses.id", ondelete="CASCADE"), index=True
     )
     stac_collection: Mapped[str] = mapped_column(String(80))
-    stac_item_id: Mapped[str] = mapped_column(String(120))
-    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    stac_item_id: Mapped[str] = mapped_column(
+        String(120), comment="Primary/representative granule of the acquisition"
+    )
+    acquisition_key: Mapped[str | None] = mapped_column(
+        String(200),
+        nullable=True,
+        comment="Deterministic key grouping granules of one acquisition",
+    )
+    contributing_item_ids: Mapped[list[str] | None] = mapped_column(
+        JSONVariant, nullable=True, comment="Every STAC item mosaicked for this observation"
+    )
+    tile_ids: Mapped[list[str] | None] = mapped_column(
+        JSONVariant, nullable=True, comment="Sentinel-2 MGRS tiles contributing"
+    )
+    granule_count: Mapped[int] = mapped_column(Integer, default=1)
+    aoi_coverage_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
+    valid_pixel_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
+    observed_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), comment="Acquisition (sensing) time, not processing time"
+    )
     geometry: Mapped[Any | None] = mapped_column(
         Geometry(geometry_type="GEOMETRY", srid=4326), nullable=True
     )
@@ -174,8 +197,9 @@ class Scene(Base):
     )
     platform: Mapped[str | None] = mapped_column(String(40), nullable=True)
     instruments: Mapped[list[str] | None] = mapped_column(JSONVariant, nullable=True)
-    assets: Mapped[dict[str, str]] = mapped_column(
-        JSONVariant, comment="Original unsigned asset hrefs by role"
+    assets: Mapped[dict[str, Any]] = mapped_column(
+        JSONVariant,
+        comment="Original unsigned asset hrefs, keyed by contributing item id then role",
     )
     selection_status: Mapped[SceneSelectionStatus] = mapped_column(
         _enum(SceneSelectionStatus, "scene_selection_status")
@@ -222,6 +246,11 @@ class Observation(Base):
     aoi_pixel_count: Mapped[int] = mapped_column(BigInteger)
     valid_pixel_pct: Mapped[float] = mapped_column(Float)
     zero_denominator_pixel_count: Mapped[int] = mapped_column(BigInteger, default=0)
+    uncovered_pixel_count: Mapped[int] = mapped_column(BigInteger, default=0)
+    aoi_coverage_pct: Mapped[float] = mapped_column(Float, default=100.0)
+    valid_coverage_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    missing_data_pct: Mapped[float] = mapped_column(Float, default=0.0)
+    granule_count: Mapped[int] = mapped_column(Integer, default=1)
     mask_scl_classes: Mapped[list[int]] = mapped_column(JSONVariant)
     band_scaling: Mapped[dict[str, Any]] = mapped_column(JSONVariant)
     processing_params: Mapped[dict[str, Any]] = mapped_column(JSONVariant)

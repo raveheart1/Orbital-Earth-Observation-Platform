@@ -26,8 +26,15 @@ _NDVI_STOPS: list[tuple[float, tuple[int, int, int]]] = [
     (1.00, (16, 105, 34)),
 ]
 
-#: Color used for masked / invalid pixels (transparent in RGBA output).
+#: Masked-but-observed pixels (cloud, shadow, snow): transparent, so the
+#: surrounding NDVI field reads normally through a comparison viewport.
 MASKED_RGBA = (0, 0, 0, 0)
+
+#: Pixels inside the AOI that NO source granule covered. Rendered as an opaque
+#: neutral grey with a distinct hue rather than transparency or a low-NDVI
+#: color, so "no imagery here" can never be mistaken for water, bare ground, or
+#: unhealthy vegetation.
+NODATA_RGBA = (104, 106, 114, 255)
 
 
 def ndvi_colormap_lut() -> npt.NDArray[np.uint8]:
@@ -53,8 +60,22 @@ def write_ndvi_preview(
     display_min: float,
     display_max: float,
     max_dim: int = 1024,
+    aoi_mask: npt.NDArray[np.bool_] | None = None,
+    covered_mask: npt.NDArray[np.bool_] | None = None,
 ) -> None:
-    """Colorize NDVI into an RGBA PNG; invalid pixels are fully transparent."""
+    """Colorize NDVI into an RGBA PNG on the caller's grid.
+
+    The colormap uses a FIXED display range (never a per-scene stretch), so the
+    same color means the same NDVI in every preview of an analysis.
+
+    Three pixel states are visually distinct:
+
+    * valid NDVI — colormap,
+    * masked but observed (cloud/shadow/snow) — transparent,
+    * inside the AOI but covered by no source granule — opaque grey
+      (:data:`NODATA_RGBA`), so missing imagery cannot be confused with water
+      or low vegetation.
+    """
     if display_max <= display_min:
         raise ValueError("display_max must exceed display_min")
     factor = _downsample_factor(ndvi.shape[0], ndvi.shape[1], max_dim)
@@ -68,8 +89,13 @@ def write_ndvi_preview(
     lut = ndvi_colormap_lut()
     rgb = lut[indices]
     alpha = np.where(valid, 255, MASKED_RGBA[3]).astype(np.uint8)
-    rgba = np.dstack([rgb, alpha])
 
+    if aoi_mask is not None and covered_mask is not None:
+        missing = aoi_mask[::factor, ::factor] & ~covered_mask[::factor, ::factor]
+        rgb = np.where(missing[..., None], np.array(NODATA_RGBA[:3], dtype=np.uint8), rgb)
+        alpha = np.where(missing, NODATA_RGBA[3], alpha).astype(np.uint8)
+
+    rgba = np.dstack([rgb, alpha])
     path.parent.mkdir(parents=True, exist_ok=True)
     Image.fromarray(rgba, mode="RGBA").save(path, format="PNG", optimize=True)
 
@@ -105,11 +131,18 @@ def legend_spec(display_min: float, display_max: float) -> dict[str, object]:
         }
         for p, (r, g, b) in _NDVI_STOPS
     ]
+    nr, ng, nb, _ = NODATA_RGBA
     return {
         "type": "ndvi",
         "display_min": display_min,
         "display_max": display_max,
         "stops": stops,
         "masked_color": "transparent",
-        "note": ("Display range only. Analytical outputs retain full NDVI values in [-1, 1]."),
+        "masked_label": "Cloud, shadow, or snow (observed, excluded)",
+        "nodata_color": f"#{nr:02x}{ng:02x}{nb:02x}",
+        "nodata_label": "No source imagery for this area",
+        "note": (
+            "Fixed display range, identical for every observation in an analysis. "
+            "Analytical outputs retain full NDVI values in [-1, 1]."
+        ),
     }

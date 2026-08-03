@@ -62,6 +62,13 @@ export function formatKm2(value: number | null | undefined): string {
   return `${rounded.toLocaleString("en-US")} km²`;
 }
 
+/** "1 granule", or "2 granules · T17TLG, T17TLH" when several were mosaicked. */
+export function formatGranules(count: number, tileIds: string[]): string {
+  const noun = count === 1 ? "granule" : "granules";
+  const tiles = count > 1 && tileIds.length > 0 ? ` · ${tileIds.join(", ")}` : "";
+  return `${count} ${noun}${tiles}`;
+}
+
 /** Shorten long identifiers, keeping both ends: "S2A_MSIL2A_2024…T17TKG". */
 export function truncateMiddle(value: string, maxLength = 24): string {
   if (value.length <= maxLength) return value;

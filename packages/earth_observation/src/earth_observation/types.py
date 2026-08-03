@@ -93,14 +93,27 @@ class ProcessingConfig(BaseModel):
     stac_endpoint: str = "https://planetarycomputer.microsoft.com/api/stac/v1"
     asset_keys: AssetKeys = AssetKeys()
     masked_scl_classes: tuple[int, ...] = DEFAULT_MASKED_SCL_CLASSES
+    grid_resolution_m: float = Field(
+        default=10.0,
+        description="Canonical grid resolution; 10 m is the native GSD of the "
+        "Sentinel-2 red and NIR bands",
+    )
     min_valid_pixel_pct: float = Field(
         default=10.0,
-        description="Scenes with fewer valid pixels than this (percent of AOI) are "
-        "recorded but excluded from the time series",
+        description="Acquisitions with fewer valid pixels than this (percent of AOI) "
+        "are recorded but excluded from the time series",
+    )
+    min_aoi_coverage_pct: float = Field(
+        default=99.0,
+        description="Minimum percent of the AOI that the mosaicked granules of an "
+        "acquisition must geometrically cover. Acquisitions below this are marked "
+        "unusable so that every observation measures the same ground.",
     )
     min_aoi_overlap_pct: float = Field(
-        default=25.0,
-        description="Minimum percent of the AOI a scene footprint must cover to be selected",
+        default=1.0,
+        description="Minimum AOI overlap for an individual granule to be worth "
+        "reading. Coverage adequacy is decided per ACQUISITION via "
+        "min_aoi_coverage_pct after mosaicking, not per granule.",
     )
     max_candidate_items: int = Field(
         default=200, description="Maximum STAC items fetched before selection"
@@ -152,8 +165,48 @@ class ExcludedScene(BaseModel):
     reason: str
 
 
+class CoverageStats(BaseModel):
+    """Why every AOI pixel is or is not contributing to an observation.
+
+    The categories are mutually exclusive and sum to ``aoi_pixel_count``, which
+    is fixed by the canonical grid and identical for every observation in an
+    analysis. This is what separates "the satellite did not see this ground"
+    from "cloud" from "bad reflectance".
+    """
+
+    aoi_pixel_count: int = Field(description="Pixels inside the AOI on the canonical grid")
+    covered_pixel_count: int = Field(
+        description="AOI pixels reached by at least one contributing granule"
+    )
+    uncovered_pixel_count: int = Field(
+        description="AOI pixels no granule covered (outside all source footprints)"
+    )
+    nodata_pixel_count: int = Field(
+        description="Covered AOI pixels where the source carried nodata"
+    )
+    cloud_masked_pixel_count: int = Field(
+        description="Cloud, cloud-shadow, and cirrus classes from the SCL policy"
+    )
+    snow_masked_pixel_count: int = Field(description="Snow/ice class from the SCL policy")
+    other_masked_pixel_count: int = Field(
+        description="Remaining masked SCL classes (saturated/defective)"
+    )
+    invalid_spectral_pixel_count: int = Field(
+        description="Non-finite reflectance or zero NDVI denominator"
+    )
+    aoi_coverage_pct: float = Field(description="Geometric AOI coverage by source granules")
+    valid_coverage_pct: float = Field(description="Percent of the AOI with usable NDVI")
+    masked_pct: float = Field(description="Percent of the AOI removed by masking")
+    missing_data_pct: float = Field(
+        description="Percent of the AOI with no source data (uncovered + nodata)"
+    )
+    granule_count: int
+    contributing_item_ids: list[str]
+    tile_ids: list[str]
+
+
 class SceneStats(BaseModel):
-    """Per-scene NDVI statistics computed over valid (unmasked) pixels only."""
+    """Per-observation NDVI statistics computed over valid (unmasked) pixels only."""
 
     valid_pixel_count: int
     masked_pixel_count: int
@@ -191,18 +244,46 @@ class SceneOutputs(BaseModel):
     scene_summary: str
 
 
-class SceneResult(BaseModel):
-    """Full result of processing a single scene."""
+class AcquisitionSummary(BaseModel):
+    """Identity of one acquisition, independent of how many granules backed it."""
 
-    candidate: SceneCandidate
+    key: str
+    primary_item_id: str
+    observed_at: datetime
+    collection: str
+    platform: str | None
+    relative_orbit: str | None
+    cloud_cover_pct: float | None
+    contributing_item_ids: list[str]
+    tile_ids: list[str]
+    processing_baselines: list[str]
+    assets: dict[str, dict[str, str]] = Field(
+        default_factory=dict,
+        description="Original unsigned asset hrefs, keyed by item id then role",
+    )
+
+
+class SceneResult(BaseModel):
+    """Full result of processing one acquisition onto the canonical grid."""
+
+    acquisition: AcquisitionSummary
     usable: bool
     unusable_reason: str | None = None
     stats: SceneStats | None = None
+    coverage: CoverageStats | None = None
     scaling: BandScaling | None = None
     raster: RasterInfo | None = None
     outputs: SceneOutputs | None = None
     processing_seconds: float = 0.0
     warnings: list[str] = Field(default_factory=list)
+
+    @property
+    def observed_at(self) -> datetime:
+        return self.acquisition.observed_at
+
+    @property
+    def item_id(self) -> str:
+        return self.acquisition.primary_item_id
 
 
 SceneSelection.model_rebuild()
