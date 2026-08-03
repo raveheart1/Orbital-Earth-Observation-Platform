@@ -21,7 +21,10 @@ locals {
   storage_account_name = "${local.prefix_alnum}${local.unique_suffix}"    # oeopdev<suffix>
   acr_name             = "${local.prefix_alnum}${local.unique_suffix}acr" # oeopdev<suffix>acr
   key_vault_name       = "kv-${local.prefix}-${local.unique_suffix}"      # <= 24 chars
-  postgres_server_name = "psql-${local.prefix}-${local.unique_suffix}"
+  # The region is part of the server name: the PostgreSQL resource provider
+  # reserves a failed/deleted server's name against its original location for
+  # days, so a region move with an unchanged name 409s (InvalidResourceLocation).
+  postgres_server_name = "psql-${local.prefix}-${var.location}-${local.unique_suffix}"
 
   api_image    = coalesce(var.api_image, "${module.acr.login_server}/oeop-api:${var.image_tag}")
   web_image    = coalesce(var.web_image, "${module.acr.login_server}/oeop-web:${var.image_tag}")
