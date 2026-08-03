@@ -196,6 +196,10 @@ ensure_role "Role Based Access Control Administrator" "$DEV_RG_ID"
 ensure_role "Storage Blob Data Contributor" "$STATE_SA_ID"
 # Read-only visibility of the bootstrap RG (state account metadata).
 ensure_role "Reader" "$BOOTSTRAP_RG_ID"
+# Key Vault purge happens at SUBSCRIPTION scope (deletedVaults/purge), so the
+# RG-scoped Contributor cannot do it. This purge-only role lets Terraform
+# destroy-and-purge vaults (e.g. replacements, destroy-dev) without 403s.
+ensure_role "Key Vault Purge Operator" "/subscriptions/${SUB_ID}"
 
 # --- 8. Resource providers ----------------------------------------------------
 
