@@ -84,9 +84,15 @@ dimensions and AOI pixel counts are identical across dates
 ## Disposition of the affected analysis
 
 `b4b9935e-5123-41e9-a58b-22a57811dc75` was produced by processing version
-1.0.0 and is retained for audit purposes. It reports `grid: null` through the
-API, and the interface labels it as predating the canonical-grid guarantee.
-It should be re-run rather than cited.
+1.0.0. Its findings are recorded in full in this document — the pixel counts,
+raster dimensions, and per-date NDVI values above are the complete evidence —
+so on 2026-08-05 the analysis and its stored artifacts were **deleted from the
+deployed environment** along with the other pre-2.0.0 records, using
+`oeop-admin delete-analysis --legacy`. Nothing that supported the conclusions
+here depended on the row surviving.
+
+Re-run the region under processing version 2.0.0 or later for a result that is
+safe to cite.
 
 See [ADR 0007](adr/0007-canonical-analysis-grid.md) for the architecture that
 prevents recurrence.

@@ -214,3 +214,43 @@ state must remain the source of truth. Costs while idle are dominated by the
 PostgreSQL Flexible Server; see
 [cost-and-scaling.md](cost-and-scaling.md#shutting-down) for cheaper
 alternatives to full destruction.
+
+## Deleting an analysis
+
+Removes the database records **and** the stored artifacts. Blobs are deleted
+before the rows so an interruption leaves visible, recoverable state rather
+than orphaned blobs nothing references.
+
+```bash
+# Always preview first — this is irreversible.
+oeop-admin delete-analysis --analysis-id <uuid> --dry-run
+
+# Delete specific analyses
+oeop-admin delete-analysis --analysis-id <uuid> --analysis-id <uuid>
+
+# Delete every analysis from a processing generation older than the canonical
+# grid (major version < 2); those are not comparable across dates when the AOI
+# crossed a Sentinel-2 tile boundary.
+oeop-admin delete-analysis --legacy --dry-run
+oeop-admin delete-analysis --legacy
+```
+
+Two guards refuse to run without `--force`:
+
+- the analysis the public landing page currently links to (deleting it would
+  leave a dead demo link — seed a replacement first), and
+- anything still `queued` or `running` (that is work in flight, not a stale
+  record, and deleting it would strand a queue message).
+
+`--legacy` keys on `processing_version`, **not** on whether a grid is present:
+a queued analysis has no grid yet either, so the naive filter would delete
+work in flight.
+
+In Azure the database is VNet-private, so run the command inside the deployed
+API container:
+
+```bash
+az containerapp exec -g rg-oeop-dev -n ca-oeop-dev-api \
+  --command "python -m oeop_api.cli delete-analysis --legacy --dry-run"
+```
+
