@@ -218,6 +218,12 @@ class PublicConfigResponse(BaseModel):
     submissions_enabled: bool
     max_aoi_area_km2: float
     min_aoi_area_km2: float
+    custom_areas_enabled: bool = Field(
+        default=True, description="Whether visitor-drawn areas of interest are accepted"
+    )
+    max_custom_aoi_area_km2: float = Field(
+        default=2.0, description="Maximum area for a visitor-drawn AOI, in km²"
+    )
     max_date_span_days: int
     min_start_date: date
     max_scene_limit: int

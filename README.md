@@ -16,9 +16,10 @@ to the SHA-256 of every output file.
 
 ## What it does
 
-- **Interactive analyses** — pick a predefined Michigan region or draw a small
-  area, choose a date range and cloud-cover threshold, and submit. The API
-  queues the work; an event-driven worker processes it and the UI tracks
+- **Interactive analyses** — pick a predefined Michigan region or draw your own
+  area (capped at 2 km² so public submissions stay cheap), choose a date range
+  and cloud-cover threshold, and submit. The API queues the work; an
+  event-driven worker processes it and the UI tracks
   `queued → running → succeeded/failed` live.
 - **Real science, efficiently** — only the raster windows covering your AOI are
   read from cloud-optimized GeoTIFFs (no full-scene downloads). The Scene
@@ -26,9 +27,14 @@ to the SHA-256 of every output file.
   documented, configurable policy, and the Sentinel-2 processing-baseline
   reflectance offset is handled explicitly (it does *not* cancel in the NDVI
   ratio).
-- **Deterministic scene selection** — when more scenes match than the limit, a
-  documented temporal-stratified lowest-cloud algorithm picks the set, and
-  every excluded scene is recorded with its reason.
+- **Comparable observations** — every analysis derives one canonical grid (CRS,
+  resolution, transform, AOI mask) and every date is reprojected onto it, with
+  granules mosaicked when the area crosses a Sentinel-2 tile boundary. Dates
+  covering less than 99% of the area are rejected rather than silently
+  compared against fuller ones.
+- **Deterministic scene selection** — when more acquisitions match than the
+  limit, a documented temporal-stratified lowest-cloud algorithm picks the set,
+  and every exclusion is recorded with its reason.
 - **Full provenance** — each analysis ships a JSON provenance document
   (validated against a published schema) with STAC item IDs, unsigned asset
   references, mask classes, band scaling, software versions, git commit,
@@ -128,17 +134,18 @@ curl -s localhost:8000/api/v1/analyses/<id>/provenance | jq .scene_selection
 
 The committed demonstration analysis covers the Southeast Michigan
 Demonstration Region (~137 km² of Oakland County) from April to October 2024 —
-six low-cloud Sentinel-2 scenes showing the seasonal green-up and early
-senescence:
+six low-cloud Sentinel-2 acquisitions showing the seasonal green-up and early
+senescence. Every one is a mosaic of two granules spanning the UTM zone 16/17
+boundary, computed on a single canonical grid so the dates are comparable:
 
-| Observation | Mean NDVI | Valid pixels |
-|-------------|-----------|--------------|
-| 2024-04-08  | 0.385     | 100.0 %      |
-| 2024-05-31  | 0.608     | 99.9 %       |
-| 2024-06-12  | 0.592     | 100.0 %      |
-| 2024-07-27  | 0.597     | 100.0 %      |
-| 2024-08-31  | 0.606     | 100.0 %      |
-| 2024-10-05  | 0.580     | 100.0 %      |
+| Observation | Mean NDVI | Valid pixels | Granules |
+|-------------|-----------|--------------|----------|
+| 2024-04-13  | 0.444     | 99.9 %       | 2 (T16TGN, T17TLH) |
+| 2024-05-31  | 0.609     | 99.9 %       | 2 (T16TGN, T17TLH) |
+| 2024-06-12  | 0.593     | 100.0 %       | 2 (T16TGN, T17TLH) |
+| 2024-07-27  | 0.600     | 100.0 %       | 2 (T16TGN, T17TLH) |
+| 2024-08-24  | 0.587     | 98.8 %       | 2 (T16TGN, T17TLH) |
+| 2024-10-05  | 0.582     | 100.0 %       | 2 (T16TGN, T17TLH) |
 
 The full bundle (previews, CSV, provenance) lives in
 [`data/demo/southeast-michigan/`](data/demo/southeast-michigan/) and can be

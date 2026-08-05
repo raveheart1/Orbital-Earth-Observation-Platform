@@ -77,7 +77,9 @@ Much of Southeast Michigan is urban or suburban. There:
 
 ## Scale and scope of the demo
 
-- AOIs are capped at 600 km² (250 km² in demo mode) with at most 12 scenes
+- Visitor-drawn areas are capped at 2 km² (`OEOP_MAX_CUSTOM_AOI_AREA_KM2`).
+  Larger areas are available through the curated predefined regions, which are
+  capped at 600 km² (250 km² in demo mode), with at most 12 scenes
   per analysis (default 6, demo 8). This is a demonstration-scale window, not
   a monitoring system: statements about "Southeast Michigan" from one AOI and
   a dozen dates are anecdotes, not surveys.

@@ -182,7 +182,13 @@ module "container_apps" {
   application_insights_connection_string = module.observability.application_insights_connection_string
 
   git_commit_sha = var.image_tag
-  tags           = local.tags
+
+  # Visitor-drawn areas are allowed but capped far tighter than the curated
+  # predefined regions, so arbitrary public submissions stay cheap.
+  allow_custom_areas      = tostring(var.allow_custom_areas)
+  max_custom_aoi_area_km2 = tostring(var.max_custom_aoi_area_km2)
+
+  tags = local.tags
 
   # Apps resolve Key Vault secrets and pull from ACR at create time, so the
   # identity's role assignments must exist first.

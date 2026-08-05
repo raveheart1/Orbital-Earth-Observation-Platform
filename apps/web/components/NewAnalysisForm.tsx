@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   ApiError,
@@ -9,8 +9,15 @@ import {
   getPublicConfigCached,
   getRegions,
 } from "@/lib/api";
+import {
+  BBOX_INPUT_DECIMALS,
+  defaultCustomBbox,
+  maxAreaKm2ForMode,
+  validateAoiArea,
+  type AoiMode,
+} from "@/lib/aoi";
 import { addDays, todayIsoDate, validateDateRange } from "@/lib/dates";
-import { formatKm2 } from "@/lib/format";
+import { formatAreaLimitKm2, formatKm2 } from "@/lib/format";
 import {
   bboxIsValid,
   estimateBboxAreaKm2,
@@ -27,8 +34,6 @@ import { useFetch } from "@/lib/useFetch";
 import { ErrorBox, LoadingBox } from "./FetchStates";
 import MapPanel from "./MapPanel";
 import RegionPicker from "./RegionPicker";
-
-type AoiMode = "region" | "custom";
 
 interface BboxInputs {
   minLon: string;
@@ -63,7 +68,8 @@ export default function NewAnalysisForm() {
   return <FormInner config={config.state.data} regions={regions.state.data} />;
 }
 
-function FormInner({
+/** The form proper, once configuration and regions have loaded. */
+export function FormInner({
   config,
   regions,
 }: {
@@ -97,8 +103,17 @@ function FormInner({
   const [serverProblem, setServerProblem] = useState<Problem | null>(null);
   const [serverMessage, setServerMessage] = useState<string | null>(null);
 
-  const customAllowed = !config.demo_mode;
+  // Custom areas are gated by the deployment, not by demonstration mode:
+  // visitors may draw their own box whenever the API allows it.
+  const customAllowed = config.custom_areas_enabled;
   const selectedRegion = regions.find((r) => r.id === regionId) ?? null;
+
+  // Last known map centre, so a prefilled box lands where the visitor is
+  // looking. Held in a ref: panning the map must not re-render the form.
+  const mapCenterRef = useRef<[number, number]>(config.map_default_center);
+  const handleCenterChange = useCallback((center: [number, number]) => {
+    mapCenterRef.current = center;
+  }, []);
 
   const customBbox: Bbox | null = useMemo(() => {
     const parsed = parseBboxInputs(bboxInputs);
@@ -109,11 +124,17 @@ function FormInner({
     mode === "region" ? (selectedRegion?.bbox ?? null) : customBbox;
 
   const customArea = customBbox ? estimateBboxAreaKm2(customBbox) : null;
+  /** The cap in force right now — drawn areas are capped far more tightly. */
+  const activeMaxArea = maxAreaKm2ForMode(mode, config);
 
   // --- Validation ---------------------------------------------------------
   const aoiError: string | null = (() => {
     if (mode === "region") {
-      return selectedRegion ? null : "Choose a region.";
+      if (!selectedRegion) return "Choose a region.";
+      return validateAoiArea(selectedRegion.area_km2, "region", config);
+    }
+    if (!customAllowed) {
+      return "Custom areas are disabled on this deployment. Choose a predefined region.";
     }
     const parsed = parseBboxInputs(bboxInputs);
     if (!parsed) {
@@ -122,14 +143,7 @@ function FormInner({
     if (!bboxIsValid(parsed)) {
       return "The bounding box is invalid: longitudes must be within ±180, latitudes within ±90, and minimums smaller than maximums.";
     }
-    const area = estimateBboxAreaKm2(parsed);
-    if (area > config.max_aoi_area_km2) {
-      return `The area is ~${formatKm2(area)}, above the ${formatKm2(config.max_aoi_area_km2)} limit. Draw a smaller rectangle.`;
-    }
-    if (area < config.min_aoi_area_km2) {
-      return `The area is ~${formatKm2(area)}, below the ${formatKm2(config.min_aoi_area_km2)} minimum. Draw a larger rectangle.`;
-    }
-    return null;
+    return validateAoiArea(estimateBboxAreaKm2(parsed), "custom", config);
   })();
 
   const dateError = validateDateRange(startDate, endDate, {
@@ -180,11 +194,24 @@ function FormInner({
 
   function setBboxFromDraw(bbox: Bbox) {
     setBboxInputs({
-      minLon: bbox[0].toFixed(5),
-      minLat: bbox[1].toFixed(5),
-      maxLon: bbox[2].toFixed(5),
-      maxLat: bbox[3].toFixed(5),
+      minLon: bbox[0].toFixed(BBOX_INPUT_DECIMALS),
+      minLat: bbox[1].toFixed(BBOX_INPUT_DECIMALS),
+      maxLon: bbox[2].toFixed(BBOX_INPUT_DECIMALS),
+      maxLat: bbox[3].toFixed(BBOX_INPUT_DECIMALS),
     });
+  }
+
+  /**
+   * Switching to drawing prefills a compliant example box around the current
+   * map centre, so the form is immediately submittable and the visitor can see
+   * what the (small) custom cap looks like on the ground. A box the visitor
+   * already entered is never overwritten.
+   */
+  function selectMode(next: AoiMode) {
+    setMode(next);
+    if (next === "custom" && !parseBboxInputs(bboxInputs)) {
+      setBboxFromDraw(defaultCustomBbox(mapCenterRef.current, config));
+    }
   }
 
   return (
@@ -225,7 +252,7 @@ function FormInner({
                 name="aoi-mode"
                 value="region"
                 checked={mode === "region"}
-                onChange={() => setMode("region")}
+                onChange={() => selectMode("region")}
               />
               Predefined region
             </label>
@@ -235,18 +262,17 @@ function FormInner({
                 name="aoi-mode"
                 value="custom"
                 checked={mode === "custom"}
-                onChange={() => setMode("custom")}
+                onChange={() => selectMode("custom")}
                 disabled={!customAllowed}
               />
               Draw a custom area
             </label>
           </div>
-          {!customAllowed ? (
-            <p className="hint">
-              Custom areas are disabled in demonstration mode; choose one of the
-              predefined regions below.
-            </p>
-          ) : null}
+          <p className="hint">
+            {!customAllowed
+              ? "Custom areas are disabled on this deployment; choose one of the predefined regions below."
+              : `Drawn areas are limited to ${formatAreaLimitKm2(config.max_custom_aoi_area_km2)}; predefined regions are curated and can be larger (up to ${formatAreaLimitKm2(config.max_aoi_area_km2)}).`}
+          </p>
         </div>
 
         <div className="detail-grid">
@@ -263,6 +289,10 @@ function FormInner({
                   Click the map twice to draw a rectangle (first click sets one
                   corner, second click the opposite corner; Escape cancels), or
                   type the coordinates — the map and the fields stay in sync.
+                  Custom areas are capped at{" "}
+                  {formatAreaLimitKm2(config.max_custom_aoi_area_km2)} — roughly{" "}
+                  {Math.sqrt(config.max_custom_aoi_area_km2).toFixed(1)} km on a
+                  side — so the fields start on a compliant example box.
                 </p>
                 <div className="field-row">
                   {BBOX_FIELDS.map(({ key, label }) => (
@@ -293,11 +323,17 @@ function FormInner({
               </span>
               <span className="small muted">
                 {" "}
-                (limit {formatKm2(config.min_aoi_area_km2)} –{" "}
-                {formatKm2(config.max_aoi_area_km2)})
+                (allowed {formatAreaLimitKm2(config.min_aoi_area_km2)} –{" "}
+                {formatAreaLimitKm2(activeMaxArea)}{" "}
+                {mode === "custom" ? "for drawn areas" : "for predefined regions"}
+                )
               </span>
             </p>
-            {aoiError ? <p className="field-error">{aoiError}</p> : null}
+            {aoiError ? (
+              <p className="field-error" role="alert">
+                {aoiError}
+              </p>
+            ) : null}
           </div>
 
           <MapPanel
@@ -308,6 +344,7 @@ function FormInner({
               mode === "custom" && customAllowed && config.submissions_enabled
             }
             onDrawComplete={setBboxFromDraw}
+            onCenterChange={handleCenterChange}
             ariaLabel="Map of the area of interest. Use the coordinate fields to define a custom area with the keyboard."
           />
         </div>
@@ -388,10 +425,13 @@ function FormInner({
       <aside className="panel-note" style={{ marginBottom: "1.5rem" }}>
         <strong>Scope & cost.</strong> Each analysis streams only the raster
         windows that cover your area of interest — never whole scenes — and
-        processes at most {config.max_scene_limit} scenes per run. Areas are
-        capped at {formatKm2(config.max_aoi_area_km2)} and date ranges at{" "}
-        {config.max_date_span_days} days, which keeps every run small,
-        predictable, and reproducible.
+        processes at most {config.max_scene_limit} scenes per run. Predefined
+        regions are capped at {formatAreaLimitKm2(config.max_aoi_area_km2)}
+        {customAllowed
+          ? `, and areas you draw yourself at only ${formatAreaLimitKm2(config.max_custom_aoi_area_km2)} — arbitrary public submissions are kept small so processing stays cheap`
+          : ""}
+        . Date ranges are capped at {config.max_date_span_days} days. Together
+        these keep every run small, predictable, and reproducible.
       </aside>
 
       <button

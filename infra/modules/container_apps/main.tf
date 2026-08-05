@@ -32,6 +32,8 @@ locals {
     { name = "OEOP_ANALYSIS_QUEUE_NAME", value = var.analysis_queue_name, secret_name = null },
     { name = "OEOP_POISON_QUEUE_NAME", value = var.poison_queue_name, secret_name = null },
     { name = "OEOP_DEMO_MODE", value = var.demo_mode, secret_name = null },
+    { name = "OEOP_ALLOW_CUSTOM_AREAS", value = var.allow_custom_areas, secret_name = null },
+    { name = "OEOP_MAX_CUSTOM_AOI_AREA_KM2", value = var.max_custom_aoi_area_km2, secret_name = null },
     { name = "OEOP_GIT_COMMIT_SHA", value = var.git_commit_sha, secret_name = null },
     { name = "APPLICATIONINSIGHTS_CONNECTION_STRING", value = null, secret_name = local.appinsights_secret_name },
     { name = "AZURE_CLIENT_ID", value = var.identity_client_id, secret_name = null },
@@ -385,7 +387,10 @@ resource "azurerm_container_app_job" "migrate" {
 }
 
 # ------------------------------------------------------------------------------
-# Seed job (manual trigger): oeop_api.cli seed-regions
+# Seed job (manual trigger): seed reference regions, then ensure a demonstration
+# analysis exists so the landing page always has a completed result to link to.
+# `seed-demo --if-missing` is idempotent, so re-running on every deployment
+# neither duplicates nor reprocesses.
 # ------------------------------------------------------------------------------
 
 resource "azurerm_container_app_job" "seed" {
@@ -428,11 +433,15 @@ resource "azurerm_container_app_job" "seed" {
 
   template {
     container {
-      name    = "seed"
-      image   = var.api_image
-      cpu     = 0.5
-      memory  = "1Gi"
-      command = ["python", "-m", "oeop_api.cli", "seed-regions"]
+      name   = "seed"
+      image  = var.api_image
+      cpu    = 0.5
+      memory = "1Gi"
+      command = [
+        "/bin/sh",
+        "-c",
+        "python -m oeop_api.cli seed-regions && python -m oeop_api.cli seed-demo --if-missing",
+      ]
 
       dynamic "env" {
         for_each = local.api_env

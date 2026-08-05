@@ -35,7 +35,17 @@ export const PublicConfigSchema = z.object({
   environment: z.string(),
   demo_mode: z.boolean(),
   submissions_enabled: z.boolean(),
+  /** Whether visitors may submit their own drawn bounding box at all. */
+  custom_areas_enabled: z.boolean().optional().default(true),
+  /** Upper area bound for PREDEFINED REGION submissions. */
   max_aoi_area_km2: z.number(),
+  /**
+   * Much tighter upper area bound that applies ONLY to drawn (custom) areas,
+   * so arbitrary public submissions stay cheap to process. Never conflate it
+   * with `max_aoi_area_km2`.
+   */
+  max_custom_aoi_area_km2: z.number().optional().default(2),
+  /** Lower area bound; applies to both drawn areas and predefined regions. */
   min_aoi_area_km2: z.number(),
   max_date_span_days: z.number(),
   min_start_date: z.string(),

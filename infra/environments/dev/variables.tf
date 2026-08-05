@@ -92,3 +92,15 @@ variable "repository_url" {
   type        = string
   default     = "https://github.com/ScoreSage/Orbital-Earth-Observation-Platform"
 }
+
+variable "allow_custom_areas" {
+  description = "Accept visitor-drawn areas of interest in addition to predefined regions"
+  type        = bool
+  default     = true
+}
+
+variable "max_custom_aoi_area_km2" {
+  description = "Maximum area in km2 for a visitor-drawn area of interest"
+  type        = number
+  default     = 2
+}

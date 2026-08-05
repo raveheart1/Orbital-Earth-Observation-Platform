@@ -1,9 +1,11 @@
 import { describe, expect, it } from "vitest";
 import {
+  formatAreaLimitKm2,
   formatBytes,
   formatChange,
   formatDate,
   formatDateTime,
+  formatKm2,
   truncateMiddle,
 } from "@/lib/format";
 
@@ -26,6 +28,36 @@ describe("formatChange", () => {
     expect(formatChange(0.081)).toBe("+0.081");
     expect(formatChange(-0.081)).toBe("−0.081");
     expect(formatChange(null)).toBe("—");
+  });
+});
+
+describe("formatKm2", () => {
+  it("keeps two decimals below 10 km², where the custom cap lives", () => {
+    expect(formatKm2(1.4)).toBe("1.40 km²");
+    expect(formatKm2(2)).toBe("2.00 km²");
+    expect(formatKm2(2.4567)).toBe("2.46 km²");
+    expect(formatKm2(0.5)).toBe("0.50 km²");
+    expect(formatKm2(9.994)).toBe("9.99 km²");
+  });
+
+  it("stays coarse for the larger predefined regions", () => {
+    expect(formatKm2(84.2)).toBe("84.2 km²");
+    expect(formatKm2(137.4)).toBe("137 km²");
+    expect(formatKm2(2500)).toBe("2,500 km²");
+  });
+
+  it("returns a dash for missing values", () => {
+    expect(formatKm2(null)).toBe("—");
+    expect(formatKm2(Number.NaN)).toBe("—");
+  });
+});
+
+describe("formatAreaLimitKm2", () => {
+  it("renders configured limits without trailing zeros", () => {
+    expect(formatAreaLimitKm2(2)).toBe("2 km²");
+    expect(formatAreaLimitKm2(0.5)).toBe("0.5 km²");
+    expect(formatAreaLimitKm2(250)).toBe("250 km²");
+    expect(formatAreaLimitKm2(null)).toBe("—");
   });
 });
 

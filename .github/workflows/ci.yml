@@ -34,7 +34,7 @@ jobs:
         run: uv run ruff check .
 
       - name: Mypy
-        run: uv run mypy packages/earth_observation/src packages/platform_core/src apps/api/src apps/worker/src
+        run: uv run mypy packages/earth_observation/src packages/platform_core/src apps/api/src apps/worker/src scripts
 
       - name: Pytest
         run: uv run pytest -q

@@ -4,8 +4,12 @@ export const configFixture = {
   environment: "local",
   demo_mode: true,
   submissions_enabled: true,
-  max_aoi_area_km2: 2500,
-  min_aoi_area_km2: 1,
+  custom_areas_enabled: true,
+  // Predefined regions may be large; anything the visitor draws is capped far
+  // more tightly. The two limits are independent.
+  max_aoi_area_km2: 600,
+  max_custom_aoi_area_km2: 2,
+  min_aoi_area_km2: 0.5,
   max_date_span_days: 730,
   min_start_date: "2017-01-01",
   max_scene_limit: 12,
@@ -13,7 +17,7 @@ export const configFixture = {
   max_cloud_cover_pct: 60,
   default_cloud_cover_pct: 20,
   map_default_center: [-83.5, 42.35],
-  map_default_zoom: 8,
+  map_default_zoom: 8.5,
   ndvi_legend: {
     type: "ndvi",
     display_min: -0.2,

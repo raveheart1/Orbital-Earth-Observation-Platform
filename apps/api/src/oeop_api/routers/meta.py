@@ -39,6 +39,8 @@ async def public_config(settings: SettingsDep, session: SessionDep) -> PublicCon
         submissions_enabled=settings.submissions_enabled,
         max_aoi_area_km2=settings.effective_max_aoi_area_km2(),
         min_aoi_area_km2=settings.min_aoi_area_km2,
+        custom_areas_enabled=settings.allow_custom_areas,
+        max_custom_aoi_area_km2=settings.effective_max_custom_aoi_area_km2(),
         max_date_span_days=settings.effective_max_date_span_days(),
         min_start_date=settings.min_start_date,
         max_scene_limit=settings.effective_max_scene_limit(),

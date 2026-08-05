@@ -24,6 +24,35 @@ describe("PublicConfigSchema", () => {
     expect(parsed.demo_analysis_id).toBe("0d3f9a52-6f89-4a2e-9f4e-0f8b0e5c1a77");
   });
 
+  it("parses the custom-area fields alongside the region area cap", () => {
+    const parsed = PublicConfigSchema.parse(configFixture);
+    expect(parsed.custom_areas_enabled).toBe(true);
+    // The drawn-area cap is a separate, much tighter limit — never the same
+    // number as the predefined-region cap.
+    expect(parsed.max_custom_aoi_area_km2).toBe(2);
+    expect(parsed.max_aoi_area_km2).toBe(600);
+    expect(parsed.min_aoi_area_km2).toBe(0.5);
+  });
+
+  it("carries custom_areas_enabled: false through", () => {
+    const parsed = PublicConfigSchema.parse({
+      ...configFixture,
+      custom_areas_enabled: false,
+    });
+    expect(parsed.custom_areas_enabled).toBe(false);
+  });
+
+  it("defaults the custom-area fields on an older API response lacking them", () => {
+    const { custom_areas_enabled, max_custom_aoi_area_km2, ...legacy } =
+      configFixture;
+    void custom_areas_enabled;
+    void max_custom_aoi_area_km2;
+    const parsed = PublicConfigSchema.parse(legacy);
+    expect(parsed.custom_areas_enabled).toBe(true);
+    expect(parsed.max_custom_aoi_area_km2).toBe(2);
+    expect(parsed.max_aoi_area_km2).toBe(600);
+  });
+
   it("accepts a null demo_analysis_id", () => {
     const parsed = PublicConfigSchema.parse({
       ...configFixture,

@@ -55,10 +55,25 @@ export function formatPct(value: number | null | undefined): string {
   return `${value.toFixed(1)}%`;
 }
 
-/** Area in km² with thousands separators. */
+/**
+ * Area in km² with thousands separators. Small areas keep two decimals: drawn
+ * areas of interest are capped at a couple of km², where rounding to a whole
+ * number would hide the difference between a legal and an illegal box.
+ */
 export function formatKm2(value: number | null | undefined): string {
   if (value === null || value === undefined || Number.isNaN(value)) return "—";
-  const rounded = value >= 100 ? Math.round(value) : Number(value.toFixed(1));
+  if (value >= 100) return `${Math.round(value).toLocaleString("en-US")} km²`;
+  if (value >= 10) return `${Number(value.toFixed(1)).toLocaleString("en-US")} km²`;
+  return `${value.toFixed(2)} km²`;
+}
+
+/**
+ * An area *limit* in km². Unlike a measured area these are round configured
+ * numbers, so trailing zeros are dropped: 2 → "2 km²", 0.5 → "0.5 km²".
+ */
+export function formatAreaLimitKm2(value: number | null | undefined): string {
+  if (value === null || value === undefined || Number.isNaN(value)) return "—";
+  const rounded = value >= 100 ? Math.round(value) : Number(value.toFixed(2));
   return `${rounded.toLocaleString("en-US")} km²`;
 }
 

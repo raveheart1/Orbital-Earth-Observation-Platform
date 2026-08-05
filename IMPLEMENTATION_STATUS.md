@@ -90,6 +90,29 @@ different ground. See
 corrected from 0.4233 to 0.3671 (-0.056). The previously reported -0.053
 earliest-to-latest difference was not a valid measurement.
 
+## Custom areas and drift guards (2026-08-04)
+
+- [x] **Visitor-drawn areas enabled**, capped at **2 km²**
+      (`OEOP_MAX_CUSTOM_AOI_AREA_KM2`, toggle `OEOP_ALLOW_CUSTOM_AREAS`).
+      The cap applies ONLY to drawn areas — curated predefined regions still
+      run at ~84–137 km² under `OEOP_MAX_AOI_AREA_KM2`. Enforced server-side
+      in `create_analysis`, mirrored in the browser, and surfaced through
+      `/api/v1/config/public`. A 0.9 km² area yields a 95 × 101 grid and
+      completes in seconds.
+- [x] **Fixed `scripts/live_smoke_test.py` and the notebook**, which still
+      called the removed `select_scenes` / `process_scene` and had been broken
+      since processing 2.0.0. The notebook was re-executed against live data,
+      so its committed outputs now show canonical-grid results.
+- [x] **Closed the gap that let that happen:** `scripts/` is now type-checked
+      (mypy immediately found a latent `round(None)` bug), and
+      `tests/test_public_api_drift.py` statically asserts every first-party
+      symbol imported by `notebooks/` and `scripts/` still exists — no network
+      needed, so it runs in CI.
+- [x] **Deployed demo seeding:** `oeop-admin seed-demo --if-missing` is
+      idempotent and now runs as part of the deployment seed job, so a fresh
+      environment always has a completed demonstration analysis for the
+      landing-page link. Previously `demo_analysis_id` was null in Azure.
+
 ## Known limitations (accepted for MVP, documented)
 
 - Submission rate limiting is in-memory per replica (docs/security.md).

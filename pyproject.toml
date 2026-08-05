@@ -97,6 +97,7 @@ mypy_path = [
     "packages/platform_core/src",
     "apps/api/src",
     "apps/worker/src",
+    "scripts",
 ]
 exclude = ["notebooks", "apps/web", "build", "dist"]
 

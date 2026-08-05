@@ -1,5 +1,15 @@
 import type { Bbox } from "./schemas";
 
+/** Mean length of one degree of latitude, in km. */
+export const KM_PER_DEG_LAT = 110.57;
+/** Length of one degree of longitude at the equator, in km. */
+export const KM_PER_DEG_LON_EQUATOR = 111.32;
+
+/** Km spanned by one degree of longitude at latitude φ (degrees). */
+export function kmPerDegLonAt(latitudeDeg: number): number {
+  return KM_PER_DEG_LON_EQUATOR * Math.cos((latitudeDeg * Math.PI) / 180);
+}
+
 /**
  * Approximate area of a geographic bounding box in km², using a spherical
  * small-area approximation: one degree of longitude spans ~111.32 km at the
@@ -8,10 +18,41 @@ import type { Bbox } from "./schemas";
  */
 export function estimateBboxAreaKm2(bbox: Bbox): number {
   const [minLon, minLat, maxLon, maxLat] = bbox;
-  const midLatRad = (((minLat + maxLat) / 2) * Math.PI) / 180;
-  const widthKm = Math.abs(maxLon - minLon) * 111.32 * Math.cos(midLatRad);
-  const heightKm = Math.abs(maxLat - minLat) * 110.57;
+  const widthKm = Math.abs(maxLon - minLon) * kmPerDegLonAt((minLat + maxLat) / 2);
+  const heightKm = Math.abs(maxLat - minLat) * KM_PER_DEG_LAT;
   return widthKm * heightKm;
+}
+
+const clamp = (value: number, min: number, max: number) =>
+  Math.min(Math.max(value, min), max);
+
+/**
+ * A bounding box of the given ground dimensions centred on [lon, lat], using
+ * the same small-area approximation as `estimateBboxAreaKm2` — so a box built
+ * here measures back to (widthKm × heightKm) km².
+ *
+ * Near the poles a degree of longitude collapses, so the longitude half-span
+ * is capped to keep the box inside ±180.
+ */
+export function bboxAroundCenterKm(
+  center: [number, number],
+  widthKm: number,
+  heightKm: number = widthKm,
+): Bbox {
+  const [lon, lat] = center;
+  const halfLatDeg = heightKm / 2 / KM_PER_DEG_LAT;
+  const minLat = clamp(lat - halfLatDeg, -90, 90);
+  const maxLat = clamp(lat + halfLatDeg, -90, 90);
+  // The area estimate uses the mid latitude, so build the width there too.
+  const kmPerDegLon = kmPerDegLonAt((minLat + maxLat) / 2);
+  const halfLonDeg =
+    kmPerDegLon > 1e-6 ? clamp(widthKm / 2 / kmPerDegLon, 0, 180) : 180;
+  return [
+    clamp(lon - halfLonDeg, -180, 180),
+    minLat,
+    clamp(lon + halfLonDeg, -180, 180),
+    maxLat,
+  ];
 }
 
 /** Order an arbitrary pair of corners into [minLon, minLat, maxLon, maxLat]. */

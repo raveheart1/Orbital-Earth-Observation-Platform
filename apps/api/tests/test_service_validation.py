@@ -83,3 +83,33 @@ class TestRateLimiter:
         limiter = SubmissionRateLimiter(1)
         limiter.check("1.1.1.1")
         limiter.check("2.2.2.2")  # different client unaffected
+
+
+class TestCustomAreaLimits:
+    """Drawn areas are capped far tighter than predefined regions.
+
+    Predefined regions are curated and run at ~84-137 km²; arbitrary public
+    submissions are bounded to a few km² so processing stays cheap. Conflating
+    the two limits would either break every region or remove the cost control.
+    """
+
+    def test_custom_limit_defaults_to_two_km2(self):
+        assert make_settings().effective_max_custom_aoi_area_km2() == 2.0
+
+    def test_custom_limit_is_far_below_the_region_limit(self):
+        settings = make_settings()
+        assert settings.effective_max_custom_aoi_area_km2() < settings.max_aoi_area_km2
+
+    def test_custom_limit_never_exceeds_the_global_ceiling(self):
+        settings = make_settings(max_aoi_area_km2=1.0, max_custom_aoi_area_km2=50.0)
+        assert settings.effective_max_custom_aoi_area_km2() == 1.0
+
+    def test_custom_limit_is_configurable(self):
+        settings = make_settings(max_custom_aoi_area_km2=25.0)
+        assert settings.effective_max_custom_aoi_area_km2() == 25.0
+
+    def test_custom_areas_enabled_by_default_even_in_demo_mode(self):
+        assert make_settings(demo_mode=True).allow_custom_areas is True
+
+    def test_custom_areas_can_be_switched_off(self):
+        assert make_settings(allow_custom_areas=False).allow_custom_areas is False

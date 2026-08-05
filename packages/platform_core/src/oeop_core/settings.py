@@ -89,6 +89,19 @@ class Settings(BaseSettings):
     demo_max_aoi_area_km2: float = 250.0
     demo_max_scene_limit: int = 8
     demo_max_date_span_days: int = 400
+    allow_custom_areas: bool = Field(
+        default=True,
+        description="Allow visitor-drawn areas of interest in addition to the "
+        "predefined regions, including while DEMO_MODE is on. Custom areas are "
+        "capped separately by max_custom_aoi_area_km2.",
+    )
+    max_custom_aoi_area_km2: float = Field(
+        default=2.0,
+        description="Maximum area for a visitor-DRAWN AOI, in km². Deliberately "
+        "much tighter than max_aoi_area_km2: predefined regions are curated and "
+        "run at ~137 km², while arbitrary public submissions are bounded to a "
+        "few square kilometres to keep processing cheap and abuse cheap to absorb.",
+    )
     rate_limit_submissions_per_hour: int = Field(
         default=10, description="Best-effort per-client submission throttle (per replica)"
     )
@@ -130,6 +143,14 @@ class Settings(BaseSettings):
             if self.demo_mode
             else self.max_aoi_area_km2
         )
+
+    def effective_max_custom_aoi_area_km2(self) -> float:
+        """Ceiling for a drawn AOI.
+
+        Never exceeds the global AOI ceiling, so tightening
+        ``max_aoi_area_km2`` also tightens custom areas.
+        """
+        return min(self.max_custom_aoi_area_km2, self.max_aoi_area_km2)
 
     def effective_max_scene_limit(self) -> int:
         return (

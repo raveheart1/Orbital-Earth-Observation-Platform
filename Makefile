@@ -48,7 +48,7 @@ lint: ## Ruff (format + lint) and web lint
 	cd apps/web && pnpm lint
 
 typecheck: ## mypy + TypeScript
-	uv run mypy packages/earth_observation/src packages/platform_core/src apps/api/src apps/worker/src
+	uv run mypy packages/earth_observation/src packages/platform_core/src apps/api/src apps/worker/src scripts
 	cd apps/web && pnpm typecheck
 
 live-smoke-test: ## Process one REAL Sentinel-2 scene from the Planetary Computer (network)
@@ -63,7 +63,7 @@ screenshot: ## Capture UI screenshots into docs/images (stack must be running)
 verify: ## The complete local validation suite
 	uv run ruff format --check .
 	uv run ruff check .
-	uv run mypy packages/earth_observation/src packages/platform_core/src apps/api/src apps/worker/src
+	uv run mypy packages/earth_observation/src packages/platform_core/src apps/api/src apps/worker/src scripts
 	uv run pytest -q
 	cd apps/web && pnpm lint && pnpm typecheck && pnpm test && pnpm build
 	$(TERRAFORM) fmt -check -recursive infra

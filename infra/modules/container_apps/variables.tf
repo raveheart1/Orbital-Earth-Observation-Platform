@@ -134,3 +134,19 @@ variable "tags" {
   type        = map(string)
   default     = {}
 }
+
+variable "allow_custom_areas" {
+  description = "Accept visitor-drawn areas of interest in addition to predefined regions"
+  type        = string
+  default     = "true"
+}
+
+variable "max_custom_aoi_area_km2" {
+  description = <<-EOT
+    Maximum area in km2 for a visitor-DRAWN area of interest. Deliberately far
+    tighter than the predefined-region limit so arbitrary public submissions
+    stay cheap to process.
+  EOT
+  type        = string
+  default     = "2"
+}

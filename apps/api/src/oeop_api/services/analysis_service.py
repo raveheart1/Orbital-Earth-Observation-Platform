@@ -87,10 +87,10 @@ async def create_analysis(
         bbox = validate_bbox(tuple(region.bbox))
     else:
         assert request.bbox is not None
-        if settings.demo_mode:
+        if not settings.allow_custom_areas:
             raise ProblemException(
                 403,
-                "Custom areas disabled in demo mode",
+                "Custom areas are disabled",
                 "This deployment only accepts analyses over predefined regions. "
                 "Select a region instead of drawing a custom area.",
             )
@@ -98,11 +98,24 @@ async def create_analysis(
 
     polygon = bbox_polygon(bbox)
     area_km2 = geodesic_area_km2(polygon)
-    max_area = settings.effective_max_aoi_area_km2()
+    # Predefined regions are curated and run at ~137 km²; visitor-drawn areas
+    # are held to a much tighter ceiling so arbitrary public submissions stay
+    # cheap to process.
+    is_custom_area = region is None
+    max_area = (
+        settings.effective_max_custom_aoi_area_km2()
+        if is_custom_area
+        else settings.effective_max_aoi_area_km2()
+    )
     if area_km2 > max_area:
-        raise UserInputError(
-            f"AOI area of {area_km2:.1f} km² exceeds the maximum of {max_area:.0f} km²"
+        detail = (
+            f"Drawn area of {area_km2:.2f} km² exceeds the maximum of "
+            f"{max_area:g} km² for custom areas. Draw a smaller box, or choose a "
+            "predefined region to analyse a larger area."
+            if is_custom_area
+            else f"AOI area of {area_km2:.1f} km² exceeds the maximum of {max_area:.0f} km²"
         )
+        raise UserInputError(detail)
     if area_km2 < settings.min_aoi_area_km2:
         raise UserInputError(
             f"AOI area of {area_km2:.2f} km² is below the minimum of "

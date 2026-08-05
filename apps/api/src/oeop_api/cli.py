@@ -103,7 +103,45 @@ async def seed_demo(
     end: date,
     cloud: float,
     scenes: int,
-) -> uuid.UUID:
+    if_missing: bool = False,
+) -> uuid.UUID | None:
+    """Submit the demonstration analysis.
+
+    With ``if_missing`` the command is idempotent and safe to run on every
+    deployment: it does nothing when a demo analysis already exists in a
+    usable state, so the landing page always has something to link to without
+    paying for a reprocess on each deploy.
+    """
+    if if_missing:
+        existing = (
+            await session.execute(
+                select(Analysis)
+                .where(
+                    Analysis.is_demo.is_(True),
+                    Analysis.status.in_(
+                        [
+                            AnalysisStatus.SUCCEEDED,
+                            AnalysisStatus.QUEUED,
+                            AnalysisStatus.RUNNING,
+                        ]
+                    ),
+                    # Only a current-generation demo counts; a legacy one would
+                    # showcase pre-canonical-grid results.
+                    Analysis.grid.is_not(None),
+                )
+                .order_by(Analysis.submitted_at.desc())
+                .limit(1)
+            )
+        ).scalar_one_or_none()
+        if existing is not None:
+            logger.info(
+                "demo_analysis_present",
+                analysis_id=str(existing.id),
+                status=existing.status.value,
+            )
+            print(existing.id)
+            return existing.id
+
     region = (await session.execute(select(Region).where(Region.slug == slug))).scalar_one_or_none()
     if region is None:
         raise SystemExit(f"Region '{slug}' not found; run seed-regions first")
@@ -447,6 +485,7 @@ async def _run(args: argparse.Namespace) -> None:
                     end=date.fromisoformat(args.end),
                     cloud=args.cloud,
                     scenes=args.scenes,
+                    if_missing=args.if_missing,
                 )
         elif args.command == "requeue":
             queue = AnalysisQueue(settings)
@@ -482,6 +521,12 @@ def main() -> None:
     demo.add_argument("--end", default="2024-10-31")
     demo.add_argument("--cloud", type=float, default=30.0)
     demo.add_argument("--scenes", type=int, default=6)
+    demo.add_argument(
+        "--if-missing",
+        action="store_true",
+        help="Do nothing if a current-generation demo analysis already exists "
+        "(idempotent; safe to run on every deployment)",
+    )
 
     rq = sub.add_parser("requeue", help="Requeue a failed/stuck analysis")
     rq.add_argument("--analysis-id", required=True)

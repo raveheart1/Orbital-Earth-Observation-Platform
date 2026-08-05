@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  bboxAroundCenterKm,
   bboxIsValid,
   estimateBboxAreaKm2,
   normalizeBbox,
@@ -24,6 +25,31 @@ describe("estimateBboxAreaKm2", () => {
 
   it("returns zero for a degenerate box", () => {
     expect(estimateBboxAreaKm2([-83.5, 42.3, -83.5, 42.3])).toBe(0);
+  });
+});
+
+describe("bboxAroundCenterKm", () => {
+  it("round-trips through the area estimate", () => {
+    // The 2 km² custom cap is ~1.41 km on a side.
+    const center: [number, number] = [-83.5, 42.35];
+    expect(
+      estimateBboxAreaKm2(bboxAroundCenterKm(center, Math.sqrt(2))),
+    ).toBeCloseTo(2, 6);
+    expect(estimateBboxAreaKm2(bboxAroundCenterKm(center, 2, 3))).toBeCloseTo(
+      6,
+      6,
+    );
+  });
+
+  it("spans more longitude degrees at higher latitudes for the same ground width", () => {
+    const equator = bboxAroundCenterKm([0, 0], 1);
+    const high = bboxAroundCenterKm([0, 60], 1);
+    expect(high[2] - high[0]).toBeGreaterThan(equator[2] - equator[0]);
+  });
+
+  it("keeps the box inside valid lon/lat ranges near the poles", () => {
+    const polar = bboxAroundCenterKm([170, 89.99], 500);
+    expect(bboxIsValid(polar)).toBe(true);
   });
 });
 

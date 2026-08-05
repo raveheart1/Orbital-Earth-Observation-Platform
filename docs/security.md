@@ -71,6 +71,14 @@ beyond platform defaults, and formal compliance regimes.
 - **Request caps:** maximum body size 64 KB.
 - **Headers and CORS:** restrictive CORS (the browser talks to the Next.js
   proxy, not the API) and standard security headers.
+- **Custom-area cap:** visitor-drawn areas of interest are accepted
+  (`OEOP_ALLOW_CUSTOM_AREAS`, default on) but capped at
+  `OEOP_MAX_CUSTOM_AOI_AREA_KM2` (default **2 km²**) — two orders of magnitude
+  below the limit applied to the curated predefined regions. The cap is
+  enforced server-side in `create_analysis`, not merely in the browser, so a
+  hand-crafted request cannot obtain a large arbitrary AOI. Combined with the
+  submission throttle and scene limits, this bounds what an anonymous caller
+  can make the platform spend.
 - **Kill switches:** `DEMO_MODE` restricts submissions to predefined regions
   with tighter limits; `OEOP_SUBMISSIONS_ENABLED=false` disables public
   submissions entirely ([runbook](operations.md#disable-public-submissions)).
