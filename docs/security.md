@@ -79,6 +79,16 @@ beyond platform defaults, and formal compliance regimes.
   hand-crafted request cannot obtain a large arbitrary AOI. Combined with the
   submission throttle and scene limits, this bounds what an anonymous caller
   can make the platform spend.
+- **No synthetic data in deployed environments.** Synthetic satellite rasters
+  exist only for automated tests. `earth_observation.testing` (the generator)
+  is excluded from the built wheel, so container images — which install that
+  wheel via `uv sync --no-editable` — do not contain it; tests import it from
+  source through the editable dev install and are unaffected. The committed
+  demonstration bundle under `data/` is likewise never copied into an image:
+  deployed environments run `seed-demo`, which processes live Sentinel-2
+  imagery. Three layers enforce this: the wheel exclusion, the tests in
+  `tests/test_no_synthetic_data_in_production.py` (which build the wheel and
+  inspect it), and a CI step that greps the built images.
 - **Kill switches:** `DEMO_MODE` restricts submissions to predefined regions
   with tighter limits; `OEOP_SUBMISSIONS_ENABLED=false` disables public
   submissions entirely ([runbook](operations.md#disable-public-submissions)).

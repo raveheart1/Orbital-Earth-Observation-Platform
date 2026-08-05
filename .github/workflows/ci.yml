@@ -132,11 +132,31 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: false
+          load: true
           build-args: |
             GIT_SHA=${{ github.sha }}
           tags: ${{ matrix.image }}:${{ github.sha }}
           cache-from: type=gha,scope=${{ matrix.image }}
           cache-to: type=gha,mode=max,scope=${{ matrix.image }}
+
+      # Synthetic satellite rasters are permitted in automated tests ONLY. The
+      # generator (earth_observation.testing) is excluded from the wheel, and
+      # the demo bundle under data/ is never copied in — assert both against
+      # the real image rather than trusting the build config.
+      - name: Assert the image contains no synthetic data
+        run: |
+          set -euo pipefail
+          image="${{ matrix.image }}:${{ github.sha }}"
+          echo "Inspecting $image for synthetic-data artifacts"
+          found=$(docker run --rm --entrypoint sh "$image" -c \
+            'find / -xdev \( -name "testing.py" -path "*earth_observation*" \) \
+                     -o -path "*/data/demo/*" 2>/dev/null | head -20' || true)
+          if [ -n "$found" ]; then
+            echo "::error::Synthetic or precomputed demo data found in $image:"
+            echo "$found"
+            exit 1
+          fi
+          echo "OK: no synthetic satellite data in $image"
 
   secrets-scan:
     name: secrets scan (gitleaks)

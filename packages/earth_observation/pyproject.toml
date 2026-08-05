@@ -29,3 +29,18 @@ build-backend = "hatchling.build"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/earth_observation"]
+# earth_observation.testing GENERATES SYNTHETIC SATELLITE RASTERS. It exists
+# purely so tests can exercise the pipeline without the network, and it must
+# never reach a deployed environment: the platform's rule is that synthetic
+# imagery is permitted in automated tests only, never in the running
+# application.
+#
+# Excluding it from the wheel is what enforces that. Tests and local
+# development install the workspace in EDITABLE mode, so they import it
+# straight from src/ and are unaffected. Container images build with
+# `uv sync --no-editable`, which installs this wheel — so the module is
+# physically absent from the images deployed to Azure.
+#
+# `tests/test_no_synthetic_data_in_production.py` and the CI image check
+# assert this stays true.
+exclude = ["src/earth_observation/testing.py"]

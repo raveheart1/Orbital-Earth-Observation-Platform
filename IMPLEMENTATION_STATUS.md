@@ -113,6 +113,31 @@ earliest-to-latest difference was not a valid measurement.
       environment always has a completed demonstration analysis for the
       landing-page link. Previously `demo_analysis_id` was null in Azure.
 
+## No-synthetic-data enforcement (2026-08-04)
+
+An audit of what actually ships found that
+`earth_observation.testing` — the synthetic Sentinel-2 raster generator — was
+present inside the deployed API and worker images. No production code path
+imported it, but its presence contradicted the platform's own rule that
+synthetic imagery is permitted in automated tests only.
+
+- [x] Excluded `testing.py` from the built wheel. Images install that wheel
+      (`uv sync --no-editable`) so the module is physically absent; tests use
+      the editable install and import it from `src/`, unaffected.
+- [x] Verified against real artifacts: the built wheel contains 18 modules and
+      no `testing.py`, and a rebuilt image confirms the same. The CI guard was
+      sanity-checked by running it against the pre-fix image, where it
+      correctly reports the violation.
+- [x] Three enforcement layers: wheel exclusion,
+      `tests/test_no_synthetic_data_in_production.py` (builds and inspects the
+      wheel, and greps production sources for fixture imports/builders), and a
+      CI step that inspects the built images.
+- [x] Also confirmed clean: no test fixtures in the Next.js production bundle,
+      no mock/fallback data anywhere in shipped frontend code, and `data/`
+      (the demo bundle) is never copied into an image — deployed environments
+      process live imagery.
+- [x] README screenshots regenerated from the deployed Azure site.
+
 ## Known limitations (accepted for MVP, documented)
 
 - Submission rate limiting is in-memory per replica (docs/security.md).
