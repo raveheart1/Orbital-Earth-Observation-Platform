@@ -5,10 +5,13 @@ it as a body of work.*
 
 ## The question, and why it is a good one
 
-"How has vegetation health changed across selected areas of Southeast
-Michigan over time, based on Sentinel-2 satellite observations?" — a real
-scientific question, small enough to answer honestly, large enough to
-require genuine engineering. Answering it well forces three disciplines to
+"How has vegetation health changed at a given place over time, based on
+Sentinel-2 satellite observations?" — a real scientific question, small enough
+to answer honestly, large enough to require genuine engineering. It was scoped
+to Southeast Michigan first, which is still the home focus and the
+demonstration analysis; the curated catalogue now spans five continents,
+because a pipeline that only works in one UTM zone has not really answered the
+question. Answering it well forces three disciplines to
 meet: **scientific correctness** (the number must be right),
 **cloud engineering** (the system must be reliable and cheap), and
 **reproducibility** (the number must be checkable by someone else).

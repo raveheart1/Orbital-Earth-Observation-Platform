@@ -5,10 +5,10 @@ export const configFixture = {
   demo_mode: true,
   submissions_enabled: true,
   custom_areas_enabled: true,
-  // Predefined regions may be large; anything the visitor draws is capped far
-  // more tightly. The two limits are independent.
+  // Two independent ceilings: curated regions may be large, and drawn areas
+  // carry their own cap, set from measured processing cost.
   max_aoi_area_km2: 600,
-  max_custom_aoi_area_km2: 2,
+  max_custom_aoi_area_km2: 250,
   min_aoi_area_km2: 0.5,
   max_date_span_days: 3660,
   min_start_date: "2015-07-01",
@@ -61,6 +61,7 @@ export const regionFixture = {
   },
   area_km2: 481.5,
   is_predefined: true,
+  group: "Michigan",
 };
 
 /** Canonical analysis grid (processing v2.0.0+). */

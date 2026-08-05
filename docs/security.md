@@ -73,12 +73,19 @@ beyond platform defaults, and formal compliance regimes.
   proxy, not the API) and standard security headers.
 - **Custom-area cap:** visitor-drawn areas of interest are accepted
   (`OEOP_ALLOW_CUSTOM_AREAS`, default on) but capped at
-  `OEOP_MAX_CUSTOM_AOI_AREA_KM2` (default **2 km²**) — two orders of magnitude
-  below the limit applied to the curated predefined regions. The cap is
-  enforced server-side in `create_analysis`, not merely in the browser, so a
-  hand-crafted request cannot obtain a large arbitrary AOI. Combined with the
-  submission throttle and scene limits, this bounds what an anonymous caller
-  can make the platform spend.
+  `OEOP_MAX_CUSTOM_AOI_AREA_KM2` (default **250 km²**). This remains a real
+  abuse control — it is simply calibrated to measured cost rather than set
+  arbitrarily low: outputs run ~0.06 MB per scene per km², so the 200 MB
+  per-analysis storage limit is what binds, and 250 km² sits below it with
+  margin at every allowed scene count
+  ([cost-and-scaling.md](cost-and-scaling.md#how-usage-scales-cost)). The
+  worst case a single anonymous request can buy is therefore bounded and
+  known, rather than merely small. The cap is enforced server-side in
+  `create_analysis`, not merely in the browser, so a hand-crafted request
+  cannot obtain a larger arbitrary AOI, and it stacks with the per-analysis
+  storage limit, the 1500 s job runtime cap, the scene limit, and the
+  10 submissions/hour throttle — the throttle, not the per-request area, is
+  what bounds sustained spend.
 - **No synthetic data in deployed environments.** Synthetic satellite rasters
   exist only for automated tests. `earth_observation.testing` (the generator)
   is excluded from the built wheel, so container images — which install that

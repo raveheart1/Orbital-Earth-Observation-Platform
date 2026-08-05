@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: "%s · Orbital Earth Observation Platform",
   },
   description:
-    "Reproducible NDVI analyses of Sentinel-2 observations over Southeast Michigan: how has vegetation health changed over time?",
+    "Reproducible NDVI analyses of Sentinel-2 observations, from Michigan to curated regions worldwide: how has vegetation health changed at a given place over time?",
 };
 
 function OrbitGlyph() {

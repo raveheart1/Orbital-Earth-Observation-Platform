@@ -33,6 +33,7 @@ def serialize_region(region: Region) -> RegionResponse:
         id=region.id,
         name=region.name,
         slug=region.slug,
+        group=region.region_group,
         description=region.description,
         bbox=list(region.bbox),
         geometry=geometry_to_geojson(region.geometry) or {},

@@ -1,29 +1,125 @@
 {
-  "$comment": "Predefined analysis regions. Bounding boxes are [min_lon, min_lat, max_lon, max_lat] in EPSG:4326. Kept deliberately small for inexpensive demonstration processing; geometry and area are derived at seed time.",
+  "$comment": "Predefined analysis regions. Bounding boxes are [min_lon, min_lat, max_lon, max_lat] in EPSG:4326. All are sized to ~137 km2 so processing cost is comparable across regions. The platform works anywhere Sentinel-2 observes (roughly 56S to 83N); the Michigan regions are the project's home ground and the rest span other continents, hemispheres and vegetation regimes.",
   "regions": [
     {
       "name": "Southeast Michigan Demonstration Region",
       "slug": "southeast-michigan-demo",
-      "description": "Suburban and exurban Oakland County in the Detroit metropolitan area — Pontiac, Auburn Hills, and Rochester Hills. A mix of deciduous tree cover, turf, wetlands, and impervious surfaces that shows a strong seasonal NDVI cycle. This is the region used for the precomputed demonstration analysis.",
-      "bbox": [-83.3, 42.55, -83.15, 42.65]
+      "description": "Suburban and exurban Oakland County in the Detroit metropolitan area \u2014 Pontiac, Auburn Hills, and Rochester Hills. A mix of deciduous tree cover, turf, wetlands, and impervious surfaces that shows a strong seasonal NDVI cycle. This is the region used for the precomputed demonstration analysis.",
+      "bbox": [
+        -83.3,
+        42.55,
+        -83.15,
+        42.65
+      ],
+      "group": "Michigan"
     },
     {
       "name": "Detroit Urban Core",
       "slug": "detroit-urban-core",
       "description": "Central Detroit including Midtown, the riverfront, and Belle Isle. Dense impervious surface keeps baseline NDVI low; parks and street trees provide contrast.",
-      "bbox": [-83.15, 42.3, -83.0, 42.4]
+      "bbox": [
+        -83.15,
+        42.3,
+        -83.0,
+        42.4
+      ],
+      "group": "Michigan"
     },
     {
       "name": "Sleeping Bear Dunes Shoreline",
       "slug": "sleeping-bear-dunes",
-      "description": "Lake Michigan shoreline at Sleeping Bear Dunes National Lakeshore — open dune, beach, and adjacent forest. Water and bare sand produce near-zero and negative NDVI next to vegetated dunes.",
-      "bbox": [-86.08, 44.85, -85.93, 44.95]
+      "description": "Lake Michigan shoreline at Sleeping Bear Dunes National Lakeshore \u2014 open dune, beach, and adjacent forest. Water and bare sand produce near-zero and negative NDVI next to vegetated dunes.",
+      "bbox": [
+        -86.08,
+        44.85,
+        -85.93,
+        44.95
+      ],
+      "group": "Michigan"
     },
     {
       "name": "Hartwick Pines Forest",
       "slug": "hartwick-pines-forest",
       "description": "Old-growth and managed pine forest around Hartwick Pines State Park near Grayling in northern Lower Michigan. Predominantly coniferous cover with a damped seasonal NDVI cycle relative to deciduous regions.",
-      "bbox": [-84.72, 44.7, -84.6, 44.78]
+      "bbox": [
+        -84.72,
+        44.7,
+        -84.6,
+        44.78
+      ],
+      "group": "Michigan"
+    },
+    {
+      "name": "Nile Delta Farmland",
+      "slug": "nile-delta-farmland",
+      "group": "Global",
+      "description": "Irrigated cropland north of Cairo, where the Nile's water meets desert. One of the sharpest NDVI gradients on Earth: dense multi-crop agriculture beside bare sand within a few hundred metres. Needs three Sentinel-2 tiles mosaicked together.",
+      "bbox": [
+        31.0139,
+        30.6221,
+        31.1361,
+        30.7279
+      ]
+    },
+    {
+      "name": "Amazon Deforestation Frontier",
+      "slug": "amazon-deforestation-frontier",
+      "group": "Global",
+      "description": "Rondonia, Brazil, along the classic 'fishbone' pattern of roads cut into rainforest. Intact canopy sits at high NDVI year-round while cleared strips drop sharply, making the boundary between forest and pasture unusually legible.",
+      "bbox": [
+        -63.1783,
+        -9.5779,
+        -63.0717,
+        -9.4721
+      ]
+    },
+    {
+      "name": "Central Valley Cropland",
+      "slug": "central-valley-cropland",
+      "group": "Global",
+      "description": "Intensively irrigated farmland near Firebaugh, California. Individual fields follow their own planting and harvest calendars, so neighbouring parcels can sit at opposite ends of the NDVI range on the same day.",
+      "bbox": [
+        -120.4907,
+        36.8221,
+        -120.3593,
+        36.9279
+      ]
+    },
+    {
+      "name": "Okavango Delta",
+      "slug": "okavango-delta",
+      "group": "Global",
+      "description": "An inland delta in Botswana where a seasonal flood pulse arrives months after the rains that caused it. Vegetation response follows the water rather than local rainfall, so the seasonal NDVI cycle is offset from what the calendar alone would suggest.",
+      "bbox": [
+        23.0193,
+        -19.3779,
+        23.1307,
+        -19.2721
+      ]
+    },
+    {
+      "name": "Mekong Delta Rice",
+      "slug": "mekong-delta-rice",
+      "group": "Global",
+      "description": "Rice paddies near Long Xuyen, Vietnam, where two to three crops are grown each year. NDVI cycles several times within a single year, and flooded fields before transplanting read as near-zero or negative.",
+      "bbox": [
+        105.5216,
+        10.0221,
+        105.6284,
+        10.1279
+      ]
+    },
+    {
+      "name": "Donana Wetlands",
+      "slug": "donana-wetlands",
+      "group": "Global",
+      "description": "Marshes and dunes at the mouth of the Guadalquivir in Andalusia, Spain. A Mediterranean wetland that dries markedly through summer, set against surrounding irrigated agriculture that does not.",
+      "bbox": [
+        -6.3908,
+        36.9721,
+        -6.2592,
+        37.0779
+      ]
     }
   ]
 }

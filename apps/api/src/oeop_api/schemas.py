@@ -54,6 +54,7 @@ class RegionResponse(BaseModel):
     id: uuid.UUID
     name: str
     slug: str
+    group: str = Field(default="Global", description="UI grouping, e.g. Michigan or Global")
     description: str
     bbox: list[float]
     geometry: dict[str, Any]

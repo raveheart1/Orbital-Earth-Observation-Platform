@@ -42,7 +42,7 @@ In rough descending order for a lightly used dev environment:
 | --- | --- |
 | More analyses per day | Worker compute and Log Analytics ingestion scale roughly linearly; blob storage plateaus because of 30-day retention. |
 | Larger AOIs (up to the 600 km² cap) | More pixels per scene → longer worker runs and larger COGs. Bounded by the per-analysis storage cap (200 MB) and job runtime cap (1500 s). |
-| Visitor-drawn AOIs | Capped at 2 km² by default, so an arbitrary public submission is roughly two orders of magnitude cheaper than a full predefined region: a 0.9 km² area yields a ~95 × 101 pixel grid and completes in seconds. This is the main lever keeping anonymous submissions affordable. |
+| Visitor-drawn AOIs | Capped at 250 km² by default. The number comes from measured output volume — about **0.06 MB per scene per km²** — against the 200 MB per-analysis storage cap: storage binds near **417 km² at 8 scenes** (278 km² at 12), so 250 km² keeps a margin below both. Runtime is not the constraint: a 137 km² region takes ~10–12 s per scene, so even a full 12-scene run finishes well inside the 1500 s job cap. Small boxes remain very cheap (a 0.9 km² area yields a ~95 × 101 pixel grid and completes in seconds), and the cap still bounds the worst case an anonymous caller can request. |
 | More scenes per analysis (up to 12) | Linear in worker time and artifacts. |
 | Zero usage | Cost collapses to the Flexible Server, Log Analytics baseline, and ACR. |
 

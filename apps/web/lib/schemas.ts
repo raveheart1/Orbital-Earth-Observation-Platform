@@ -56,9 +56,14 @@ export const PublicConfigSchema = z.object({
   /** Upper area bound for PREDEFINED REGION submissions. */
   max_aoi_area_km2: z.number(),
   /**
-   * Much tighter upper area bound that applies ONLY to drawn (custom) areas,
-   * so arbitrary public submissions stay cheap to process. Never conflate it
-   * with `max_aoi_area_km2`.
+   * Separate upper area bound that applies ONLY to drawn (custom) areas. It is
+   * calibrated from measured processing cost rather than set arbitrarily low,
+   * so it now sits in the same range as the curated regions — but it is still
+   * its own limit and must never be conflated with `max_aoi_area_km2`.
+   *
+   * The fallback stays at the historical 2 km²: a server old enough to omit
+   * the field is also old enough to still enforce that cap, and guessing high
+   * would let the form accept a box the API rejects.
    */
   max_custom_aoi_area_km2: z.number().optional().default(2),
   /** Lower area bound; applies to both drawn areas and predefined regions. */
@@ -104,6 +109,13 @@ export const RegionSchema = z.object({
   geometry: GeoJsonSchema.nullable().optional(),
   area_km2: z.number(),
   is_predefined: z.boolean(),
+  /**
+   * Catalogue grouping used to organise the picker — "Michigan" for the
+   * project's home ground, "Global" for everywhere else. Kept as a plain
+   * string (not an enum) so a catalogue that adds a third grouping still
+   * parses, and defaulted so payloads from before the field existed do too.
+   */
+  group: z.string().optional().default("Global"),
 });
 export type Region = z.infer<typeof RegionSchema>;
 

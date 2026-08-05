@@ -10,15 +10,15 @@ import { estimateBboxAreaKm2 } from "@/lib/geo";
 import { PublicConfigSchema } from "@/lib/schemas";
 import { configFixture } from "./fixtures";
 
-/** Deployment defaults: drawn areas 2 km², predefined regions much larger. */
+/** Deployment defaults: drawn areas 250 km², predefined regions up to 600. */
 const limits: AoiLimits = PublicConfigSchema.parse(configFixture);
 
 /** Michigan-ish; latitude matters for the degree↔km conversion. */
 const CENTER: [number, number] = [-83.5, 42.35];
 
 describe("maxAreaKm2ForMode", () => {
-  it("uses the tight custom cap when drawing", () => {
-    expect(maxAreaKm2ForMode("custom", limits)).toBe(2);
+  it("uses the drawn-area cap when drawing", () => {
+    expect(maxAreaKm2ForMode("custom", limits)).toBe(250);
     expect(maxAreaKm2ForMode("custom", limits)).toBe(
       limits.max_custom_aoi_area_km2,
     );
@@ -37,12 +37,12 @@ describe("maxAreaKm2ForMode", () => {
 });
 
 describe("validateAoiArea", () => {
-  it("rejects a 2.5 km² drawn box against the 2 km² custom cap", () => {
-    const error = validateAoiArea(2.5, "custom", limits);
+  it("rejects a 300 km² drawn box against the 250 km² custom cap", () => {
+    const error = validateAoiArea(300, "custom", limits);
     expect(error).not.toBeNull();
     // Mirrors the server's 422 detail, including the way out.
-    expect(error).toContain("2.50 km²");
-    expect(error).toContain("maximum of 2 km² for custom areas");
+    expect(error).toContain("300 km²");
+    expect(error).toContain("maximum of 250 km² for custom areas");
     expect(error).toContain("Draw a smaller box");
     expect(error).toContain("predefined region");
   });
@@ -51,10 +51,19 @@ describe("validateAoiArea", () => {
     expect(validateAoiArea(1.0, "custom", limits)).toBeNull();
   });
 
-  it("accepts a 137 km² predefined region even though it dwarfs the custom cap", () => {
+  it("accepts a curated 137 km² region under either cap", () => {
+    // Curated regions are ~137 km², which now fits inside the drawn-area cap
+    // too: the two ceilings sit in the same range rather than orders apart.
     expect(validateAoiArea(137, "region", limits)).toBeNull();
-    // The same area drawn by hand is far too large.
-    expect(validateAoiArea(137, "custom", limits)).not.toBeNull();
+    expect(validateAoiArea(137, "custom", limits)).toBeNull();
+  });
+
+  it("still applies the region cap to areas only a curated region may reach", () => {
+    // 481 km² is legal for a curated region and too large to draw by hand.
+    expect(validateAoiArea(481.5, "region", limits)).toBeNull();
+    expect(validateAoiArea(481.5, "custom", limits)).toContain(
+      "maximum of 250 km²",
+    );
   });
 
   it("keeps the shared below-minimum check for both modes", () => {
@@ -63,7 +72,7 @@ describe("validateAoiArea", () => {
   });
 
   it("accepts areas exactly on either bound", () => {
-    expect(validateAoiArea(2, "custom", limits)).toBeNull();
+    expect(validateAoiArea(250, "custom", limits)).toBeNull();
     expect(validateAoiArea(0.5, "custom", limits)).toBeNull();
     expect(validateAoiArea(600, "region", limits)).toBeNull();
   });

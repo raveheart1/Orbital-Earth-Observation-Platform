@@ -93,12 +93,16 @@ class TestCustomAreaLimits:
     the two limits would either break every region or remove the cost control.
     """
 
-    def test_custom_limit_defaults_to_two_km2(self):
-        assert make_settings().effective_max_custom_aoi_area_km2() == 2.0
+    def test_custom_limit_default_is_calibrated_to_measured_cost(self):
+        """Outputs run ~0.06 MB/scene/km2 against a 200 MB per-analysis cap, so
+        storage binds near 417 km2 at 8 scenes. The default keeps margin."""
+        limit = make_settings().effective_max_custom_aoi_area_km2()
+        assert limit == 250.0
+        assert limit < 417, "must stay under the storage ceiling at 8 scenes"
 
-    def test_custom_limit_is_far_below_the_region_limit(self):
+    def test_custom_limit_does_not_exceed_the_region_limit(self):
         settings = make_settings()
-        assert settings.effective_max_custom_aoi_area_km2() < settings.max_aoi_area_km2
+        assert settings.effective_max_custom_aoi_area_km2() <= settings.max_aoi_area_km2
 
     def test_custom_limit_never_exceeds_the_global_ceiling(self):
         settings = make_settings(max_aoi_area_km2=1.0, max_custom_aoi_area_km2=50.0)

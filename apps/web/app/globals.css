@@ -711,7 +711,21 @@ fieldset legend {
   grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
 }
 
-/* Region radio-cards */
+/* Region radio-cards, bucketed by catalogue group */
+.region-groups {
+  display: grid;
+  gap: 1.25rem;
+}
+
+.region-group-heading {
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  margin: 0 0 0.5rem;
+}
+
 .region-cards {
   display: grid;
   gap: 0.75rem;

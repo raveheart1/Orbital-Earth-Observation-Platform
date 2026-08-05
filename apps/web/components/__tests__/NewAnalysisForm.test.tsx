@@ -50,7 +50,20 @@ vi.mock("@/components/MapPanel", () => ({
     }),
 }));
 
-const regions: Region[] = [RegionSchema.parse(regionFixture)];
+// Deliberately listed Global-first, so the form cannot pass by accident: the
+// picker must still lead with Michigan and preselect a Michigan region.
+const regions: Region[] = [
+  RegionSchema.parse({
+    ...regionFixture,
+    id: "0b1c2d3e-4f50-4a1b-8c2d-3e4f5a6b7c8d",
+    name: "Nile Delta Farmland",
+    slug: "nile-delta-farmland",
+    description: "Irrigated cropland north of Cairo, where the Nile meets desert.",
+    area_km2: 137.2,
+    group: "Global",
+  }),
+  RegionSchema.parse(regionFixture),
+];
 
 function configWith(overrides: Record<string, unknown> = {}): PublicConfig {
   return PublicConfigSchema.parse({ ...configFixture, ...overrides });
@@ -82,7 +95,7 @@ describe("NewAnalysisForm — custom area gating", () => {
     renderForm({ demo_mode: true, custom_areas_enabled: true });
     expect(drawRadio()).toBeEnabled();
     expect(
-      screen.getByText(/Drawn areas are limited to 2 km²/),
+      screen.getByText(/Drawn areas are limited to 250 km²/),
     ).toBeInTheDocument();
   });
 
@@ -92,6 +105,49 @@ describe("NewAnalysisForm — custom area gating", () => {
     const note = screen.getByText(/Custom areas are disabled/);
     expect(note).toBeInTheDocument();
     expect(note.textContent).not.toMatch(/demo/i);
+  });
+});
+
+describe("NewAnalysisForm — region grouping", () => {
+  it("renders one heading per group, Michigan first", () => {
+    renderForm();
+    const headings = screen
+      .getAllByRole("heading", { level: 2 })
+      .map((heading) => heading.textContent);
+    expect(headings).toEqual(["Michigan", "Global"]);
+  });
+
+  it("labels each group's list by its heading", () => {
+    renderForm();
+    const michigan = screen.getByRole("list", { name: "Michigan" });
+    expect(michigan).toBeInTheDocument();
+    expect(michigan).toContainElement(
+      screen.getByRole("radio", { name: /Ann Arbor/ }),
+    );
+    expect(screen.getByRole("list", { name: "Global" })).toContainElement(
+      screen.getByRole("radio", { name: /Nile Delta/ }),
+    );
+  });
+
+  it("preselects the first region of the first group, not of the payload", () => {
+    renderForm();
+    expect(screen.getByRole("radio", { name: /Ann Arbor/ })).toBeChecked();
+    expect(screen.getByRole("radio", { name: /Nile Delta/ })).not.toBeChecked();
+  });
+
+  it("keeps every region in one keyboard radio group", () => {
+    renderForm();
+    const names = screen
+      .getAllByRole("radio", { name: /Ann Arbor|Nile Delta/ })
+      .map((input) => (input as HTMLInputElement).name);
+    expect(names).toEqual(["region", "region"]);
+  });
+
+  it("switches selection to a region in another group", () => {
+    renderForm();
+    fireEvent.click(screen.getByRole("radio", { name: /Nile Delta/ }));
+    expect(screen.getByRole("radio", { name: /Nile Delta/ })).toBeChecked();
+    expect(areaLine()).toContain("137 km²");
   });
 });
 
@@ -113,7 +169,7 @@ describe("NewAnalysisForm — area limits by mode", () => {
     // Two decimals: whole-number rounding would be useless at this scale.
     expect(areaLine()).toContain("1.00 km²");
     expect(areaLine()).toContain("for drawn areas");
-    expect(areaLine()).toContain("2 km²");
+    expect(areaLine()).toContain("250 km²");
     expect(screen.queryByRole("alert")).not.toBeInTheDocument();
     expect(submitButton()).toBeEnabled();
     expect(screen.getByTestId("map")).toHaveAttribute(
@@ -122,14 +178,26 @@ describe("NewAnalysisForm — area limits by mode", () => {
     );
   });
 
+  it("accepts a drawn box the size of a curated region", () => {
+    renderForm();
+    fireEvent.click(drawRadio());
+    // ~0.1° × 0.1° at 42°N ≈ 91 km². Under the old 2 km² cap this was far too
+    // big to draw; the measured-cost cap now admits it.
+    setBox(["-83.6", "42.3", "-83.5", "42.4"]);
+
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(submitButton()).toBeEnabled();
+  });
+
   it("rejects a drawn box over the custom cap with the server's wording", () => {
     renderForm();
     fireEvent.click(drawRadio());
-    // ~0.1° × 0.1° at 42°N ≈ 91 km²: legal for a region, far too big to draw.
-    setBox(["-83.6", "42.3", "-83.5", "42.4"]);
+    // ~0.3° × 0.2° at 42.3°N ≈ 546 km²: over the drawn-area cap, though an
+    // area that size could still be curated as a predefined region.
+    setBox(["-83.8", "42.2", "-83.5", "42.4"]);
 
     const error = screen.getByRole("alert");
-    expect(error.textContent).toContain("exceeds the maximum of 2 km²");
+    expect(error.textContent).toContain("exceeds the maximum of 250 km²");
     expect(error.textContent).toContain("Draw a smaller box");
     expect(error.textContent).toContain("predefined region");
     expect(submitButton()).toBeDisabled();

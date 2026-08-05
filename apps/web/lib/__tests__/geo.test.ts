@@ -9,7 +9,7 @@ import {
 import type { Bbox } from "@/lib/schemas";
 
 describe("estimateBboxAreaKm2", () => {
-  it("estimates the area of a 1°×1° box at ~42.5°N (Southeast Michigan)", () => {
+  it("estimates the area of a 1°×1° box at ~42.5°N (mid-latitude)", () => {
     const bbox: Bbox = [-84.0, 42.0, -83.0, 43.0];
     const area = estimateBboxAreaKm2(bbox);
     // width ≈ 111.32 · cos(42.5°) ≈ 82.07 km, height ≈ 110.57 km → ≈ 9075 km²
@@ -30,7 +30,7 @@ describe("estimateBboxAreaKm2", () => {
 
 describe("bboxAroundCenterKm", () => {
   it("round-trips through the area estimate", () => {
-    // The 2 km² custom cap is ~1.41 km on a side.
+    // A square ~1.41 km on a side encloses 2 km².
     const center: [number, number] = [-83.5, 42.35];
     expect(
       estimateBboxAreaKm2(bboxAroundCenterKm(center, Math.sqrt(2))),

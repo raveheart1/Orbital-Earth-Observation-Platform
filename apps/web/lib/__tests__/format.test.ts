@@ -55,9 +55,10 @@ describe("formatKm2", () => {
 
 describe("formatAreaLimitKm2", () => {
   it("renders configured limits without trailing zeros", () => {
-    expect(formatAreaLimitKm2(2)).toBe("2 km²");
+    expect(formatAreaLimitKm2(12)).toBe("12 km²");
     expect(formatAreaLimitKm2(0.5)).toBe("0.5 km²");
     expect(formatAreaLimitKm2(250)).toBe("250 km²");
+    expect(formatAreaLimitKm2(600)).toBe("600 km²");
     expect(formatAreaLimitKm2(null)).toBe("—");
   });
 });

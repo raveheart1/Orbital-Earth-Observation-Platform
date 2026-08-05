@@ -17,7 +17,9 @@ export default function NewAnalysisPage() {
           Choose an area of interest and an observation window. The platform
           finds matching Sentinel-2 scenes on the Microsoft Planetary Computer,
           masks clouds, computes NDVI statistics per scene, and records full
-          provenance.
+          provenance. Curated regions cover the project&rsquo;s Michigan home
+          ground and six more around the world; a box you draw yourself can sit
+          anywhere Sentinel-2 observes (roughly 56°S to 83°N).
         </p>
       </div>
       <NewAnalysisForm />

@@ -9,9 +9,10 @@ import type { Bbox } from "./schemas";
  * Two *separate* upper bounds exist and must never be conflated:
  *   - `max_aoi_area_km2` governs PREDEFINED REGION submissions (curated areas,
  *     hundreds of km²);
- *   - `max_custom_aoi_area_km2` governs areas a visitor DRAWS themselves, and
- *     is far tighter (2 km² by default) so arbitrary public submissions stay
- *     cheap to process.
+ *   - `max_custom_aoi_area_km2` governs areas a visitor DRAWS themselves
+ *     (250 km² by default). It is calibrated from measured processing cost, so
+ *     the two ceilings now sit in the same range — but they remain independent
+ *     settings and a deployment may tighten either one.
  * `min_aoi_area_km2` applies to both.
  */
 export type AoiMode = "region" | "custom";

@@ -106,11 +106,12 @@ class TestCustomAreaSubmission:
         assert config["custom_areas_enabled"] is True
         assert 0 < config["max_custom_aoi_area_km2"] < config["max_aoi_area_km2"]
 
-    def test_region_sized_drawn_box_is_rejected(self):
-        """A box the size of a predefined region must fail as a CUSTOM area."""
+    def test_oversized_drawn_box_is_rejected(self):
+        """Above the custom cap a drawn area must fail, however it was drawn."""
         response = submit(
             {
-                "bbox": [-83.15, 42.30, -83.00, 42.40],  # ~137 km²
+                # ~1,900 km², comfortably above the 250 km² custom ceiling.
+                "bbox": [-83.6, 42.1, -83.0, 42.6],
                 "start_date": "2024-06-01",
                 "end_date": "2024-08-31",
                 "max_cloud_cover_pct": 20,
@@ -120,6 +121,20 @@ class TestCustomAreaSubmission:
         detail = response.json()["detail"]
         assert "custom areas" in detail.lower()
         assert "predefined region" in detail.lower()
+
+    def test_region_sized_drawn_box_is_now_accepted(self):
+        """The cap was raised to 250 km², so a region-sized drawn box is legal."""
+        response = submit(
+            {
+                "bbox": [-83.15, 42.30, -83.00, 42.40],  # ~137 km²
+                "start_date": "2024-06-01",
+                "end_date": "2024-08-31",
+                "max_cloud_cover_pct": 20,
+                "scene_limit": 1,
+            }
+        )
+        assert response.status_code == 202
+        assert response.json()["area_km2"] < 250.0
 
     def test_small_drawn_box_is_accepted(self):
         response = submit(

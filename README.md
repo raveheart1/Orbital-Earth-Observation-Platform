@@ -1,7 +1,11 @@
 # Orbital Earth Observation Platform
 
-**How has vegetation health changed across selected areas of Southeast Michigan
-over time, based on Sentinel-2 satellite observations?**
+**How has vegetation health changed at a given place over time, based on
+Sentinel-2 satellite observations?**
+
+Built around Southeast Michigan — still the home focus and the demonstration
+analysis — and now shipping curated regions across five continents, anywhere
+Sentinel-2 observes.
 
 A reproducible environmental observation platform that turns that question into
 auditable measurements: it discovers Sentinel-2 scenes through the Microsoft
@@ -16,11 +20,16 @@ to the SHA-256 of every output file.
 
 ## What it does
 
-- **Interactive analyses** — pick a predefined Michigan region or draw your own
-  area (capped at 2 km² so public submissions stay cheap), choose a date range
-  and cloud-cover threshold, and submit. The API queues the work; an
-  event-driven worker processes it and the UI tracks
+- **Interactive analyses** — pick one of the ten curated regions or draw your
+  own area (capped at 250 km², a ceiling set from measured processing cost),
+  choose a date range and cloud-cover threshold, and submit. The API queues the
+  work; an event-driven worker processes it and the UI tracks
   `queued → running → succeeded/failed` live.
+- **Works wherever Sentinel-2 looks** — the mission images land between roughly
+  56°S and 83°N (not the poles, not open ocean). Within that band the canonical
+  analysis grid selects the correct UTM zone automatically, in either
+  hemisphere, and mosaics however many granules the area spans — verified on
+  regions in Egypt, Brazil, Botswana, Vietnam, California, and Spain.
 - **Real science, efficiently** — only the raster windows covering your AOI are
   read from cloud-optimized GeoTIFFs (no full-scene downloads). The Scene
   Classification Layer masks clouds, shadows, cirrus, and snow under a
@@ -48,6 +57,37 @@ to the SHA-256 of every output file.
 > changes* for specific acquisition dates. NDVI alone does not establish
 > drought, wildfire damage, climate change, or agricultural failure. See
 > [docs/limitations.md](docs/limitations.md).
+
+## Curated regions
+
+Ten predefined regions ship with the platform, each sized to ~137 km² so
+processing cost is comparable between them. Michigan is the home ground;
+together the ten span five continents, both hemispheres, and very different
+vegetation regimes. Every one was checked for real Sentinel-2 coverage.
+
+**Michigan**
+
+| Region | What the landscape does |
+| --- | --- |
+| Southeast Michigan Demonstration Region | Suburban Oakland County — deciduous cover, turf, wetlands, and pavement in one strong seasonal cycle. Subject of the committed demonstration analysis. |
+| Detroit Urban Core | Dense impervious surface holds baseline NDVI low; parks, street trees, and Belle Isle supply the contrast. |
+| Sleeping Bear Dunes Shoreline | Bare sand and water at near-zero and negative NDVI, directly against vegetated dune and forest. |
+| Hartwick Pines Forest | Conifer cover, with a seasonal swing damped next to the deciduous regions. |
+
+**Global**
+
+| Region | What the landscape does |
+| --- | --- |
+| Nile Delta Farmland (Egypt) | Irrigated cropland meeting desert — one of the sharpest NDVI gradients on Earth. Spans three Sentinel-2 tiles, mosaicked onto one grid. |
+| Amazon Deforestation Frontier (Rondônia, Brazil) | The "fishbone" of roads and clearings cut into rainforest: intact canopy against pasture. |
+| Central Valley Cropland (California) | Intensive irrigation on independent field calendars — neighbouring parcels at opposite NDVI extremes on the same day. |
+| Okavango Delta (Botswana) | A seasonal flood pulse arriving months after the rains that caused it, so vegetation response is offset from the calendar. |
+| Mekong Delta Rice (Vietnam) | Two to three crops a year, so NDVI cycles several times within one; flooded fields before transplanting read near-zero or negative. |
+| Doñana Wetlands (Spain) | A Mediterranean wetland drying markedly through summer, beside irrigated agriculture that does not. |
+
+These describe what the *landscape* does, not what the platform concludes: it
+measures NDVI and reports observed change (see the interpretation note above).
+Regions are exposed by `GET /api/v1/regions`, each carrying a `group` field.
 
 ## Data source
 
@@ -89,7 +129,7 @@ Node 22+ with pnpm (via `corepack enable`), GNU make.
 make bootstrap    # install Python + web dependencies, create .env
 make dev          # start PostGIS, Azurite, API, worker, web
 make migrate      # apply database migrations
-make seed         # seed the predefined Michigan regions
+make seed         # seed the predefined regions (Michigan + global)
 ```
 
 Open http://localhost:3000 (web) and http://localhost:8000/docs (API).

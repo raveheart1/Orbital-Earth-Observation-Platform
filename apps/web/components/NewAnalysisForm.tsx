@@ -28,6 +28,7 @@ import {
   estimateBboxAreaKm2,
   parseBboxInputs,
 } from "@/lib/geo";
+import { firstRegionId } from "@/lib/regions";
 import {
   MONTH_NAMES,
   midpointMonth,
@@ -123,8 +124,10 @@ export function FormInner({
   })();
 
   const [mode, setMode] = useState<AoiMode>("region");
-  const [regionId, setRegionId] = useState<string | null>(
-    regions[0]?.id ?? null,
+  // Start on the first card the picker actually renders, which is the first
+  // region of the first group — not necessarily the API's first item.
+  const [regionId, setRegionId] = useState<string | null>(() =>
+    firstRegionId(regions),
   );
   const [bboxInputs, setBboxInputs] = useState<BboxInputs>({
     minLon: "",
@@ -265,10 +268,10 @@ export function FormInner({
   }
 
   /**
-   * Switching to drawing prefills a compliant example box around the current
-   * map centre, so the form is immediately submittable and the visitor can see
-   * what the (small) custom cap looks like on the ground. A box the visitor
-   * already entered is never overwritten.
+   * Switching to drawing prefills a small, compliant example box around the
+   * current map centre, so the form is immediately submittable and the visitor
+   * has something concrete to drag rather than an empty set of coordinate
+   * fields. A box the visitor already entered is never overwritten.
    */
   function selectMode(next: AoiMode) {
     setMode(next);
@@ -585,7 +588,7 @@ export function FormInner({
         processes at most {config.max_scene_limit} scenes per run. Predefined
         regions are capped at {formatAreaLimitKm2(config.max_aoi_area_km2)}
         {customAllowed
-          ? `, and areas you draw yourself at only ${formatAreaLimitKm2(config.max_custom_aoi_area_km2)} — arbitrary public submissions are kept small so processing stays cheap`
+          ? `, and areas you draw yourself at ${formatAreaLimitKm2(config.max_custom_aoi_area_km2)} — a ceiling set from measured processing cost, so an anonymous submission stays bounded`
           : ""}
         . Date ranges are capped at {formatDaySpan(config.max_date_span_days)},
         with observations no earlier than {config.min_start_date}. Together

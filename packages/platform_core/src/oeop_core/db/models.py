@@ -91,6 +91,11 @@ class Region(Base):
     bbox: Mapped[list[float]] = mapped_column(JSONVariant)
     area_km2: Mapped[float] = mapped_column(Float)
     is_predefined: Mapped[bool] = mapped_column(Boolean, default=True)
+    region_group: Mapped[str] = mapped_column(
+        String(40),
+        default="Global",
+        comment="Grouping shown in the UI, e.g. Michigan or Global",
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow

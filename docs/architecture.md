@@ -2,8 +2,15 @@
 
 The Orbital Earth Observation Platform answers one scientific question:
 
-> How has vegetation health changed across selected areas of Southeast Michigan
-> over time, based on Sentinel-2 satellite observations?
+> How has vegetation health changed at a given place over time, based on
+> Sentinel-2 satellite observations?
+
+The place can be any of ten curated regions — four in Michigan, the project's
+home ground, and six elsewhere in the world — or an area the visitor draws,
+anywhere Sentinel-2 observes (roughly 56°S to 83°N). Nothing in the pipeline is
+Michigan-specific: the canonical analysis grid derives its UTM zone from the
+AOI centroid ([ADR 0007](adr/0007-canonical-analysis-grid.md)), so hemisphere
+and zone follow the request.
 
 It does so with a small, boring, reliable pipeline: a web UI submits an
 analysis, an API validates and persists it, a queue decouples submission from
@@ -185,8 +192,8 @@ All limits are environment-configurable with the `OEOP_` prefix
 | --- | --- | --- |
 | Max AOI area | 600 km² | 250 km² |
 | Min AOI area | 0.5 km² | same |
-| Max date span | 730 days | 400 days |
-| Earliest start date | 2016-01-01 | same |
+| Max date span | 3660 days (~10 years) | same |
+| Earliest start date | 2015-07-01 | same |
 | Max scenes | 12 (default 6) | 8 |
 | Cloud-cover threshold | ≤ 80 (default 20) | same |
 | Job runtime | 1500 s | same |

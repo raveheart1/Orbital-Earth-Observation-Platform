@@ -94,6 +94,7 @@ async def seed_regions(session: AsyncSession) -> int:
                     bbox=list(bbox),
                     area_km2=area,
                     is_predefined=True,
+                    region_group=spec.get("group", "Global"),
                 )
             )
         else:
@@ -102,6 +103,7 @@ async def seed_regions(session: AsyncSession) -> int:
             existing.bbox = list(bbox)
             existing.geometry = from_shape(polygon, srid=4326)
             existing.area_km2 = area
+            existing.region_group = spec.get("group", "Global")
         count += 1
     await session.commit()
     logger.info("regions_seeded", count=count)

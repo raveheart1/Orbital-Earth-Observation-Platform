@@ -42,8 +42,8 @@ Typical causes:
 - Malformed, empty, or self-intersecting AOI geometry
 - Antimeridian-crossing bounding box (unsupported by design)
 - AOI area outside limits (0.5–600 km²; 250 km² in demo mode)
-- Date span too long (max 730 days; 400 in demo mode) or start before
-  2016-01-01
+- Date span too long (max 3660 days, about ten years) or start before
+  2015-07-01
 - Scene limit or cloud threshold outside allowed bounds
 
 Fix the request; retrying unchanged will always fail.

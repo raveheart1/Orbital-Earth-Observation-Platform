@@ -168,6 +168,32 @@ so both were fixed before the span limit was raised.
 - [x] A leap-year off-by-one in the day-of-year wrap was found by the new
       tests and fixed (the window used a hardcoded 365-day year).
 
+## Global repositioning and region catalog (2026-08-05)
+
+- [x] **Custom-area cap raised 2 -> 250 km²**, chosen from measured cost rather
+      than guessed: outputs run **~0.06 MB per scene per km²**, so the 200 MB
+      per-analysis storage cap binds near **417 km² at 8 scenes** and 278 km²
+      at 12. Runtime is ~10-12 s per scene at 137 km², nowhere near the 1500 s
+      cap, so storage is the binding constraint. 250 km² keeps margin and
+      matches the curated regions' ceiling, so users see one number.
+- [x] **Repositioned as global with a Michigan focus.** Verified before
+      advertising: the canonical grid selects correct UTM zones across Egypt,
+      Brazil, Botswana, Vietnam, California, Spain and both hemispheres, and
+      multi-tile mosaicking works abroad (the Nile Delta AOI spans **three**
+      Sentinel-2 tiles). Coverage is stated honestly as roughly 56°S-83°N.
+- [x] **Region catalog 4 -> 10**, each ~137 km² so cost is comparable:
+      4 Michigan (home focus) plus Nile Delta, Amazon deforestation frontier,
+      Central Valley, Okavango Delta, Mekong Delta and Doñana — five continents
+      and both hemispheres.
+- [x] **Every region has a real showcase analysis** (6 scenes each, live
+      Sentinel-2 imagery, nothing precomputed), via the new idempotent
+      `scripts/seed_showcase.sh`. NDVI ranges are physically sensible per
+      biome: conifer forest 0.46-0.81, dune/water 0.08-0.30, Mediterranean
+      wetland 0.19-0.61, rice 0.42-0.69.
+- [x] Corrected stale documentation found during the sweep: the date-span and
+      earliest-start limits still quoted the pre-multi-year values, and
+      `.env.example` still pinned the custom cap at 2 km².
+
 ## Known limitations (accepted for MVP, documented)
 
 - Submission rate limiting is in-memory per replica (docs/security.md).

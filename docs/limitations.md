@@ -63,7 +63,8 @@ comparisons are not.
 
 ## Urban NDVI needs extra care
 
-Much of Southeast Michigan is urban or suburban. There:
+Several curated regions are wholly or partly built up — Detroit Urban Core and
+the suburban Southeast Michigan demonstration region especially. There:
 
 - Mean NDVI is dominated by the *fraction* of vegetated surface, not
   vegetation *health*. A mowed lawn and a vacant lot differ more in NDVI than
@@ -75,15 +76,40 @@ Much of Southeast Michigan is urban or suburban. There:
 - Impervious-surface changes (construction, paving) produce sharp permanent
   NDVI drops that are real land-cover change, not vegetation stress.
 
+## Coverage is global, but not unlimited
+
+The platform runs anywhere Sentinel-2 observes — not anywhere on Earth. The
+mission's acquisition plan covers land, coastal and inland water between
+roughly **56°S and 83°N**. Outside that band (both polar regions) and over the
+open ocean there is nothing to analyse, and an AOI placed there yields no
+usable scenes rather than an error worth interpreting.
+
+Coverage is also uneven *inside* the band. Toward the high-latitude edge:
+
+- The sun angle is low, which lengthens shadows, weakens the signal, and
+  removes usable acquisitions entirely through the winter months.
+- Cloud and snow persist for longer stretches, so more scenes are dropped by
+  the cloud threshold, the SCL mask, or the 10%-valid-pixel floor.
+- Before 2017 only one satellite was flying (~10-day revisit rather than ~5),
+  halving the chances that any given window contains a clear scene.
+
+The practical effect is that a high-latitude analysis returns fewer
+observations for the same request than a mid-latitude one, and its series is
+more strongly biased toward the clear part of the year. That is a property of
+the observations, not of the area's vegetation.
+
 ## Scale and scope of the demo
 
-- Visitor-drawn areas are capped at 2 km² (`OEOP_MAX_CUSTOM_AOI_AREA_KM2`).
-  Larger areas are available through the curated predefined regions, which are
-  capped at 600 km² (250 km² in demo mode), with at most 12 scenes
-  per analysis (default 6, demo 8). This is a demonstration-scale window, not
-  a monitoring system: statements about "Southeast Michigan" from one AOI and
-  a dozen dates are anecdotes, not surveys.
-- Date ranges are capped (730 days; earliest start 2016-01-01), so
+- Visitor-drawn areas are capped at 250 km² (`OEOP_MAX_CUSTOM_AOI_AREA_KM2`),
+  a ceiling set from measured processing cost rather than picked arbitrarily
+  ([cost-and-scaling.md](cost-and-scaling.md#how-usage-scales-cost)). Larger
+  areas are available through the curated predefined regions, which are capped
+  at 600 km² (250 km² in demo mode), with at most 12 scenes per analysis
+  (default 6, demo 8). This is a demonstration-scale window, not a monitoring
+  system: a statement about a whole region drawn from one AOI and a dozen
+  dates is an anecdote, not a survey.
+- Date ranges are capped (3660 days, about ten years; earliest start
+  2015-07-01), so
   long-horizon trends are out of scope.
 - Scenes with under 10% valid pixels are excluded from the series
   (recorded with reasons), which further thins winter and cloudy-season

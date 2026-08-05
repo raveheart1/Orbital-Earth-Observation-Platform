@@ -4,6 +4,7 @@ import {
   ArtifactSchema,
   ProvenanceSchema,
   PublicConfigSchema,
+  RegionSchema,
   SceneSchema,
   TimeseriesSchema,
 } from "@/lib/schemas";
@@ -12,6 +13,7 @@ import {
   artifactFixture,
   configFixture,
   gridFixture,
+  regionFixture,
   sceneFixture,
   timeseriesFixture,
 } from "./fixtures";
@@ -27,9 +29,9 @@ describe("PublicConfigSchema", () => {
   it("parses the custom-area fields alongside the region area cap", () => {
     const parsed = PublicConfigSchema.parse(configFixture);
     expect(parsed.custom_areas_enabled).toBe(true);
-    // The drawn-area cap is a separate, much tighter limit — never the same
-    // number as the predefined-region cap.
-    expect(parsed.max_custom_aoi_area_km2).toBe(2);
+    // The drawn-area cap is its own setting, calibrated from measured cost —
+    // never read off the predefined-region cap.
+    expect(parsed.max_custom_aoi_area_km2).toBe(250);
     expect(parsed.max_aoi_area_km2).toBe(600);
     expect(parsed.min_aoi_area_km2).toBe(0.5);
   });
@@ -49,6 +51,9 @@ describe("PublicConfigSchema", () => {
     void max_custom_aoi_area_km2;
     const parsed = PublicConfigSchema.parse(legacy);
     expect(parsed.custom_areas_enabled).toBe(true);
+    // Deliberately the *old* 2 km² cap: a server that omits the field still
+    // enforces it, and guessing high would let the form offer a box the API
+    // would reject.
     expect(parsed.max_custom_aoi_area_km2).toBe(2);
     expect(parsed.max_aoi_area_km2).toBe(600);
   });
@@ -106,6 +111,31 @@ describe("PublicConfigSchema", () => {
       ndvi_legend: legacyLegend,
     });
     expect(parsed.ndvi_legend.nodata_color).toBeUndefined();
+  });
+});
+
+describe("RegionSchema", () => {
+  it("parses a region carrying its catalogue group", () => {
+    const parsed = RegionSchema.parse(regionFixture);
+    expect(parsed.group).toBe("Michigan");
+    expect(parsed.slug).toBe("ann-arbor-huron");
+  });
+
+  it("carries an arbitrary group through, so a new bucket needs no code change", () => {
+    const parsed = RegionSchema.parse({ ...regionFixture, group: "Antarctic" });
+    expect(parsed.group).toBe("Antarctic");
+  });
+
+  it("defaults group to Global on a payload from before the field existed", () => {
+    const { group, ...legacy } = regionFixture;
+    void group;
+    const parsed = RegionSchema.parse(legacy);
+    expect(parsed.group).toBe("Global");
+  });
+
+  it("rejects a non-string group rather than coercing it", () => {
+    const result = RegionSchema.safeParse({ ...regionFixture, group: 7 });
+    expect(result.success).toBe(false);
   });
 });
 

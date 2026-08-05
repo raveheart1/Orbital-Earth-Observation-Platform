@@ -113,11 +113,13 @@ class Settings(BaseSettings):
         "capped separately by max_custom_aoi_area_km2.",
     )
     max_custom_aoi_area_km2: float = Field(
-        default=2.0,
-        description="Maximum area for a visitor-DRAWN AOI, in km². Deliberately "
-        "much tighter than max_aoi_area_km2: predefined regions are curated and "
-        "run at ~137 km², while arbitrary public submissions are bounded to a "
-        "few square kilometres to keep processing cheap and abuse cheap to absorb.",
+        default=250.0,
+        description="Maximum area for a visitor-DRAWN AOI, in km². Set from measured "
+        "cost: outputs run ~0.06 MB per scene per km², so the 200 MB "
+        "per_analysis_storage_limit_mb is reached near 417 km² at 8 scenes and "
+        "278 km² at 12. 250 km² keeps a margin below both, matches the curated "
+        "regions' ceiling so users see one number, and processes in about three "
+        "minutes — far inside max_job_runtime_seconds.",
     )
     rate_limit_submissions_per_hour: int = Field(
         default=10, description="Best-effort per-client submission throttle (per replica)"
