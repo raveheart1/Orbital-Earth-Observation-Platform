@@ -143,10 +143,10 @@ variable "allow_custom_areas" {
 
 variable "max_custom_aoi_area_km2" {
   description = <<-EOT
-    Maximum area in km2 for a visitor-DRAWN area of interest. Deliberately far
-    tighter than the predefined-region limit so arbitrary public submissions
-    stay cheap to process.
+    Maximum area in km2 for a visitor-DRAWN area of interest. Calibrated to
+    measured output cost (~0.06 MB per scene per km2) against the 200 MB
+    per-analysis storage cap, which binds near 417 km2 at 8 scenes.
   EOT
   type        = string
-  default     = "2"
+  default     = "250"
 }
