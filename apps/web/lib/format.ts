@@ -77,6 +77,19 @@ export function formatAreaLimitKm2(value: number | null | undefined): string {
   return `${rounded.toLocaleString("en-US")} km²`;
 }
 
+/**
+ * A span in days, with a years gloss once the number stops being intuitive:
+ * 365 → "365 days", 3660 → "3,660 days (about 10 years)".
+ */
+export function formatDaySpan(days: number | null | undefined): string {
+  if (days === null || days === undefined || !Number.isFinite(days)) return "—";
+  const whole = Math.round(days);
+  const label = `${whole.toLocaleString("en-US")} days`;
+  if (whole < 730) return label;
+  const years = Number((whole / 365.25).toFixed(1));
+  return `${label} (about ${years.toLocaleString("en-US")} years)`;
+}
+
 /** "1 granule", or "2 granules · T17TLG, T17TLH" when several were mosaicked. */
 export function formatGranules(count: number, tileIds: string[]): string {
   const noun = count === 1 ? "granule" : "granules";

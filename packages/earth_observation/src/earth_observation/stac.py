@@ -9,6 +9,9 @@ persisted as provenance.
 
 from __future__ import annotations
 
+import math
+from dataclasses import dataclass, field
+from datetime import date, timedelta
 from typing import Any
 
 import requests
@@ -23,7 +26,7 @@ from tenacity import (
     wait_exponential,
 )
 
-from earth_observation.errors import AssetKeysError, TransientError
+from earth_observation.errors import AssetKeysError, TransientError, UserInputError
 from earth_observation.geometry import BBox, bbox_polygon, intersection_pct
 from earth_observation.types import AssetKeys, ProcessingConfig, SceneCandidate
 
@@ -112,42 +115,115 @@ def _run_search(
     return list(search.items())
 
 
+@dataclass
+class SceneSearchResult:
+    """Outcome of a STAC search, including how the search itself was bounded.
+
+    ``truncated_windows`` matters scientifically: a window that returned
+    exactly its item cap probably had more data available, so the candidate
+    set for that period is incomplete and selection saw only part of it.
+    """
+
+    candidates: list[SceneCandidate]
+    windows: list[tuple[str, str]] = field(default_factory=list)
+    truncated_windows: list[str] = field(default_factory=list)
+    max_items_per_window: int = 0
+
+    @property
+    def truncated(self) -> bool:
+        return bool(self.truncated_windows)
+
+    def to_metadata(self) -> dict[str, Any]:
+        """Provenance record of how the catalog was queried."""
+        return {
+            "window_count": len(self.windows),
+            "windows": [{"start": s, "end": e} for s, e in self.windows],
+            "max_items_per_window": self.max_items_per_window,
+            "truncated_windows": self.truncated_windows,
+            "granules_returned": len(self.candidates),
+        }
+
+
+def _split_range(start_date: str, end_date: str, window_days: int) -> list[tuple[str, str]]:
+    """Split an inclusive date range into consecutive windows.
+
+    A single STAC query returns at most ``max_items`` items in catalog order,
+    so querying a multi-year range in one call silently yields only part of it
+    — in practice the most recent part. Splitting the range and applying the
+    cap PER WINDOW guarantees every period is actually searched.
+    """
+    first = date.fromisoformat(start_date)
+    last = date.fromisoformat(end_date)
+    if last < first:
+        raise UserInputError("end_date must be on or after start_date")
+    span = (last - first).days + 1
+    if span <= window_days:
+        return [(start_date, end_date)]
+
+    count = math.ceil(span / window_days)
+    size = math.ceil(span / count)
+    windows: list[tuple[str, str]] = []
+    cursor = first
+    while cursor <= last:
+        window_end = min(cursor + timedelta(days=size - 1), last)
+        windows.append((cursor.isoformat(), window_end.isoformat()))
+        cursor = window_end + timedelta(days=1)
+    return windows
+
+
 def search_scenes(
     config: ProcessingConfig,
     bbox: BBox,
     start_date: str,
     end_date: str,
     max_cloud_cover_pct: float,
-) -> list[SceneCandidate]:
+) -> SceneSearchResult:
     """Search the STAC catalog and return chronologically sorted candidates.
 
-    ``start_date`` / ``end_date`` are ISO dates (inclusive interval). AOI
-    overlap percent is computed for each candidate so selection can filter
-    scenes that barely clip the AOI.
+    ``start_date`` / ``end_date`` are ISO dates (inclusive interval). Long
+    ranges are searched in consecutive windows so the whole period is covered
+    rather than only its most recent portion; see :func:`_split_range`.
+    AOI overlap percent is computed for each candidate so selection can filter
+    granules that barely clip the AOI.
     """
-    try:
-        items = _run_search(
-            endpoint=config.stac_endpoint,
-            collection=config.collection,
-            bbox=bbox,
-            start=start_date,
-            end=end_date,
-            max_cloud_cover_pct=max_cloud_cover_pct,
-            max_items=config.max_candidate_items,
-        )
-    except _RETRYABLE as exc:
-        raise TransientError(f"STAC search failed after retries: {exc}") from exc
+    windows = _split_range(start_date, end_date, config.search_window_days)
+    per_window = config.max_items_per_window
 
     aoi = bbox_polygon(bbox)
-    candidates: list[SceneCandidate] = []
-    for item in items:
-        candidate = candidate_from_item(item, config.asset_keys)
-        candidate = candidate.model_copy(
-            update={"aoi_overlap_pct": intersection_pct(aoi, shape(candidate.geometry))}
-        )
-        candidates.append(candidate)
-    candidates.sort(key=lambda c: (c.observed_at, c.item_id))
-    return candidates
+    by_id: dict[str, SceneCandidate] = {}
+    truncated: list[str] = []
+
+    for window_start, window_end in windows:
+        try:
+            items = _run_search(
+                endpoint=config.stac_endpoint,
+                collection=config.collection,
+                bbox=bbox,
+                start=window_start,
+                end=window_end,
+                max_cloud_cover_pct=max_cloud_cover_pct,
+                max_items=per_window,
+            )
+        except _RETRYABLE as exc:
+            raise TransientError(f"STAC search failed after retries: {exc}") from exc
+
+        if len(items) >= per_window:
+            truncated.append(f"{window_start}/{window_end}")
+
+        for item in items:
+            candidate = candidate_from_item(item, config.asset_keys)
+            candidate = candidate.model_copy(
+                update={"aoi_overlap_pct": intersection_pct(aoi, shape(candidate.geometry))}
+            )
+            by_id[candidate.item_id] = candidate
+
+    candidates = sorted(by_id.values(), key=lambda c: (c.observed_at, c.item_id))
+    return SceneSearchResult(
+        candidates=candidates,
+        windows=windows,
+        truncated_windows=truncated,
+        max_items_per_window=per_window,
+    )
 
 
 def sign_href(href: str) -> str:

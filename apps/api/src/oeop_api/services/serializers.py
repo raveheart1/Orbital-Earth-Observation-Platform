@@ -62,6 +62,8 @@ def serialize_analysis(analysis: Analysis, *, region: Region | None) -> Analysis
         collection=analysis.collection,
         max_cloud_cover_pct=analysis.max_cloud_cover_pct,
         scene_limit=analysis.scene_limit,
+        selection_strategy=analysis.selection_strategy,
+        seasonal_target_month=analysis.seasonal_target_month,
         processing=ProcessingInfo(
             operation=analysis.operation,
             version=analysis.processing_version,

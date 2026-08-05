@@ -138,6 +138,36 @@ synthetic imagery is permitted in automated tests only.
       process live imagery.
 - [x] README screenshots regenerated from the deployed Azure site.
 
+## Multi-year analysis (2026-08-05)
+
+Probing real data showed two problems that made long date ranges misleading,
+so both were fixed before the span limit was raised.
+
+- [x] **Catalog search was silently truncated.** A single STAC query is capped
+      at `max_items` and returns catalog order, so requesting 2018–2026 over
+      Detroit searched only **2022–2026** — four years presented as eight.
+      Long ranges are now searched in consecutive windows (default 370 days)
+      with the cap applied per window; the same request now returns 345
+      granules spanning 2018-01-05 to 2026-06-27. Any window that hits its cap
+      is recorded in provenance and raised as an analysis warning.
+- [x] **Seasonal selection strategy** (`seasonal-same-window-lowest-cloud`
+      v1.0.0): one observation per year from the same part of the calendar.
+      The evenly-spread strategy over 8 years picked June, February, April,
+      May, April, October, June, May — a "trend" from that is dominated by
+      which month each scene fell in, since the seasonal NDVI swing
+      (~0.15–0.85) is an order of magnitude larger than a multi-year trend.
+      A year with nothing usable is left as a gap, never substituted.
+- [x] **Span limit raised** 400 → **3660 days (~10 years)**, earliest start
+      2015-07-01. Long spans cost no more to process: work is bounded by
+      `scene_limit` and AOI area, and the extra search is metadata only.
+- [x] Verified on real data: an 8.5-year seasonal Detroit analysis returned
+      one early-July observation per year (2018–2026, 2022 absent), all on one
+      canonical grid, mean NDVI 0.346–0.393, first-to-last **+0.017** — which
+      is smaller than the year-to-year scatter and so is explicitly documented
+      as not establishing a trend.
+- [x] A leap-year off-by-one in the day-of-year wrap was found by the new
+      tests and fixed (the window used a hardcoded 365-day year).
+
 ## Known limitations (accepted for MVP, documented)
 
 - Submission rate limiting is in-memory per replica (docs/security.md).

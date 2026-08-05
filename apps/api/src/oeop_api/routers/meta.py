@@ -6,6 +6,7 @@ from fastapi import APIRouter
 
 from earth_observation import PROCESSING_VERSION
 from earth_observation.previews import legend_spec
+from earth_observation.selection import SelectionStrategy
 from earth_observation.stac import dataset_info
 from earth_observation.types import ProcessingConfig
 from oeop_api.deps import SessionDep, SettingsDep
@@ -45,6 +46,7 @@ async def public_config(settings: SettingsDep, session: SessionDep) -> PublicCon
         min_start_date=settings.min_start_date,
         max_scene_limit=settings.effective_max_scene_limit(),
         default_scene_limit=settings.default_scene_limit,
+        selection_strategies=[s.value for s in SelectionStrategy],
         max_cloud_cover_pct=settings.max_cloud_cover_pct,
         default_cloud_cover_pct=settings.default_cloud_cover_pct,
         map_default_center=MAP_DEFAULT_CENTER,

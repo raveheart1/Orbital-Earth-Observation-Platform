@@ -217,10 +217,34 @@ cannot be "cloudy" over ground the sensor never saw):
 These counts are reported per observation via the API and provenance, so a low
 valid-pixel percentage can always be attributed to a specific cause.
 
-### 2.7 Acquisition selection algorithm (deterministic)
+### 2.7 Catalog search over long date ranges
 
-Algorithm `temporal-stratified-lowest-cloud`, version `2.0.0`
-(`earth_observation/selection.py`). Selection operates on **acquisitions**,
+A single STAC query returns at most ``max_items`` items in catalog order, so
+querying a multi-year range in one call silently covers only part of it. In
+practice, asking for 2018–2026 over Detroit returned granules from **2022
+onward only** — an analysis that looked like eight years but was four.
+
+Long ranges are therefore searched in consecutive windows of at most
+``search_window_days`` (default 370), with the item cap applied **per window**
+(``max_items_per_window``, default 150). Every period is queried, and total
+candidates scale with the requested span rather than starving the early years.
+With windowing, the same 2018–2026 request returns 345 granules spanning
+2018-01-05 to 2026-06-27.
+
+Any window that returns exactly its cap is recorded in provenance under
+``catalog_search.truncated_windows`` and raised as an analysis warning: the
+candidate set for that period is incomplete, so selection saw only part of
+what exists.
+
+### 2.8 Acquisition selection algorithms (deterministic)
+
+Two strategies are available, and the choice materially changes what the
+resulting time series means.
+
+#### Temporal (`temporal-stratified-lowest-cloud` v2.0.0)
+
+Spreads observations evenly across the requested range. Appropriate for
+watching a **single growing season**. Selection operates on **acquisitions**,
 not individual STAC items — selecting items directly is what previously
 allowed a single partial granule to represent an observation. Given the
 chronologically sorted acquisitions:
@@ -241,12 +265,49 @@ chronologically sorted acquisitions:
    `not_selected_temporal_sampling`.
 
 The tuple sort key makes the algorithm fully deterministic: identical inputs
-always produce identical selections. Every exclusion is recorded with its
-reason in the analysis provenance
-([ADR 0003](adr/0003-scene-selection-strategy.md),
+always produce identical selections.
+
+#### Seasonal (`seasonal-same-window-lowest-cloud` v1.0.0)
+
+Takes **one observation per year from the same part of the calendar**. This is
+the only sound way to compare across years.
+
+Why: in a temperate region NDVI swings from ~0.15 (dormant) to ~0.85 (peak
+canopy) within a single year, while a multi-year trend is on the order of
+0.02–0.05. Spreading eight scenes evenly over eight years picks arbitrary
+months — a real run chose June, February, April, May, April, October, June,
+May — so the resulting "trend" is dominated by which month each scene happened
+to fall in, by roughly an order of magnitude.
+
+1. Apply the coverage and cloud gates exactly as above.
+2. Exclude acquisitions further than `seasonal_tolerance_days` (default 30)
+   from the target day-of-year, recorded as `outside_seasonal_window`. The
+   distance wraps around the year boundary and uses the observation year's
+   actual length, so a leap year does not shift the window by a day.
+3. Group survivors by calendar year; per year take the lowest
+   `(cloud_cover, |day offset from target|, acquisition_key)`. Cloud leads
+   because cloud contamination is the larger threat to the measurement;
+   proximity to the target date breaks ties.
+4. If more years survive than the scene limit, keep an evenly spaced subset
+   that always includes the **first and last** year, so the series still spans
+   the whole period (`not_selected_year_sampling`).
+
+A year with nothing usable is simply **absent** from the series — a gap, not a
+substitute from the wrong season. The target month and tolerance are recorded
+in provenance under `scene_selection.seasonal_target`.
+
+Both algorithms record every exclusion with its reason in the analysis
+provenance ([ADR 0003](adr/0003-scene-selection-strategy.md),
 [ADR 0007](adr/0007-canonical-analysis-grid.md)).
 
-### 2.8 Per-observation statistics
+> **Interpreting a multi-year series.** Even with seasonal anchoring, a small
+> difference between years is not automatically a trend. An 8-year run over
+> Detroit produced early-July means between 0.346 and 0.393 with a first-to-last
+> change of +0.017 — smaller than the year-to-year variation in the same
+> series, so it does not establish a direction of change. The platform reports
+> the observations; it does not perform trend or significance testing.
+
+### 2.9 Per-observation statistics
 
 All statistics are computed **over valid pixels only** — pixels inside the
 **canonical AOI mask** that survived masking and had a computable NDVI
@@ -268,7 +329,7 @@ scenes would contaminate the series.
 The time-series CSV contains **actual observation dates only**. Missing dates
 are never interpolated; gaps are visible as gaps.
 
-### 2.9 Display range vs analytical range
+### 2.10 Display range vs analytical range
 
 Colorized NDVI previews use a fixed display range of **−0.2 to 0.9** with a
 brown → yellow → green ramp and transparency where masked. This range is a

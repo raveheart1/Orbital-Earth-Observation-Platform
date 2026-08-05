@@ -115,8 +115,22 @@ class ProcessingConfig(BaseModel):
         "reading. Coverage adequacy is decided per ACQUISITION via "
         "min_aoi_coverage_pct after mosaicking, not per granule.",
     )
-    max_candidate_items: int = Field(
-        default=200, description="Maximum STAC items fetched before selection"
+    search_window_days: int = Field(
+        default=370,
+        description="Long date ranges are searched in consecutive windows of at "
+        "most this many days. A single STAC query is capped at max_items and "
+        "returns catalog order, so querying multi-year ranges in one call "
+        "silently covers only the most recent part of the range.",
+    )
+    max_items_per_window: int = Field(
+        default=150,
+        description="STAC item cap applied PER search window, so total candidates "
+        "scale with the requested span instead of starving early periods",
+    )
+    seasonal_tolerance_days: int = Field(
+        default=30,
+        description="For the seasonal strategy, how far an acquisition may fall "
+        "from the target day-of-year and still represent that year",
     )
     ndvi_display_min: float = Field(default=-0.2, description="Preview colormap lower bound")
     ndvi_display_max: float = Field(default=0.9, description="Preview colormap upper bound")

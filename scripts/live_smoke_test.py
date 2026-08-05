@@ -41,10 +41,13 @@ def main() -> None:
     aoi_geojson = dict(mapping(box(*AOI_BBOX)))
 
     print(f"1/6 Searching {config.collection} for bbox={AOI_BBOX} {START}..{END}")
-    candidates = search_scenes(config, AOI_BBOX, START, END, MAX_CLOUD)
+    search = search_scenes(config, AOI_BBOX, START, END, MAX_CLOUD)
+    candidates = search.candidates
     if not candidates:
         fail("No candidate granules found — try widening the date range")
-    print(f"    {len(candidates)} granules")
+    print(f"    {len(candidates)} granules across {len(search.windows)} search window(s)")
+    if search.truncated:
+        print(f"    WARNING: truncated windows {search.truncated_windows}")
 
     print("2/6 Grouping granules into acquisitions")
     acquisitions = group_acquisitions(candidates, aoi_geojson)

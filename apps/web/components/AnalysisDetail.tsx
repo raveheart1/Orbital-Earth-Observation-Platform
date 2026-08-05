@@ -19,6 +19,7 @@ import {
   shortSha,
 } from "@/lib/format";
 import { isTerminalStatus, nextPollDelayMs } from "@/lib/polling";
+import { describeSelectionStrategy, monthName } from "@/lib/selection";
 import type { Analysis } from "@/lib/schemas";
 import { useFetch, type FetchState } from "@/lib/useFetch";
 import ArtifactList from "./ArtifactList";
@@ -108,6 +109,8 @@ export default function AnalysisDetail({ id }: { id: string }) {
 
   const areaLabel = analysis.region?.name ?? "the selected area";
   const inProgress = analysis.status === "queued" || analysis.status === "running";
+  const isSeasonal = analysis.selection_strategy === "seasonal";
+  const targetMonthName = monthName(analysis.seasonal_target_month);
   const bboxCenter: [number, number] = [
     (analysis.bbox[0] + analysis.bbox[2]) / 2,
     (analysis.bbox[1] + analysis.bbox[3]) / 2,
@@ -227,6 +230,8 @@ export default function AnalysisDetail({ id }: { id: string }) {
             <dd>
               {formatDate(analysis.start_date)} → {formatDate(analysis.end_date)}
             </dd>
+            <dt>Observation selection</dt>
+            <dd>{describeSelectionStrategy(analysis)}</dd>
             <dt>Area of interest</dt>
             <dd>{analysis.region?.name ?? "Custom bounding box"}</dd>
             <dt>Area</dt>
@@ -372,6 +377,19 @@ export default function AnalysisDetail({ id }: { id: string }) {
             >
               {(ts) => <NdviChart points={ts.points} />}
             </Section>
+            {isSeasonal ? (
+              <p
+                className="panel-note"
+                style={{ marginTop: "0.75rem" }}
+                data-testid="seasonal-note"
+              >
+                Observations are anchored to the same part of the calendar
+                {targetMonthName ? ` (around ${targetMonthName})` : ""} in every
+                year, so phenology is held roughly constant and years are
+                comparable; a year missing from the series means no scene that
+                year met the cloud and coverage requirements.
+              </p>
+            ) : null}
           </section>
 
           <section className="section" aria-labelledby="scenes-heading">

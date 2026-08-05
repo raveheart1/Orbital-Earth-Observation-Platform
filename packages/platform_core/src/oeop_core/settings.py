@@ -53,10 +53,18 @@ class Settings(BaseSettings):
     # --- Processing constraints & cost controls -----------------------------
     max_aoi_area_km2: float = Field(default=600.0, description="Maximum AOI area")
     min_aoi_area_km2: float = Field(default=0.5, description="Reject degenerate AOIs")
-    max_date_span_days: int = Field(default=730, description="Maximum requested date span")
+    max_date_span_days: int = Field(
+        default=3660,
+        description="Maximum requested date span (~10 years). Long spans are "
+        "affordable because cost is bounded by scene_limit and AOI area, not by "
+        "the span: the extra work is metadata-only STAC queries. Use the "
+        "seasonal selection strategy for multi-year comparisons.",
+    )
     min_start_date: date = Field(
-        default=date(2016, 1, 1),
-        description="Earliest queryable date (Sentinel-2 archive availability)",
+        default=date(2015, 7, 1),
+        description="Earliest queryable date. Sentinel-2A reached orbit in mid-2015; "
+        "coverage before 2017 is sparse (one satellite, ~10-day revisit) and "
+        "correspondingly cloudier in practice.",
     )
     max_scene_limit: int = Field(default=12, description="Server-side scene-count ceiling")
     default_scene_limit: int = 6
@@ -88,7 +96,16 @@ class Settings(BaseSettings):
     )
     demo_max_aoi_area_km2: float = 250.0
     demo_max_scene_limit: int = 8
-    demo_max_date_span_days: int = 400
+    demo_max_date_span_days: int = Field(
+        default=3660,
+        description="Demo mode does not tighten the span: a multi-year analysis "
+        "costs the same as a short one because scene_limit bounds the processing.",
+    )
+    max_seasonal_tolerance_days: int = Field(
+        default=45,
+        description="Ceiling on how far a seasonal-strategy observation may fall "
+        "from its target day-of-year",
+    )
     allow_custom_areas: bool = Field(
         default=True,
         description="Allow visitor-drawn areas of interest in addition to the "

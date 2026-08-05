@@ -5,6 +5,7 @@ import {
   formatChange,
   formatDate,
   formatDateTime,
+  formatDaySpan,
   formatKm2,
   truncateMiddle,
 } from "@/lib/format";
@@ -66,6 +67,24 @@ describe("date formatting", () => {
     expect(formatDate("2023-05-04T16:32:11Z")).toBe("2023-05-04");
     expect(formatDateTime("2023-05-04T16:32:11Z")).toBe("2023-05-04 16:32 UTC");
     expect(formatDate(null)).toBe("—");
+  });
+});
+
+describe("formatDaySpan", () => {
+  it("leaves short spans in days", () => {
+    expect(formatDaySpan(365)).toBe("365 days");
+    expect(formatDaySpan(400)).toBe("400 days");
+  });
+
+  it("glosses multi-year spans in years", () => {
+    // The platform cap: 3660 days is unreadable without the gloss.
+    expect(formatDaySpan(3660)).toBe("3,660 days (about 10 years)");
+    expect(formatDaySpan(730)).toBe("730 days (about 2 years)");
+  });
+
+  it("returns an em dash for unusable input", () => {
+    expect(formatDaySpan(null)).toBe("—");
+    expect(formatDaySpan(Number.NaN)).toBe("—");
   });
 });
 

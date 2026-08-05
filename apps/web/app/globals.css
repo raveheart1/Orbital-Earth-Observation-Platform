@@ -644,6 +644,7 @@ table.data tr.row-muted td {
 }
 
 .field > label,
+.field > .field-label,
 fieldset legend {
   font-weight: 600;
   font-size: 0.9rem;
@@ -656,7 +657,8 @@ fieldset legend {
 
 input[type="date"],
 input[type="number"],
-input[type="text"] {
+input[type="text"],
+.field select {
   border: 1px solid var(--rule);
   border-radius: var(--radius);
   padding: 0.5rem 0.65rem;
@@ -666,13 +668,20 @@ input[type="text"] {
   max-width: 100%;
 }
 
+.field select {
+  align-self: start;
+  min-width: 12rem;
+}
+
 input[type="range"] {
   accent-color: var(--accent);
   width: 100%;
 }
 
 input:disabled,
-fieldset:disabled input {
+select:disabled,
+fieldset:disabled input,
+fieldset:disabled select {
   background: var(--surface-sunken);
   color: var(--ink-3);
 }

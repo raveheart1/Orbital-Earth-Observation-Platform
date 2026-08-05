@@ -16,19 +16,31 @@ import {
   validateAoiArea,
   type AoiMode,
 } from "@/lib/aoi";
-import { addDays, todayIsoDate, validateDateRange } from "@/lib/dates";
-import { formatAreaLimitKm2, formatKm2 } from "@/lib/format";
+import {
+  addDays,
+  dateSpanDays,
+  todayIsoDate,
+  validateDateRange,
+} from "@/lib/dates";
+import { formatAreaLimitKm2, formatDaySpan, formatKm2 } from "@/lib/format";
 import {
   bboxIsValid,
   estimateBboxAreaKm2,
   parseBboxInputs,
 } from "@/lib/geo";
+import {
+  MONTH_NAMES,
+  midpointMonth,
+  monthName,
+  shouldSuggestSeasonal,
+} from "@/lib/selection";
 import type {
   Bbox,
   CreateAnalysisRequest,
   Problem,
   PublicConfig,
   Region,
+  SelectionStrategy,
 } from "@/lib/schemas";
 import { useFetch } from "@/lib/useFetch";
 import { ErrorBox, LoadingBox } from "./FetchStates";
@@ -47,6 +59,31 @@ const BBOX_FIELDS: { key: keyof BboxInputs; label: string }[] = [
   { key: "minLat", label: "Min latitude" },
   { key: "maxLon", label: "Max longitude" },
   { key: "maxLat", label: "Max latitude" },
+];
+
+/**
+ * The two strategies the form knows how to explain. A deployment that offers
+ * fewer (older config) sees only the ones it advertises; an unknown future
+ * strategy is simply not offered here rather than shown without an honest
+ * description.
+ */
+const STRATEGY_OPTIONS: {
+  value: SelectionStrategy;
+  label: string;
+  description: string;
+}[] = [
+  {
+    value: "temporal",
+    label: "Spread across the range",
+    description:
+      "Scenes spaced evenly over the period. Best for watching a single growing season.",
+  },
+  {
+    value: "seasonal",
+    label: "Same season each year",
+    description:
+      "One scene per year from the same part of the calendar. Use this to compare across years: the seasonal swing in NDVI is far larger than any year-to-year trend, so an evenly-spread series mostly measures which month each scene fell in.",
+  },
 ];
 
 export default function NewAnalysisForm() {
@@ -99,6 +136,10 @@ export function FormInner({
   const [endDate, setEndDate] = useState(today);
   const [cloudPct, setCloudPct] = useState(config.default_cloud_cover_pct);
   const [sceneLimit, setSceneLimit] = useState(config.default_scene_limit);
+  const [strategy, setStrategy] = useState<SelectionStrategy>("temporal");
+  // Null means "follow the date range". Once the visitor picks a month
+  // explicitly it sticks, even when the dates move under it.
+  const [pickedMonth, setPickedMonth] = useState<number | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [serverProblem, setServerProblem] = useState<Problem | null>(null);
   const [serverMessage, setServerMessage] = useState<string | null>(null);
@@ -152,6 +193,22 @@ export function FormInner({
     today,
   });
 
+  // --- Observation selection ----------------------------------------------
+  const offeredStrategies = STRATEGY_OPTIONS.filter((option) =>
+    config.selection_strategies.includes(option.value),
+  );
+  const seasonalOffered = offeredStrategies.some((o) => o.value === "seasonal");
+  const spanDays = dateSpanDays(startDate, endDate);
+  /** Falls back to July only if the dates are unparseable mid-edit. */
+  const targetMonth = pickedMonth ?? midpointMonth(startDate, endDate) ?? 7;
+  const suggestSeasonal =
+    seasonalOffered &&
+    shouldSuggestSeasonal({
+      spanDays,
+      strategy,
+      recommendedAboveDays: config.seasonal_recommended_above_days,
+    });
+
   const sceneLimitError =
     Number.isInteger(sceneLimit) &&
     sceneLimit >= 1 &&
@@ -177,6 +234,12 @@ export function FormInner({
       end_date: endDate,
       max_cloud_cover_pct: cloudPct,
       scene_limit: sceneLimit,
+      selection_strategy: strategy,
+      // The target month is meaningless outside seasonal selection, so it is
+      // sent only there; the server picks the midpoint month if it is omitted.
+      ...(strategy === "seasonal"
+        ? { seasonal_target_month: targetMonth }
+        : {}),
     };
     try {
       const analysis = await createAnalysis(payload);
@@ -364,7 +427,12 @@ export function FormInner({
               max={today}
               onChange={(e) => setStartDate(e.target.value)}
             />
-            <span className="hint">Earliest: {config.min_start_date}</span>
+            <span className="hint">
+              Earliest: {config.min_start_date}
+              {!dateError && spanDays > 0
+                ? ` · selected span ${formatDaySpan(spanDays)}`
+                : ""}
+            </span>
           </div>
           <div className="field">
             <label htmlFor="end-date">End date</label>
@@ -377,11 +445,100 @@ export function FormInner({
               onChange={(e) => setEndDate(e.target.value)}
             />
             <span className="hint">
-              Max span: {config.max_date_span_days} days
+              Max span: {formatDaySpan(config.max_date_span_days)}
             </span>
           </div>
         </div>
         {dateError ? <p className="field-error">{dateError}</p> : null}
+
+        {offeredStrategies.length > 1 ? (
+          <div className="field" style={{ marginTop: "1rem" }}>
+            <span className="field-label" id="selection-strategy-label">
+              Observation selection
+            </span>
+            <div
+              className="region-cards"
+              role="radiogroup"
+              aria-labelledby="selection-strategy-label"
+            >
+              {offeredStrategies.map((option) => (
+                <label className="region-card" key={option.value}>
+                  <input
+                    type="radio"
+                    name="selection-strategy"
+                    value={option.value}
+                    checked={strategy === option.value}
+                    onChange={() => setStrategy(option.value)}
+                  />
+                  <span>
+                    <span className="region-name">{option.label}</span>
+                    <span className="region-desc" style={{ display: "block" }}>
+                      {option.description}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        ) : null}
+
+        {suggestSeasonal ? (
+          <div
+            className="alert alert-info"
+            role="status"
+            data-testid="seasonal-nudge"
+            style={{ marginTop: "0.25rem", marginBottom: "1rem" }}
+          >
+            <p>
+              <strong>
+                This window covers {formatDaySpan(spanDays)}, so the scenes will
+                land in different seasons.
+              </strong>{" "}
+              NDVI typically swings from about 0.15 in winter to 0.85 at peak
+              summer, while a real year-to-year trend is nearer 0.02–0.05 —
+              an order of magnitude smaller. An evenly-spread multi-year series
+              therefore mostly measures which month each scene fell in, not
+              change on the ground. Sampling the same season each year holds
+              that seasonal signal roughly constant.
+            </p>
+            <p style={{ marginTop: "0.6rem" }}>
+              <button
+                type="button"
+                className="btn btn-small"
+                onClick={() => setStrategy("seasonal")}
+              >
+                Use the same season each year
+              </button>{" "}
+              <span className="small">
+                Optional — you can submit either way.
+              </span>
+            </p>
+          </div>
+        ) : null}
+
+        {strategy === "seasonal" && seasonalOffered ? (
+          <div className="field">
+            <label htmlFor="seasonal-target-month">Target month</label>
+            <select
+              id="seasonal-target-month"
+              value={targetMonth}
+              onChange={(e) => setPickedMonth(Number(e.target.value))}
+            >
+              {MONTH_NAMES.map((name, index) => (
+                <option key={name} value={index + 1}>
+                  {name}
+                </option>
+              ))}
+            </select>
+            <span className="hint">
+              One observation per year from around{" "}
+              {monthName(targetMonth) ?? "this month"}, so phenology is held
+              roughly constant. Defaults to the middle of the selected range. A
+              year with no scene that met the cloud and coverage requirements is
+              left out rather than filled in.
+            </span>
+          </div>
+        ) : null}
 
         <div className="field-row" style={{ marginTop: "1rem" }}>
           <div className="field">
@@ -430,7 +587,8 @@ export function FormInner({
         {customAllowed
           ? `, and areas you draw yourself at only ${formatAreaLimitKm2(config.max_custom_aoi_area_km2)} — arbitrary public submissions are kept small so processing stays cheap`
           : ""}
-        . Date ranges are capped at {config.max_date_span_days} days. Together
+        . Date ranges are capped at {formatDaySpan(config.max_date_span_days)},
+        with observations no earlier than {config.min_start_date}. Together
         these keep every run small, predictable, and reproducible.
       </aside>
 

@@ -31,6 +31,22 @@ export const NdviLegendSchema = z.object({
 });
 export type NdviLegend = z.infer<typeof NdviLegendSchema>;
 
+/**
+ * How the platform picks which acquisitions to process out of everything the
+ * catalogue offers inside the requested window.
+ *
+ * - `temporal`  — spread evenly across the range.
+ * - `seasonal`  — one acquisition per year from the same part of the calendar,
+ *                 which holds phenology roughly constant across years.
+ */
+export const SelectionStrategySchema = z.enum(["temporal", "seasonal"]);
+export type SelectionStrategy = z.infer<typeof SelectionStrategySchema>;
+
+export const DEFAULT_SELECTION_STRATEGY: SelectionStrategy = "temporal";
+export const DEFAULT_SELECTION_STRATEGIES: string[] = ["temporal", "seasonal"];
+/** Fallback for deployments whose config predates the seasonal strategy. */
+export const DEFAULT_SEASONAL_RECOMMENDED_ABOVE_DAYS = 400;
+
 export const PublicConfigSchema = z.object({
   environment: z.string(),
   demo_mode: z.boolean(),
@@ -49,6 +65,24 @@ export const PublicConfigSchema = z.object({
   min_aoi_area_km2: z.number(),
   max_date_span_days: z.number(),
   min_start_date: z.string(),
+  /**
+   * Observation-selection strategies this deployment offers. Kept as plain
+   * strings (not the enum) so a server that adds a third strategy does not
+   * break parsing; the form only renders the ones it knows how to explain.
+   */
+  selection_strategies: z
+    .array(z.string())
+    .optional()
+    .default(DEFAULT_SELECTION_STRATEGIES),
+  /**
+   * Above this span, an evenly spread series mostly measures which month each
+   * scene fell in rather than any year-to-year change, so the form recommends
+   * (never forces) the seasonal strategy.
+   */
+  seasonal_recommended_above_days: z
+    .number()
+    .optional()
+    .default(DEFAULT_SEASONAL_RECOMMENDED_ABOVE_DAYS),
   max_scene_limit: z.number(),
   default_scene_limit: z.number(),
   max_cloud_cover_pct: z.number(),
@@ -138,6 +172,13 @@ export const AnalysisSchema = z.object({
   collection: z.string(),
   max_cloud_cover_pct: z.number(),
   scene_limit: z.number(),
+  /**
+   * Plain string, not the enum: analyses submitted before the strategy existed
+   * default to "temporal", and an unknown future value must still render.
+   */
+  selection_strategy: z.string().optional().default(DEFAULT_SELECTION_STRATEGY),
+  /** 1–12; null for temporal selection and for legacy analyses. */
+  seasonal_target_month: z.number().nullish().default(null),
   processing: z.object({
     operation: z.string(),
     version: z.string(),
@@ -412,5 +453,8 @@ export const CreateAnalysisRequestSchema = z.object({
   end_date: z.string(),
   max_cloud_cover_pct: z.number(),
   scene_limit: z.number().optional(),
+  selection_strategy: SelectionStrategySchema.optional(),
+  /** Only meaningful for the seasonal strategy; omitted otherwise. */
+  seasonal_target_month: z.number().nullable().optional(),
 });
 export type CreateAnalysisRequest = z.infer<typeof CreateAnalysisRequestSchema>;

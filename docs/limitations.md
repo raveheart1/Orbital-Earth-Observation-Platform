@@ -92,6 +92,32 @@ Much of Southeast Michigan is urban or suburban. There:
   provenance documents make results reproducible after deletion (see
   [data-provenance.md](data-provenance.md)).
 
+## Comparing observations across YEARS
+
+Use the **seasonal** selection strategy for any range longer than about a
+year. The evenly-spread (temporal) strategy picks whatever month had the
+clearest scene in each time bucket, and in a temperate region the seasonal
+NDVI swing (~0.15 dormant to ~0.85 peak canopy) is roughly an order of
+magnitude larger than a multi-year trend (~0.02–0.05). An evenly-spread
+multi-year series therefore mostly measures *which month each scene fell in*.
+
+Even with seasonal anchoring:
+
+- A year missing from the series means no acquisition that year met the cloud
+  and coverage requirements inside the seasonal window. It is a gap, not a
+  zero, and not evidence of anything.
+- Anchoring to ±30 days of a target date holds phenology *roughly* constant,
+  not exactly. In spring and autumn, when vegetation changes fastest, a
+  three-week difference in acquisition date is itself a visible NDVI
+  difference. Mid-summer targets are the most stable.
+- The platform reports observations; it performs **no trend fitting and no
+  significance testing**. A first-to-last difference smaller than the
+  year-to-year scatter in the same series does not establish a direction of
+  change.
+- Sentinel-2 coverage before 2017 comes from a single satellite (~10-day
+  revisit instead of ~5), so early years offer fewer chances of a clear scene
+  inside any seasonal window.
+
 ## Comparing observations across dates
 
 Since processing version 2.0.0 every observation in an analysis is computed on

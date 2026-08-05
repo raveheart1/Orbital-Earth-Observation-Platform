@@ -99,6 +99,21 @@ PROVENANCE_SCHEMA: dict[str, Any] = {
                 "scene_limit": {"type": "integer"},
             },
         },
+        "catalog_search": {
+            "type": "object",
+            "description": (
+                "How the STAC catalog was queried. Long ranges are searched in "
+                "windows so the whole period is covered; a truncated window means "
+                "the candidate set for that period was incomplete."
+            ),
+            "properties": {
+                "window_count": {"type": "integer"},
+                "windows": {"type": "array"},
+                "max_items_per_window": {"type": "integer"},
+                "truncated_windows": {"type": "array", "items": {"type": "string"}},
+                "granules_returned": {"type": "integer"},
+            },
+        },
         "scene_selection": {
             "type": "object",
             "required": [
@@ -113,6 +128,7 @@ PROVENANCE_SCHEMA: dict[str, Any] = {
                 "algorithm_version": {"type": "string"},
                 "selected_count": {"type": "integer"},
                 "min_aoi_coverage_pct": {"type": "number"},
+                "seasonal_target": {"type": ["object", "null"]},
                 "excluded": {
                     "type": "array",
                     "items": {
@@ -265,6 +281,7 @@ def build_provenance(
     outputs: list[dict[str, Any]],
     software: dict[str, Any],
     timing: dict[str, Any],
+    search: dict[str, Any] | None = None,
     warnings: list[str] | None = None,
 ) -> dict[str, Any]:
     """Assemble and validate a complete provenance document.
@@ -297,11 +314,13 @@ def build_provenance(
             "scene_limit": scene_limit,
         },
         "canonical_grid": grid.to_dict(),
+        "catalog_search": search or {},
         "scene_selection": {
             "algorithm": selection.algorithm,
             "algorithm_version": selection.algorithm_version,
             "selected_count": len(selection.selected),
             "min_aoi_coverage_pct": config.min_aoi_coverage_pct,
+            "seasonal_target": getattr(selection, "seasonal_target", None),
             "excluded": [
                 {
                     "acquisition_key": e.acquisition.key,

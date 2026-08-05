@@ -10,8 +10,11 @@ export const configFixture = {
   max_aoi_area_km2: 600,
   max_custom_aoi_area_km2: 2,
   min_aoi_area_km2: 0.5,
-  max_date_span_days: 730,
-  min_start_date: "2017-01-01",
+  max_date_span_days: 3660,
+  min_start_date: "2015-07-01",
+  selection_strategies: ["temporal", "seasonal"],
+  // Above ~400 days an evenly spread series mostly measures season, not trend.
+  seasonal_recommended_above_days: 400,
   max_scene_limit: 12,
   default_scene_limit: 8,
   max_cloud_cover_pct: 60,
@@ -87,6 +90,8 @@ export const analysisFixture = {
   collection: "sentinel-2-l2a",
   max_cloud_cover_pct: 20,
   scene_limit: 8,
+  selection_strategy: "temporal",
+  seasonal_target_month: null,
   processing: {
     operation: "ndvi",
     version: "2.0.0",

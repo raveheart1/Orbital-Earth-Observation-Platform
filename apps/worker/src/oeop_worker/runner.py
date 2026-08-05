@@ -43,7 +43,11 @@ from earth_observation.errors import (
 from earth_observation.grid import CanonicalGrid
 from earth_observation.processing import process_acquisition
 from earth_observation.provenance import build_provenance
-from earth_observation.selection import select_acquisitions
+from earth_observation.selection import (
+    SelectionStrategy,
+    select_acquisitions,
+    select_acquisitions_seasonal,
+)
 from earth_observation.stac import search_scenes
 from earth_observation.timeseries import analysis_summary, write_timeseries_csv
 from earth_observation.types import ProcessingConfig, SceneResult
@@ -317,6 +321,7 @@ async def _run_pipeline(
     await _reset_previous_attempt(session, blob, analysis_id)
 
     config = ProcessingConfig(**analysis.processing_config)
+    analysis_warnings: list[str] = []
     aoi_geojson = await _aoi_geojson(session, analysis)
     aoi_bounds = shape(aoi_geojson).bounds
 
@@ -338,7 +343,7 @@ async def _run_pipeline(
 
     # --- 1. Canonical grid + candidate discovery ---------------------------
     stac_started = time.monotonic()
-    candidates = search_scenes(
+    search_result = search_scenes(
         config,
         aoi_bounds,
         analysis.start_date.isoformat(),
@@ -346,7 +351,22 @@ async def _run_pipeline(
         analysis.max_cloud_cover_pct,
     )
     metrics.stac_duration.record(time.monotonic() - stac_started)
-    logger.info("stac_search_complete", analysis_id=str(analysis_id), candidates=len(candidates))
+    candidates = search_result.candidates
+    logger.info(
+        "stac_search_complete",
+        analysis_id=str(analysis_id),
+        candidates=len(candidates),
+        windows=len(search_result.windows),
+        truncated_windows=search_result.truncated_windows,
+    )
+    if search_result.truncated:
+        # The candidate set for those periods is incomplete, so selection saw
+        # only part of what exists. Surface it rather than silently proceeding.
+        analysis_warnings.append(
+            "STAC search hit its per-window item cap for "
+            f"{', '.join(search_result.truncated_windows)}; more acquisitions may "
+            "exist in those periods than were considered."
+        )
     if not candidates:
         raise NoUsableScenesError(
             "No Sentinel-2 scenes match the requested area, dates, and cloud cover. "
@@ -363,14 +383,28 @@ async def _run_pipeline(
         acquisitions=len(acquisitions),
         multi_granule=len(multi),
     )
-    selection = select_acquisitions(
-        acquisitions,
-        scene_limit=analysis.scene_limit,
-        max_cloud_cover_pct=analysis.max_cloud_cover_pct,
-        min_aoi_coverage_pct=config.min_aoi_coverage_pct,
-        range_start=datetime.combine(analysis.start_date, datetime.min.time(), UTC),
-        range_end=datetime.combine(analysis.end_date, datetime.max.time(), UTC),
-    )
+    if analysis.selection_strategy == SelectionStrategy.SEASONAL.value:
+        target_month = (
+            analysis.seasonal_target_month
+            or (analysis.start_date + (analysis.end_date - analysis.start_date) / 2).month
+        )
+        selection = select_acquisitions_seasonal(
+            acquisitions,
+            scene_limit=analysis.scene_limit,
+            max_cloud_cover_pct=analysis.max_cloud_cover_pct,
+            min_aoi_coverage_pct=config.min_aoi_coverage_pct,
+            target_month=target_month,
+            tolerance_days=config.seasonal_tolerance_days,
+        )
+    else:
+        selection = select_acquisitions(
+            acquisitions,
+            scene_limit=analysis.scene_limit,
+            max_cloud_cover_pct=analysis.max_cloud_cover_pct,
+            min_aoi_coverage_pct=config.min_aoi_coverage_pct,
+            range_start=datetime.combine(analysis.start_date, datetime.min.time(), UTC),
+            range_end=datetime.combine(analysis.end_date, datetime.max.time(), UTC),
+        )
     if not selection.selected:
         raise NoUsableScenesError(
             "No acquisition covers at least "

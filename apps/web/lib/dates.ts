@@ -54,7 +54,8 @@ export function validateDateRange(
   }
   const span = dateSpanDays(start, end);
   if (span > rules.maxSpanDays) {
-    return `The date range spans ${span} days, which exceeds the ${rules.maxSpanDays}-day limit.`;
+    // Thousands separators: the limit is now in the thousands of days.
+    return `The date range spans ${span.toLocaleString("en-US")} days, which exceeds the ${rules.maxSpanDays.toLocaleString("en-US")}-day limit.`;
   }
   return null;
 }

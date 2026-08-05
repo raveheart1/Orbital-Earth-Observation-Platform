@@ -28,6 +28,21 @@ class AnalysisCreateRequest(BaseModel):
     end_date: date
     max_cloud_cover_pct: float = Field(default=20.0, ge=0.0, le=100.0)
     scene_limit: int | None = Field(default=None, ge=1)
+    selection_strategy: Literal["temporal", "seasonal"] = Field(
+        default="temporal",
+        description="How observations are chosen. 'temporal' spreads scenes evenly "
+        "across the range (best within one growing season). 'seasonal' takes one "
+        "scene per year from the same part of the calendar — use this for "
+        "multi-year comparisons, because the seasonal NDVI swing is far larger "
+        "than any year-to-year trend.",
+    )
+    seasonal_target_month: int | None = Field(
+        default=None,
+        ge=1,
+        le=12,
+        description="Calendar month the seasonal strategy anchors on. Defaults to "
+        "the midpoint month of the requested range.",
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -93,6 +108,8 @@ class AnalysisResponse(BaseModel):
     collection: str
     max_cloud_cover_pct: float
     scene_limit: int
+    selection_strategy: str = "temporal"
+    seasonal_target_month: int | None = None
     processing: ProcessingInfo
     submitted_at: datetime
     started_at: datetime | None
@@ -228,6 +245,15 @@ class PublicConfigResponse(BaseModel):
     min_start_date: date
     max_scene_limit: int
     default_scene_limit: int
+    selection_strategies: list[str] = Field(
+        default_factory=lambda: ["temporal", "seasonal"],
+        description="Available observation-selection strategies",
+    )
+    seasonal_recommended_above_days: int = Field(
+        default=400,
+        description="Spans longer than this should use the seasonal strategy; an "
+        "evenly-spread series over multiple years mostly measures season, not trend",
+    )
     max_cloud_cover_pct: float
     default_cloud_cover_pct: float
     map_default_center: tuple[float, float]

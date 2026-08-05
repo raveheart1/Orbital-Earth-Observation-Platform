@@ -42,6 +42,15 @@ describe("validateDateRange", () => {
     );
   });
 
+  // The cap is now multi-year, so the message must not read "3660-day".
+  it("groups thousands in the multi-year span message", () => {
+    const multiYear = { ...RULES, maxSpanDays: 3660, minStartDate: "2015-07-01" };
+    expect(validateDateRange("2015-07-01", "2026-08-01", multiYear)).toMatch(
+      /spans 4,049 days, which exceeds the 3,660-day limit/,
+    );
+    expect(validateDateRange("2018-01-01", "2026-01-01", multiYear)).toBeNull();
+  });
+
   it("rejects a start before the platform minimum", () => {
     expect(validateDateRange("2016-06-01", "2016-08-01", RULES)).toMatch(
       /cannot be before 2017-01-01/,

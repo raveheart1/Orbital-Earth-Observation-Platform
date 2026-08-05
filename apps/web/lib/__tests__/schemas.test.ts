@@ -53,6 +53,25 @@ describe("PublicConfigSchema", () => {
     expect(parsed.max_aoi_area_km2).toBe(600);
   });
 
+  it("parses the observation-selection fields", () => {
+    const parsed = PublicConfigSchema.parse(configFixture);
+    expect(parsed.selection_strategies).toEqual(["temporal", "seasonal"]);
+    expect(parsed.seasonal_recommended_above_days).toBe(400);
+    // The span cap is now multi-year, so seasonal selection is meaningful.
+    expect(parsed.max_date_span_days).toBe(3660);
+    expect(parsed.min_start_date).toBe("2015-07-01");
+  });
+
+  it("defaults the selection fields on an older API response lacking them", () => {
+    const { selection_strategies, seasonal_recommended_above_days, ...legacy } =
+      configFixture;
+    void selection_strategies;
+    void seasonal_recommended_above_days;
+    const parsed = PublicConfigSchema.parse(legacy);
+    expect(parsed.selection_strategies).toEqual(["temporal", "seasonal"]);
+    expect(parsed.seasonal_recommended_above_days).toBe(400);
+  });
+
   it("accepts a null demo_analysis_id", () => {
     const parsed = PublicConfigSchema.parse({
       ...configFixture,
@@ -127,6 +146,28 @@ describe("AnalysisSchema", () => {
     expect(parsed.grid?.height).toBe(1149);
     expect(parsed.summary?.identical_analytical_grid).toBe(true);
     expect(parsed.summary?.min_aoi_coverage_pct).toBe(99);
+  });
+
+  it("parses a seasonal analysis with its target month", () => {
+    const parsed = AnalysisSchema.parse({
+      ...analysisFixture,
+      start_date: "2018-01-01",
+      end_date: "2026-01-01",
+      selection_strategy: "seasonal",
+      seasonal_target_month: 7,
+    });
+    expect(parsed.selection_strategy).toBe("seasonal");
+    expect(parsed.seasonal_target_month).toBe(7);
+  });
+
+  it("defaults the selection fields on analyses submitted before they existed", () => {
+    const { selection_strategy, seasonal_target_month, ...legacy } =
+      analysisFixture;
+    void selection_strategy;
+    void seasonal_target_month;
+    const parsed = AnalysisSchema.parse(legacy);
+    expect(parsed.selection_strategy).toBe("temporal");
+    expect(parsed.seasonal_target_month).toBeNull();
   });
 
   it("defaults grid to null on legacy analyses missing the field", () => {

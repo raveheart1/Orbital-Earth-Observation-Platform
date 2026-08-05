@@ -117,6 +117,12 @@ class Analysis(Base):
     max_cloud_cover_pct: Mapped[float] = mapped_column(Float)
     scene_limit: Mapped[int] = mapped_column(Integer)
     operation: Mapped[str] = mapped_column(String(40), default="ndvi")
+    selection_strategy: Mapped[str] = mapped_column(
+        String(20),
+        default="temporal",
+        comment="temporal = evenly spread; seasonal = one per year at the same season",
+    )
+    seasonal_target_month: Mapped[int | None] = mapped_column(Integer, nullable=True)
     processing_config: Mapped[dict[str, Any]] = mapped_column(JSONVariant)
     grid: Mapped[dict[str, Any] | None] = mapped_column(
         JSONVariant,

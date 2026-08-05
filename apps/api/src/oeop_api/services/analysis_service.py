@@ -129,6 +129,14 @@ async def create_analysis(
             f"max_cloud_cover_pct exceeds the server maximum of {settings.max_cloud_cover_pct}"
         )
 
+    # A multi-year range selected evenly across time mostly measures which
+    # month each scene landed in, not any trend; the seasonal strategy anchors
+    # every observation to the same part of the calendar instead.
+    seasonal_month = request.seasonal_target_month
+    if request.selection_strategy == "seasonal" and seasonal_month is None:
+        midpoint = request.start_date + (request.end_date - request.start_date) / 2
+        seasonal_month = midpoint.month
+
     config = ProcessingConfig(preview_max_dim=settings.preview_max_dim)
     analysis = Analysis(
         region_id=region.id if region else None,
@@ -141,6 +149,8 @@ async def create_analysis(
         max_cloud_cover_pct=request.max_cloud_cover_pct,
         scene_limit=scene_limit,
         operation="ndvi",
+        selection_strategy=request.selection_strategy,
+        seasonal_target_month=seasonal_month,
         processing_config=config.model_dump(),
         processing_version=PROCESSING_VERSION,
         git_commit_sha=settings.git_commit_sha,
