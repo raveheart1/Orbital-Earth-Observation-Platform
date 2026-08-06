@@ -1,5 +1,5 @@
 {
-  "$comment": "Predefined analysis regions. Bounding boxes are [min_lon, min_lat, max_lon, max_lat] in EPSG:4326. All are sized to ~137 km2 so processing cost is comparable across regions. The platform works anywhere Sentinel-2 observes (roughly 56S to 83N); the Michigan regions are the project's home ground and the rest span other continents, hemispheres and vegetation regimes.",
+  "$comment": "Predefined analysis regions. Bounding boxes are [min_lon, min_lat, max_lon, max_lat] in EPSG:4326. All but Hartwick Pines Forest (~84 km2) are sized to ~137 km2 so processing cost is comparable across regions. The platform works anywhere Sentinel-2 observes (roughly 56S to 83N); the Michigan regions are the project's home ground and the rest span other continents, hemispheres and vegetation regimes.",
   "regions": [
     {
       "name": "Southeast Michigan Demonstration Region",

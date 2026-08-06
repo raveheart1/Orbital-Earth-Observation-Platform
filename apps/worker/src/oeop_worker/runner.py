@@ -679,6 +679,8 @@ async def _run_pipeline(
                 "completed_at": completed_at.isoformat(),
                 "duration_seconds": round((completed_at - started_at).total_seconds(), 3),
             },
+            search=search_result.to_metadata(),
+            warnings=analysis_warnings,
         )
         provenance_path = workdir / "provenance.json"
         provenance_path.write_text(json.dumps(provenance_doc, indent=2, sort_keys=True))

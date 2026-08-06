@@ -206,7 +206,7 @@ class CoverageStats(BaseModel):
         description="Remaining masked SCL classes (saturated/defective)"
     )
     invalid_spectral_pixel_count: int = Field(
-        description="Non-finite reflectance or zero NDVI denominator"
+        description="Zero NDVI denominator; non-finite reflectance counts as nodata"
     )
     aoi_coverage_pct: float = Field(description="Geometric AOI coverage by source granules")
     valid_coverage_pct: float = Field(description="Percent of the AOI with usable NDVI")

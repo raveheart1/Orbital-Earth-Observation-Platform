@@ -60,8 +60,9 @@ to the SHA-256 of every output file.
 
 ## Curated regions
 
-Ten predefined regions ship with the platform, each sized to ~137 km² so
-processing cost is comparable between them. Michigan is the home ground;
+Ten predefined regions ship with the platform, most sized to ~137 km² so
+processing cost is comparable between them (Hartwick Pines Forest is smaller,
+at ~84 km²). Michigan is the home ground;
 together the ten span five continents, both hemispheres, and very different
 vegetation regimes. Every one was checked for real Sentinel-2 coverage.
 

@@ -194,6 +194,38 @@ so both were fixed before the span limit was raised.
       earliest-start limits still quoted the pre-multi-year values, and
       `.env.example` still pinned the custom cap at 2 km².
 
+## Published case study and the audit behind it (2026-08-06)
+
+- [x] **`docs/case-study.md`** (~5,200 words) and a short
+      **`docs/case-study-linkedin.md`** (~1,150 words), both rendered to PDF by
+      `scripts/build_case_study_pdf.py` using the Chromium that Playwright
+      already installs for the end-to-end tests.
+- [x] **Adversarially fact-checked before publication.** Four review lenses
+      (numbers, science, repo-truth, editorial) produced 66 candidate findings;
+      each was then handed to an independent verifier instructed to refute it.
+      19 survived, and all were fixed. Notable corrections:
+      - "AOI pixels per observation" quoted 1,442,584 — the canonical grid's
+        cell count — where the AOI mask is 1,367,491. The mask count is the
+        denominator every statistic actually uses, and 1,367,491 x 100 m² is
+        exactly the 136.75 km² stated two rows above.
+      - The multi-year example cited a run that is not in the repository. It is
+        now the recorded Detroit seasonal analysis (2018-2026, 2022 absent,
+        mean NDVI 0.346-0.393, first-to-last +0.017).
+      - Artifact count was 22; provenance records 26 outputs (50.2 MB).
+      - Retry semantics were stated backwards: deterministic failures are
+        recorded terminally and the message is deleted, never poisoned.
+      - Reflectance scaling is resolved per *acquisition* from the dominant
+        baseline, not per granule.
+      - `each ~137 km²` was untrue of Hartwick Pines Forest (84 km²); corrected
+        here, in `README.md`, and in the `regions.json` comment.
+- [x] **A real defect the audit surfaced:** `_run_pipeline` computed
+      `analysis_warnings` — including "the catalog search hit its per-window
+      cap, so more acquisitions may exist" — and built the `SceneSearchResult`
+      metadata, then called `build_provenance()` without either keyword. The
+      provenance document therefore advertised an empty `warnings` array while
+      the worker knew the result might be incomplete. Both are now persisted,
+      guarded by a test that fails if the keywords are dropped again.
+
 ## Known limitations (accepted for MVP, documented)
 
 - Submission rate limiting is in-memory per replica (docs/security.md).
