@@ -110,7 +110,7 @@ jobs:
             -out=tfplan
 
       - name: Upload plan artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: terraform-plan-pr${{ github.event.pull_request.number }}
           path: infra/environments/dev/tfplan
