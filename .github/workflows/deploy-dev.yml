@@ -71,13 +71,26 @@ jobs:
             -backend-config="use_oidc=true" \
             -backend-config="use_azuread_auth=true"
 
-      - name: "Stage 1: foundation (no workloads)"
+      # Only needed to break the ACR chicken-and-egg on a *fresh* environment:
+      # `az acr build` below needs a registry that does not exist yet. Once the
+      # foundation is up, running this would be actively harmful — the apps and
+      # jobs are `count = var.deploy_workloads ? 1 : 0`, so applying with
+      # deploy_workloads=false destroys them and stage 2 recreates them. That
+      # is several minutes of downtime on every push, and it tears down any
+      # custom-domain binding and managed certificate with it. Stage 2 applies
+      # the whole config anyway, so foundation changes still land without this.
+      - name: "Stage 1: foundation (first deploy only)"
         working-directory: ${{ env.TF_DIR }}
         run: |
-          terraform apply -auto-approve \
-            -var "deploy_workloads=false" \
-            -var "location=${{ vars.AZURE_LOCATION }}" \
-            -var "image_tag=${{ github.sha }}"
+          if terraform output -raw acr_login_server >/dev/null 2>&1; then
+            echo "Foundation already exists — skipping (would destroy the running apps)."
+          else
+            echo "No registry in state; bootstrapping the foundation."
+            terraform apply -auto-approve \
+              -var "deploy_workloads=false" \
+              -var "location=${{ vars.AZURE_LOCATION }}" \
+              -var "image_tag=${{ github.sha }}"
+          fi
 
       - name: Read foundation outputs
         working-directory: ${{ env.TF_DIR }}

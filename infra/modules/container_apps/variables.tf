@@ -150,3 +150,26 @@ variable "max_custom_aoi_area_km2" {
   type        = string
   default     = "250"
 }
+
+variable "web_custom_domains" {
+  description = <<-EOT
+    Hostnames to bind to the web app, each with a free Azure-managed TLS
+    certificate. Empty by default: the DNS records must already resolve before
+    Azure will issue a certificate, so a domain is added here only after its
+    records are live. See docs/custom-domain.md.
+  EOT
+  type = list(object({
+    hostname = string
+    # "CNAME" for a subdomain that CNAMEs to the app; "HTTP" for an apex
+    # domain, which cannot CNAME and so is validated over the A record.
+    validation = string
+  }))
+  default = []
+
+  validation {
+    condition = alltrue([
+      for d in var.web_custom_domains : contains(["CNAME", "HTTP", "TXT"], d.validation)
+    ])
+    error_message = "validation must be one of CNAME, HTTP or TXT."
+  }
+}

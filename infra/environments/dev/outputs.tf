@@ -63,3 +63,19 @@ output "seed_job_name" {
   description = "Name of the manual seed Container Apps job (null until deploy_workloads=true)."
   value       = module.container_apps.seed_job_name
 }
+
+output "custom_domain_verification_id" {
+  description = "Value for the `asuid` TXT record when adding a custom domain."
+  value       = module.container_apps.custom_domain_verification_id
+  sensitive   = true
+}
+
+output "environment_static_ip" {
+  description = "A-record target for an apex custom domain."
+  value       = module.container_apps.environment_static_ip
+}
+
+output "web_custom_domain_urls" {
+  description = "Public URLs served by bound custom domains."
+  value       = module.container_apps.web_custom_domain_urls
+}

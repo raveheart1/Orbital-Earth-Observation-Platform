@@ -109,3 +109,16 @@ variable "max_custom_aoi_area_km2" {
   type        = number
   default     = 250
 }
+
+variable "web_custom_domains" {
+  description = <<-EOT
+    Hostnames to serve the web app on, each with a free Azure-managed
+    certificate. Leave empty until the DNS records are live; see
+    docs/custom-domain.md for the records and the order of operations.
+  EOT
+  type = list(object({
+    hostname   = string
+    validation = string
+  }))
+  default = []
+}
