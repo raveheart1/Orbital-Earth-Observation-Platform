@@ -51,9 +51,9 @@ areas without requiring a physical sensor at every location.
 OEOP uses the Normalized Difference Vegetation Index (NDVI) as its primary
 measurement, calculated from red and near-infrared reflectance:
 
-```
-NDVI = (NIR − Red) / (NIR + Red)
-```
+$$
+\mathrm{NDVI} = \frac{\mathrm{NIR} - \mathrm{Red}}{\mathrm{NIR} + \mathrm{Red}}
+$$
 
 For Sentinel-2, the platform uses Band 4 for red reflectance and Band 8 for
 near-infrared reflectance. Both are available at approximately 10 metres per
