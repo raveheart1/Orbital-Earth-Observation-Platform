@@ -98,8 +98,33 @@ certificate:
   `validation_token`. Avoid it here: the token is only known after the resource
   starts creating, so it cannot be published in the same apply.
 
-Then merge to `main`. The deploy workflow applies it, Azure issues the
-certificate, and `terraform output web_custom_domain_urls` lists the live URL.
+Then merge to `main`. The deploy workflow applies it and the hostname goes live.
+
+### Why this takes three steps, not one
+
+Azure enforces an ordering that cannot be expressed as a single Terraform
+apply, and getting it wrong fails the apply:
+
+```
+RequireCustomHostnameInEnvironment: Creating managed certificate requires
+hostname 'oeop.net' added as a custom hostname to a container app or route
+in environment 'cae-oeop-dev'
+```
+
+1. **Register the hostname**, with TLS disabled
+   (`azurerm_container_app_custom_domain`, `certificate_binding_type =
+   "Disabled"`). Ownership is checked against the `asuid` TXT record here.
+2. **Issue the certificate** against that now-registered hostname
+   (`azurerm_container_app_environment_managed_certificate`, `depends_on` the
+   binding).
+3. **Attach the certificate to the binding.** Terraform cannot do this in the
+   same apply that creates both, so the deploy workflow runs `az containerapp
+   hostname bind --certificate <id>` afterwards. That step is idempotent.
+
+Because step 3 happens outside Terraform, the binding declares
+`ignore_changes = [certificate_binding_type,
+container_app_environment_certificate_id]`. Without it, every later apply would
+strip the certificate back off and the domain would start serving TLS errors.
 
 ## Renewal
 

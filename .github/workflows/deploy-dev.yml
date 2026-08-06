@@ -141,6 +141,33 @@ jobs:
       - name: Install containerapp CLI extension
         run: az extension add --name containerapp --upgrade --yes
 
+      # Terraform registers each hostname and issues its managed certificate,
+      # but Azure will not let it attach the two in the same apply: the
+      # certificate cannot exist until the hostname is on the app, and the
+      # binding cannot reference a certificate that does not exist yet. This
+      # closes that loop. It is idempotent — re-binding an already-bound
+      # hostname to the same certificate is a no-op.
+      - name: Bind custom domain certificates
+        working-directory: ${{ env.TF_DIR }}
+        run: |
+          set -euo pipefail
+          BINDINGS=$(terraform output -json web_custom_domain_bindings)
+          if [ "$(echo "$BINDINGS" | jq 'length')" -eq 0 ]; then
+            echo "No custom domains configured."
+            exit 0
+          fi
+          WEB_APP=$(terraform output -raw web_app_name)
+          echo "$BINDINGS" | jq -c '.[]' | while read -r binding; do
+            hostname=$(echo "$binding" | jq -r '.hostname')
+            certificate=$(echo "$binding" | jq -r '.certificate_id')
+            echo "Binding ${hostname}"
+            az containerapp hostname bind \
+              --resource-group "$RESOURCE_GROUP" \
+              --name "$WEB_APP" \
+              --hostname "$hostname" \
+              --certificate "$certificate"
+          done
+
       - name: Run database migrations
         run: |
           set -euo pipefail

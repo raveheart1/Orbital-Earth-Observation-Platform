@@ -476,8 +476,36 @@ locals {
   } : {}
 }
 
+# Order matters, and it is the opposite of what it looks like. Azure refuses to
+# issue a managed certificate for a hostname that is not already on an app in
+# the environment:
+#
+#   RequireCustomHostnameInEnvironment: Creating managed certificate requires
+#   hostname 'oeop.net' added as a custom hostname to a container app
+#
+# So the hostname is registered first with TLS disabled, and the certificate is
+# issued against it afterwards. Azure then has to *attach* the certificate to
+# the binding, which it will not let Terraform do in the same apply that
+# creates them — the deploy workflow runs `az containerapp hostname bind` for
+# that, which is why the certificate fields are ignored here. Without
+# ignore_changes every subsequent apply would strip the certificate back off.
+resource "azurerm_container_app_custom_domain" "web" {
+  for_each = local.web_custom_domains
+
+  name                     = each.key
+  container_app_id         = azurerm_container_app.web[0].id
+  certificate_binding_type = "Disabled"
+
+  lifecycle {
+    ignore_changes = [certificate_binding_type, container_app_environment_certificate_id]
+  }
+}
+
 resource "azurerm_container_app_environment_managed_certificate" "web" {
   for_each = local.web_custom_domains
+
+  # The hostname must exist on the app before this can be created.
+  depends_on = [azurerm_container_app_custom_domain.web]
 
   name                         = "mc-${replace(each.key, ".", "-")}"
   container_app_environment_id = azurerm_container_app_environment.main.id
@@ -485,13 +513,4 @@ resource "azurerm_container_app_environment_managed_certificate" "web" {
   domain_control_validation    = each.value.validation
 
   tags = var.tags
-}
-
-resource "azurerm_container_app_custom_domain" "web" {
-  for_each = local.web_custom_domains
-
-  name                                     = each.key
-  container_app_id                         = azurerm_container_app.web[0].id
-  container_app_environment_certificate_id = azurerm_container_app_environment_managed_certificate.web[each.key].id
-  certificate_binding_type                 = "SniEnabled"
 }

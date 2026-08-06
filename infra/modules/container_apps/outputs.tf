@@ -58,3 +58,21 @@ output "web_custom_domain_urls" {
   description = "Public URLs served by the bound custom domains."
   value       = [for h in keys(local.web_custom_domains) : "https://${h}"]
 }
+
+output "web_app_name" {
+  description = "Name of the web Container App (null until workloads are deployed)."
+  value       = var.deploy_workloads ? azurerm_container_app.web[0].name : null
+}
+
+# Consumed by the deploy workflow, which attaches each certificate to its
+# hostname via `az containerapp hostname bind` — see the comment on
+# azurerm_container_app_custom_domain.web for why Terraform cannot.
+output "web_custom_domain_bindings" {
+  description = "Hostname/certificate pairs the deploy workflow binds after apply."
+  value = [
+    for h, d in local.web_custom_domains : {
+      hostname       = h
+      certificate_id = azurerm_container_app_environment_managed_certificate.web[h].id
+    }
+  ]
+}

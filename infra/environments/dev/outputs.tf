@@ -79,3 +79,13 @@ output "web_custom_domain_urls" {
   description = "Public URLs served by bound custom domains."
   value       = module.container_apps.web_custom_domain_urls
 }
+
+output "web_app_name" {
+  description = "Name of the web Container App."
+  value       = module.container_apps.web_app_name
+}
+
+output "web_custom_domain_bindings" {
+  description = "Hostname/certificate pairs the deploy workflow binds after apply."
+  value       = module.container_apps.web_custom_domain_bindings
+}
