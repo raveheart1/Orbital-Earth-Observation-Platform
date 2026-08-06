@@ -95,7 +95,7 @@ jobs:
         run: terraform validate
         working-directory: infra/environments/dev
 
-      - uses: terraform-linters/setup-tflint@v4
+      - uses: terraform-linters/setup-tflint@v6
         continue-on-error: true
 
       - name: TFLint
