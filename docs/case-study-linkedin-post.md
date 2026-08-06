@@ -1,11 +1,70 @@
-# LinkedIn feed post
+# LinkedIn feed posts
 
-A LinkedIn feed post is capped at 3,000 characters, so
-[`case-study-linkedin.md`](case-study-linkedin.md) (~7,400) has to be published
-as an *Article*. Articles get very little reach on their own — this is the feed
-post that links to it. Replace `<article-url>` after publishing.
+Two versions. Both are plain text on purpose — LinkedIn renders neither
+Markdown nor LaTeX, so anything below the `---` can be pasted as-is.
+
+The feed cap is 3,000 characters, and only the first ~200 show before "see
+more". Both versions open on the concrete detail rather than on the project,
+because "I built a satellite platform" is a line people scroll past and "two
+images were different sizes" is not.
+
+**Which to use.** The standalone post is the default: it works with nothing but
+the live site and the repo behind it. Use the article version only if you have
+actually published [`case-study-linkedin.md`](case-study-linkedin.md) as a
+LinkedIn Article, since Articles get almost no reach without a post pointing at
+them.
+
+What the post is *not* claiming matters as much as what it is. NDVI from
+Sentinel-2 is textbook, and a remote-sensing specialist reading this will know
+that. The claim is about knowing whether a computed number is real — which is
+defensible, and which most side-project posts cannot make.
 
 ---
+
+## Standalone (1,704 characters)
+
+Two preview images were slightly different sizes. That was the only visible
+clue that my satellite platform had been measuring the wrong thing.
+
+I built the Orbital Earth Observation Platform to find out what happens when
+you point an Azure and infrastructure skill set at scientific data. You pick an
+area and a date range; it pulls Copernicus Sentinel-2 imagery, masks the
+clouds, and measures vegetation greenness over time.
+
+The area I was testing sits on the boundary between two Sentinel-2 tiles. A
+single satellite pass is published as one file per tile, so my pipeline had
+several files representing the same moment — and it picked one of them,
+requiring only 25% overlap with the requested area.
+
+So some dates measured 56% of the area. Others measured 100%. Both were plotted
+on the same chart as though they were the same place.
+
+Nothing crashed. No test failed. The curve looked like a normal growing season.
+
+That is the part I keep coming back to. NDVI from Sentinel-2 is textbook — a
+dozen existing tools will compute it for you. What is not textbook is knowing
+whether the number your system just produced is real, and being able to prove
+it.
+
+The fix reprocesses every observation onto one fixed grid, so all dates measure
+identical ground by construction. A date that already had full coverage
+reproduced to four decimal places afterwards — which is how I know the fix was
+surgical rather than a quiet change to the science itself.
+
+Three other bugs in the project had the same shape. Only one was loud enough to
+announce itself.
+
+Live: https://oeop.net
+Code: https://github.com/raveheart1/Orbital-Earth-Observation-Platform
+
+#SoftwareEngineering #RemoteSensing #DataQuality #Azure
+
+---
+
+## Article version (1,567 characters)
+
+Use only if the long write-up is published as a LinkedIn Article. Replace
+`<article-url>`.
 
 I built a satellite vegetation-monitoring platform on Azure. The most valuable
 thing I found was a bug that produced perfectly reasonable-looking charts.
