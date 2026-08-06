@@ -158,6 +158,7 @@ module "container_apps" {
   resource_group_name = data.azurerm_resource_group.main.name
   environment         = var.environment
   deploy_workloads    = var.deploy_workloads
+  web_custom_domains  = var.web_custom_domains
 
   log_analytics_workspace_id = module.observability.log_analytics_workspace_id
   infrastructure_subnet_id   = module.network.apps_subnet_id

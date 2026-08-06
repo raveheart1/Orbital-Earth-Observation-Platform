@@ -456,3 +456,42 @@ resource "azurerm_container_app_job" "seed" {
 
   tags = var.tags
 }
+
+# --- Custom domains -----------------------------------------------------
+#
+# Binding a hostname is a two-step handshake with DNS that Terraform cannot do
+# on its own, so `web_custom_domains` stays empty until the records are live:
+#
+#   1. Ownership — a TXT record at `asuid.<host>` (or `asuid` for an apex)
+#      holding the app's customDomainVerificationId.
+#   2. Routing — a CNAME to the app's default hostname, or, for an apex domain
+#      (which cannot CNAME), an A record to the environment's static IP.
+#
+# Azure issues the certificate only after both resolve, and it renews it
+# automatically thereafter. Applying with a hostname whose DNS is not yet
+# published fails the apply rather than waiting, which is why this is gated.
+locals {
+  web_custom_domains = var.deploy_workloads ? {
+    for d in var.web_custom_domains : d.hostname => d
+  } : {}
+}
+
+resource "azurerm_container_app_environment_managed_certificate" "web" {
+  for_each = local.web_custom_domains
+
+  name                         = "mc-${replace(each.key, ".", "-")}"
+  container_app_environment_id = azurerm_container_app_environment.main.id
+  subject_name                 = each.key
+  domain_control_validation    = each.value.validation
+
+  tags = var.tags
+}
+
+resource "azurerm_container_app_custom_domain" "web" {
+  for_each = local.web_custom_domains
+
+  name                                     = each.key
+  container_app_id                         = azurerm_container_app.web[0].id
+  container_app_environment_certificate_id = azurerm_container_app_environment_managed_certificate.web[each.key].id
+  certificate_binding_type                 = "SniEnabled"
+}
