@@ -11,7 +11,7 @@
 #   stage 2: terraform apply -var deploy_workloads=true   -> apps + jobs
 # then: run migrations, seed, and smoke-test the live endpoints.
 #
-# Auth is GitHub OIDC only (azure/login@v2 + ARM_USE_OIDC) — no secrets are
+# Auth is GitHub OIDC only (azure/login@v3 + ARM_USE_OIDC) — no secrets are
 # stored in GitHub, and none are ever echoed.
 name: deploy-dev
 
@@ -48,7 +48,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: azure/login@v2
+      - uses: azure/login@v3
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
