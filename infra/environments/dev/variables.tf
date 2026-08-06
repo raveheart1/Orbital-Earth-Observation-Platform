@@ -120,5 +120,16 @@ variable "web_custom_domains" {
     hostname   = string
     validation = string
   }))
-  default = []
+
+  # oeop.net: A -> the environment's static IP, plus the asuid TXT proving
+  # ownership, both live in Cloudflare and unproxied. HTTP validation because
+  # an apex domain cannot be a CNAME, so Azure fetches its token over the A
+  # record. www.oeop.net is not bound here — Cloudflare redirects it to the
+  # apex, which keeps one certificate and one canonical origin.
+  default = [
+    {
+      hostname   = "oeop.net"
+      validation = "HTTP"
+    },
+  ]
 }
