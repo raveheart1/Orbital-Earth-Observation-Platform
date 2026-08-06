@@ -1,18 +1,22 @@
 # LinkedIn feed posts
 
-Two versions. Both are plain text on purpose — LinkedIn renders neither
-Markdown nor LaTeX, so anything below the `---` can be pasted as-is.
+Three versions. All are plain text on purpose — LinkedIn renders neither
+Markdown nor LaTeX, so each can be pasted as-is.
 
 The feed cap is 3,000 characters, and only the first ~200 show before "see
-more". Both versions open on the concrete detail rather than on the project,
-because "I built a satellite platform" is a line people scroll past and "two
-images were different sizes" is not.
+more". Every version opens on a concrete detail rather than on the project,
+because "I built a satellite platform" is a line people scroll past and "one
+line changes this measurement by 40%" is not.
 
-**Which to use.** The standalone post is the default: it works with nothing but
-the live site and the repo behind it. Use the article version only if you have
-actually published [`case-study-linkedin.md`](case-study-linkedin.md) as a
-LinkedIn Article, since Articles get almost no reach without a post pointing at
-them.
+**Which to use.** The first standalone post is the default. It leads with the
+baseline-offset measurement, which lands the whole point — a plausible-looking
+answer that is wrong — in two sentences, and its central figures are
+reproducible with `scripts/measure_processing_effects.py`. The tile-boundary
+alternative tells a better story but needs three paragraphs to get there; it is
+the stronger choice if the audience will read past the fold. Use the article
+version only if [`case-study-linkedin.md`](case-study-linkedin.md) is actually
+published as a LinkedIn Article, since Articles get almost no reach without a
+post pointing at them.
 
 What the post is *not* claiming matters as much as what it is. NDVI from
 Sentinel-2 is textbook, and a remote-sensing specialist reading this will know
@@ -21,7 +25,48 @@ defensible, and which most side-project posts cannot make.
 
 ---
 
-## Standalone (1,704 characters)
+## Standalone (1,861 characters)
+
+One line in the Sentinel-2 documentation changes this measurement by 40%. Miss
+it, and your chart still looks completely reasonable.
+
+I built the Orbital Earth Observation Platform to find out what happens when
+you point an Azure and infrastructure skill set at scientific data. You pick an
+area and a date range; it pulls Copernicus Sentinel-2 imagery, masks the
+clouds, and measures vegetation greenness over time.
+
+Vegetation greenness is NDVI, a ratio of near-infrared to red light. The
+satellite doesn't ship you reflectance, though — it ships integers you have to
+decode. And in January 2022, ESA changed that encoding, adding a constant to
+every stored value.
+
+Here is why that is easy to get wrong. NDVI is a ratio, so any multiplicative
+scale factor cancels out — which makes it tempting to skip the decoding step
+entirely. A constant offset does not cancel. It survives in the denominator.
+
+I measured it on real imagery over southeast Michigan rather than trusting the
+reasoning. Same pixels, same masking, only the offset removed:
+
+0.4443 handled correctly
+0.2738 with the offset ignored
+
+That is the difference between reporting an area as healthily vegetated and
+reporting it as sparse. Both numbers plot as a perfectly sensible seasonal
+curve. Nothing crashes. No test fails.
+
+NDVI from Sentinel-2 is textbook — a dozen tools will compute it for you. What
+is not textbook is knowing whether the number your system just produced is
+real, and being able to prove it. That turned out to be most of the work: not
+the satellites, not the cloud infrastructure, but the unglamorous business of
+verifying that a plausible-looking answer is an answer at all.
+
+Three other bugs in the project had exactly that shape. Only one was loud
+enough to announce itself.
+
+Live: https://oeop.net
+Code: https://github.com/raveheart1/Orbital-Earth-Observation-Platform
+
+## Alternative standalone — the tile-boundary angle (1,647 characters)
 
 Two preview images were slightly different sizes. That was the only visible
 clue that my satellite platform had been measuring the wrong thing.
@@ -56,8 +101,6 @@ announce itself.
 
 Live: https://oeop.net
 Code: https://github.com/raveheart1/Orbital-Earth-Observation-Platform
-
-#SoftwareEngineering #RemoteSensing #DataQuality #Azure
 
 ---
 

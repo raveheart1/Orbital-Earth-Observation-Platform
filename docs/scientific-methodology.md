@@ -102,6 +102,13 @@ materially biased. Mixing pre- and post-04.00 scenes in one time series without
 offset handling would create a spurious "change" at the baseline boundary that
 has nothing to do with vegetation.
 
+Measured on live imagery over the demonstration region
+(`scripts/measure_processing_effects.py`, which re-processes the same pixels
+with the offset removed): the 2024-04-13 acquisition reports **0.4443** as
+shipped and **0.2738** with the offset ignored, and 2024-10-25 reports
+**0.4803** against **0.2774**. The bias is roughly 0.17–0.20 NDVI, about 40% of
+the reported value.
+
 The implementation (`earth_observation/ndvi.py:resolve_band_scaling`) picks
 the conversion in priority order:
 

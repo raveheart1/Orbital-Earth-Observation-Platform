@@ -404,6 +404,28 @@ index. Mixing pre- and post-04.00 scenes in one time series without handling
 this would produce a spurious step change at the baseline boundary that has
 nothing to do with vegetation.
 
+It is worth knowing how large that bias actually is, so I measured it rather
+than asserting it. `scripts/measure_processing_effects.py` processes a real
+acquisition normally, then re-processes the same pixels with one step disabled:
+
+| Acquisition | As shipped | Cloud masking disabled | Baseline offset ignored |
+|---|---|---|---|
+| 2024-10-25 (`S2A_…T17TLH`), 79.9% scene cloud | **0.4803** | 0.4792 (−0.0012) | 0.2774 (**−0.2029**) |
+| 2024-04-13 (`S2B_…T16TGN`), 0% scene cloud | **0.4443** | 0.4441 (−0.0002) | 0.2738 (**−0.1705**) |
+
+Ignoring one documented encoding change moves the answer by roughly 0.17–0.20
+NDVI — around 40% of the reported value, and the difference between describing
+this area as sparsely and as healthily vegetated. It is not a rounding concern.
+
+The masking column is the more interesting result, because it is so small. It
+is not evidence that masking is unnecessary; it is a second demonstration that
+scene-level cloud percentage says nothing about a particular area. The
+79.9%-cloud scene had 0.94% of *this* AOI obscured, because the cloud was
+elsewhere in the 110 km granule. Masking's contribution is not shifting the
+mean on scenes like these — it is establishing that only 0.94% was obscured, so
+the observation can be trusted, and rejecting the ones where that number is
+unacceptable.
+
 Scaling is resolved once per acquisition from the processing baseline of the
 contributing granules, and a warning is recorded when those baselines disagree.
 
