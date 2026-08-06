@@ -3,13 +3,22 @@
 *A short version of a longer write-up. Full case study and source linked at the
 bottom.*
 
+<!-- Formulas here are deliberately written in plain text rather than LaTeX.
+     This file is meant to be pasted into LinkedIn, which renders neither
+     LaTeX nor Markdown — "\frac{NIR - Red}{NIR + Red}" would reach readers
+     verbatim, backslashes and braces included. The full case study, which is
+     read on GitHub and as a PDF, uses proper typeset math. -->
+
+
 ---
 
 I spent the last stretch building the **Orbital Earth Observation Platform** — a
 cloud application that measures vegetation from Copernicus Sentinel-2 imagery.
 You pick an area and a date range; it finds the satellite scenes, masks the
-clouds, computes NDVI, and gives you a time series, before/after imagery,
-downloadable GeoTIFFs, and a provenance record for every number.
+clouds, computes NDVI — the Normalized Difference Vegetation Index, which is
+just (NIR − Red) / (NIR + Red) on the near-infrared and red bands — and gives
+you a time series, before/after imagery, downloadable GeoTIFFs, and a
+provenance record for every number.
 
 My background is Azure, containers, Terraform, CI/CD, and production
 operations. I wanted to find out what happens when you point that skill set at

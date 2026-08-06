@@ -49,16 +49,25 @@ observations make it possible to examine these patterns repeatedly across large
 areas without requiring a physical sensor at every location.
 
 OEOP uses the Normalized Difference Vegetation Index (NDVI) as its primary
-measurement, calculated from red and near-infrared reflectance:
+measurement, calculated from red and near-infrared surface reflectance:
 
 $$
 \mathrm{NDVI} = \frac{\mathrm{NIR} - \mathrm{Red}}{\mathrm{NIR} + \mathrm{Red}}
 $$
 
-For Sentinel-2, the platform uses Band 4 for red reflectance and Band 8 for
-near-infrared reflectance. Both are available at approximately 10 metres per
-pixel. Sentinel-2's multispectral instrument collects 13 spectral bands at 10,
-20, and 60 metre resolutions depending on the band.
+Both terms are surface reflectances: dimensionless ratios of reflected to
+incident radiation, written $\rho_{\mathrm{NIR}}$ and $\rho_{\mathrm{Red}}$
+below, where the scaling mathematics needs a symbol for them. For Sentinel-2 the
+platform uses Band 4 for red reflectance and Band 8 for near-infrared
+reflectance, so the index resolves to:
+
+$$
+\mathrm{NDVI} = \frac{B08 - B04}{B08 + B04}
+$$
+
+Both bands are available at approximately 10 metres per pixel. Sentinel-2's
+multispectral instrument collects 13 spectral bands at 10, 20, and 60 metre
+resolutions depending on the band.
 
 The equation works because healthy green vegetation interacts with red and
 near-infrared light in different ways. Chlorophyll absorbs much of the visible
@@ -72,11 +81,19 @@ In plain language, NDVI asks:
 > Is this pixel reflecting light more like active green vegetation than like
 > soil, water, snow, cloud, or a constructed surface?
 
-NDVI values theoretically range from −1 to 1. Negative values are commonly
-associated with water, snow, clouds, or other non-vegetated surfaces. Values
-near zero often represent bare soil, rock, built surfaces, or sparse
-vegetation. Increasingly positive values generally indicate a stronger
-vegetation signal.
+Because the numerator is bounded by the denominator whenever both reflectances
+are non-negative, the index is confined to
+
+$$
+-1 \le \mathrm{NDVI} \le 1
+$$
+
+Negative values are commonly associated with water, snow, clouds, or other
+non-vegetated surfaces. Values near zero often represent bare soil, rock, built
+surfaces, or sparse vegetation. Increasingly positive values generally indicate
+a stronger vegetation signal. That bound holds only while $\rho \ge 0$, a
+condition the platform has to enforce explicitly rather than assume — the
+consequences of not doing so are described in step 8.
 
 ### What NDVI does not tell you
 
@@ -242,8 +259,20 @@ A few decisions in this layer exist specifically to protect scientific results:
 
 Before any imagery is read, the platform derives a single analytical grid from
 the area of interest: a UTM coordinate reference system chosen from the AOI
-centroid, 10 m resolution, and bounds snapped outward to the resolution
-lattice. Every observation in the analysis is reprojected onto this exact grid.
+centroid, a resolution of $r = 10$ m, and bounds snapped outward to the
+resolution lattice anchored at the CRS origin,
+
+$$
+x_{\min}' = r \left\lfloor \frac{x_{\min}}{r} \right\rfloor,
+\qquad
+x_{\max}' = r \left\lceil \frac{x_{\max}}{r} \right\rceil
+$$
+
+and likewise in $y$. Snapping to a lattice fixed by the CRS rather than by the
+requested bounds is what makes the grid reproducible: the same area of interest
+yields a bit-identical transform on every run, independent of which granules
+happen to be available. Every observation in the analysis is reprojected onto
+this exact grid.
 
 This is the most important architectural decision in the whole system, and I
 arrived at it by fixing a production bug rather than by foresight. It is
@@ -336,26 +365,67 @@ cause rather than appearing as an unexplained gap.
 
 ### 7. Convert digital numbers to reflectance
 
-Sentinel-2 L2A distributes reflectance as scaled integers. Since **processing
-baseline 04.00** (January 2022), the encoding includes an additive offset:
+Sentinel-2 L2A distributes reflectance as scaled integers rather than
+floating-point values. The general decoding is
 
-```
-reflectance = DN × 1e-4 − 0.1      for baseline ≥ 04.00
-reflectance = DN × 1e-4            for earlier baselines
-```
+$$
+\rho = \frac{\mathrm{DN} + \mathrm{OFFSET}}{\mathrm{QUANTIFICATION\_VALUE}}
+$$
 
-This is a genuine trap. NDVI is a ratio, so a common *multiplicative* scale
-cancels — which makes it tempting to skip scaling entirely. But an *additive*
-offset does **not** cancel. Ignoring it materially biases the index, and mixing
-pre- and post-04.00 scenes in one time series without handling it would create a
-spurious step change at the baseline boundary that has nothing to do with
-vegetation.
+Since processing baseline 04.00 (January 2022) the offset is non-zero, giving
+two cases the platform must distinguish:
+
+$$
+\rho =
+\begin{cases}
+10^{-4}\,\mathrm{DN} - 0.1, & \text{baseline} \ge 04.00 \\
+10^{-4}\,\mathrm{DN}, & \text{earlier baselines}
+\end{cases}
+$$
+
+This is a genuine trap, and it is worth showing why. NDVI is a ratio, so a
+common multiplicative factor $s$ cancels exactly:
+
+$$
+\frac{s\rho_{\mathrm{NIR}} - s\rho_{\mathrm{Red}}}{s\rho_{\mathrm{NIR}} + s\rho_{\mathrm{Red}}}
+= \frac{\rho_{\mathrm{NIR}} - \rho_{\mathrm{Red}}}{\rho_{\mathrm{NIR}} + \rho_{\mathrm{Red}}}
+$$
+
+which makes it tempting to skip scaling altogether. An additive offset $o$ does
+not cancel. It leaves the numerator untouched while displacing the denominator:
+
+$$
+\frac{(\rho_{\mathrm{NIR}} + o) - (\rho_{\mathrm{Red}} + o)}{(\rho_{\mathrm{NIR}} + o) + (\rho_{\mathrm{Red}} + o)}
+= \frac{\rho_{\mathrm{NIR}} - \rho_{\mathrm{Red}}}{\rho_{\mathrm{NIR}} + \rho_{\mathrm{Red}} + 2o}
+$$
+
+With $o = -0.1$ the denominator shrinks by $0.2$, systematically inflating the
+index. Mixing pre- and post-04.00 scenes in one time series without handling
+this would produce a spurious step change at the baseline boundary that has
+nothing to do with vegetation.
+
+Scaling is resolved once per acquisition from the processing baseline of the
+contributing granules, and a warning is recorded when those baselines disagree.
 
 ### 8. Mask, then calculate NDVI
 
 The worker builds a validity mask from the SCL policy, nodata values,
 non-finite values, and the AOI geometry, then computes NDVI in float64 and
 stores float32.
+
+Atmospheric correction can return slightly negative reflectance over dark
+surfaces such as water and deep shadow. Those values are physically meaningless
+and they break the $[-1, 1]$ bound, because a denominator near zero makes the
+ratio unbounded. Both bands are therefore clipped before the ratio is taken:
+
+$$
+\rho \leftarrow \max(\rho,\, 0)
+$$
+
+with pixels where $\rho_{\mathrm{NIR}} + \rho_{\mathrm{Red}} = 0$ excluded as
+invalid rather than divided. This guarantees the result stays in range. Omitting
+it produced one of the defects described later, in which a scene reported a mean
+"NDVI" of roughly $2.5 \times 10^{8}$.
 
 The default mask policy is deliberate and documented per class. Cloud, cloud
 shadow, cirrus, snow, nodata, and saturated/defective pixels are removed.
@@ -368,10 +438,26 @@ values shift the average and create a false signal of vegetation change.
 
 ### 9. Compute statistics over the canonical footprint
 
-Statistics are computed over valid pixels inside the **canonical AOI mask** —
-never over whatever the source granules happened to cover. Reported per
-observation: mean, median, min, max, standard deviation, the 10th/25th/75th/90th
-percentiles, valid and masked pixel counts, and valid-pixel percentage.
+Statistics are computed over valid pixels inside the canonical AOI mask, never
+over whatever the source granules happened to cover. Writing $V$ for the set of
+valid pixels and $A$ for the set of grid cells inside the AOI polygon, the
+reported mean and valid fraction are
+
+$$
+\overline{\mathrm{NDVI}} = \frac{1}{|V|} \sum_{i \in V} \mathrm{NDVI}_i,
+\qquad
+\text{valid \%} = 100 \times \frac{|V|}{|A|}
+$$
+
+The denominator $|A|$ is the decisive detail. It is a property of the requested
+area alone, so it is identical for every observation in an analysis; only $|V|$
+varies with cloud and shadow. When the denominator is instead allowed to follow
+the source imagery, two observations can report means computed over different
+ground while appearing on the same axis — which is precisely the defect
+described in the next section.
+
+Also reported per observation: median, minimum, maximum, standard deviation, the
+10th, 25th, 75th and 90th percentiles, and valid and masked pixel counts.
 
 The mean provides a simple time-series value, but it should not be mistaken for
 a complete description of the area. Two scenes can have the same average while

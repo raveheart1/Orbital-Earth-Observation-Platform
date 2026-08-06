@@ -60,31 +60,47 @@ the scenes' native CRS ([ADR 0004](adr/0004-native-utm-processing.md),
 Sentinel-2 L2A distributes reflectance as scaled integers ("digital numbers",
 DN). The conversion is:
 
-```
-reflectance = DN × scale + offset
-```
+$$
+\rho = s \cdot \mathrm{DN} + o
+$$
 
-with `scale = 1e-4`. Since **processing baseline 04.00** (scenes processed on
-or after 25 January 2022), ESA changed the encoding to `DN' = DN + 1000`, so
-the correct conversion becomes:
+with scale $s = 10^{-4}$. Since **processing baseline 04.00** (scenes processed
+on or after 25 January 2022), ESA changed the encoding by adding 1000 to the
+stored value, so the correct conversion becomes:
 
-```
-reflectance = DN × 1e-4 + (−0.1)        for baseline ≥ 04.00
-reflectance = DN × 1e-4                 for earlier baselines
-```
+$$
+\rho =
+\begin{cases}
+10^{-4}\,\mathrm{DN} - 0.1, & \text{baseline} \ge 04.00 \\
+10^{-4}\,\mathrm{DN}, & \text{earlier baselines}
+\end{cases}
+$$
 
-**Why this matters for NDVI specifically:** NDVI is a ratio, so a common
-*multiplicative* scale cancels:
+**Why this matters for NDVI specifically:** NDVI is a ratio,
 
-```
-NDVI = (NIR − Red) / (NIR + Red)
-```
+$$
+\mathrm{NDVI} = \frac{\rho_{\mathrm{NIR}} - \rho_{\mathrm{Red}}}{\rho_{\mathrm{NIR}} + \rho_{\mathrm{Red}}}
+$$
 
-But an *additive* offset does **not** cancel — with the offset ignored, both
-numerator differences and denominator sums are shifted, and NDVI is
-materially biased. Mixing pre- and post-04.00 scenes in one time series
-without offset handling would create a spurious "change" at the baseline
-boundary that has nothing to do with vegetation.
+so a common *multiplicative* scale $s$ cancels exactly:
+
+$$
+\frac{s\rho_{\mathrm{NIR}} - s\rho_{\mathrm{Red}}}{s\rho_{\mathrm{NIR}} + s\rho_{\mathrm{Red}}}
+= \frac{\rho_{\mathrm{NIR}} - \rho_{\mathrm{Red}}}{\rho_{\mathrm{NIR}} + \rho_{\mathrm{Red}}}
+$$
+
+An *additive* offset $o$ does **not**. It cancels in the numerator but survives
+in the denominator:
+
+$$
+\frac{(\rho_{\mathrm{NIR}} + o) - (\rho_{\mathrm{Red}} + o)}{(\rho_{\mathrm{NIR}} + o) + (\rho_{\mathrm{Red}} + o)}
+= \frac{\rho_{\mathrm{NIR}} - \rho_{\mathrm{Red}}}{\rho_{\mathrm{NIR}} + \rho_{\mathrm{Red}} + 2o}
+$$
+
+With $o = -0.1$ the denominator is displaced by $2o = -0.2$, so NDVI is
+materially biased. Mixing pre- and post-04.00 scenes in one time series without
+offset handling would create a spurious "change" at the baseline boundary that
+has nothing to do with vegetation.
 
 The implementation (`earth_observation/ndvi.py:resolve_band_scaling`) picks
 the conversion in priority order:
@@ -123,15 +139,20 @@ exact class list used is stored with every run; the defaults
 
 ### 2.3 NDVI computation
 
-`earth_observation/ndvi.py:compute_ndvi`:
+`earth_observation/ndvi.py:compute_ndvi` evaluates the index on
+offset-corrected reflectance:
+
+$$
+\mathrm{NDVI} = \frac{\rho_{\mathrm{NIR}} - \rho_{\mathrm{Red}}}{\rho_{\mathrm{NIR}} + \rho_{\mathrm{Red}}}
+$$
 
 - Math in **float64**; output stored as **float32**.
-- `NDVI = (NIR − Red) / (NIR + Red)` on offset-corrected reflectance.
-- **Negative reflectance is clipped to zero** before the ratio. Negative
-  surface reflectance is a retrieval artifact (common over water and deep
-  shadow once the baseline-04.00 offset is removed); without clipping, a
-  near-zero denominator produces physically meaningless NDVI values of
-  arbitrary magnitude. With clipping, NDVI is guaranteed to lie in [−1, 1].
+- **Negative reflectance is clipped to zero** before the ratio,
+  $\rho \leftarrow \max(\rho, 0)$. Negative surface reflectance is a retrieval
+  artifact (common over water and deep shadow once the baseline-04.00 offset is
+  removed); without clipping, a near-zero denominator produces physically
+  meaningless NDVI values of arbitrary magnitude. With clipping, NDVI is
+  guaranteed to lie in $[-1, 1]$.
   This mattered in practice: an April 2024 scene over the demonstration
   region produced a mean "NDVI" of ~2.5 × 10⁸ before this rule was added.
 - **NaN** at every pixel that is masked by the SCL policy, non-finite in

@@ -40,6 +40,11 @@ dev = [
     "nbconvert>=7.16",
     "matplotlib>=3.9",
     "folium>=0.18",
+    # scripts/build_case_study_pdf.py, and the tests that assert every equation
+    # in docs/ actually renders. Declared so those tests run in CI rather than
+    # skipping, which would leave unrendered LaTeX to be caught by eye.
+    "markdown>=3.7",
+    "latex2mathml>=3.77",
 ]
 
 [tool.ruff]

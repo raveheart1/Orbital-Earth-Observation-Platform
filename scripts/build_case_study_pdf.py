@@ -10,11 +10,13 @@ Writes alongside the source, e.g. docs/case-study.pdf.
 
 from __future__ import annotations
 
+import re
 import subprocess
 import sys
 import tempfile
 from pathlib import Path
 
+import latex2mathml.converter
 import markdown
 
 # Print stylesheet: serif body for long-form reading, monospace for data, and
@@ -56,6 +58,12 @@ a { color: #0f3d3d; text-decoration: none; border-bottom: 1px solid #9fc0c0; }
 em { color: #333; }
 strong { color: #0a2e2e; }
 img { max-width: 100%; }
+math { font-size: 1.06em; }
+.math-display {
+  display: block; text-align: center; margin: 1.1em 0;
+  break-inside: avoid; overflow-x: auto;
+}
+.math-display math { font-size: 1.12em; }
 """
 
 RENDER_JS = """
@@ -81,15 +89,69 @@ const {{ chromium }} = require('@playwright/test');
 """
 
 
+#: `$$…$$` (display) and `$…$` (inline), skipping fenced blocks and code spans
+#: so a literal `$RG` in a shell example is never mistaken for mathematics.
+_FENCE = re.compile(r"```.*?```", re.S)
+_CODE_SPAN = re.compile(r"`[^`\n]*`")
+_DISPLAY = re.compile(r"\$\$(.+?)\$\$", re.S)
+_INLINE = re.compile(r"(?<!\$)\$(?!\s)([^\$\n]+?)(?<!\s)\$(?!\$)")
+_TOKEN = "\x00MATH{}\x00"
+
+
+def _extract_math(text: str) -> tuple[str, list[str]]:
+    """Replace LaTeX with placeholders, returning the rendered MathML.
+
+    Converted here rather than left for a browser-side library because the PDF
+    has to render offline: MathML is part of the document, so Chromium draws it
+    with no network and no bundled JavaScript.
+    """
+    rendered: list[str] = []
+    protected: list[str] = []
+
+    def protect(match: re.Match[str]) -> str:
+        protected.append(match.group(0))
+        return f"\x01CODE{len(protected) - 1}\x01"
+
+    text = _FENCE.sub(protect, text)
+    text = _CODE_SPAN.sub(protect, text)
+
+    def convert(match: re.Match[str], *, display: bool) -> str:
+        latex = match.group(1).strip()
+        mathml = latex2mathml.converter.convert(latex)
+        if display:
+            mathml = mathml.replace('display="inline"', 'display="block"', 1)
+            mathml = f'<div class="math-display">{mathml}</div>'
+        rendered.append(mathml)
+        return _TOKEN.format(len(rendered) - 1)
+
+    text = _DISPLAY.sub(lambda m: convert(m, display=True), text)
+    text = _INLINE.sub(lambda m: convert(m, display=False), text)
+
+    for index, original in enumerate(protected):
+        text = text.replace(f"\x01CODE{index}\x01", original)
+    return text, rendered
+
+
+def _restore_math(html: str, rendered: list[str]) -> str:
+    for index, mathml in enumerate(rendered):
+        token = _TOKEN.format(index)
+        # A display equation is its own block; unwrap the paragraph Markdown
+        # wrapped around it so the <div> is not nested inside a <p>.
+        html = html.replace(f"<p>{token}</p>", mathml).replace(token, mathml)
+    return html
+
+
 def build(source: Path) -> Path:
     text = source.read_text(encoding="utf-8")
     title = next(
         (line.lstrip("# ").strip() for line in text.splitlines() if line.startswith("# ")),
         source.stem,
     )
+    text, math = _extract_math(text)
     body = markdown.markdown(
         text, extensions=["tables", "fenced_code", "toc", "attr_list", "sane_lists"]
     )
+    body = _restore_math(body, math)
     html = (
         "<!doctype html><html><head><meta charset='utf-8'>"
         f"<title>{title}</title><style>{CSS}</style></head><body>{body}</body></html>"
