@@ -1,6 +1,6 @@
 # Building a Reproducible Platform for Measuring Vegetation from Sentinel-2 Satellite Data
 
-*Gordon McWain — August 2026*
+*Gordon McWilliams — August 2026*
 
 **Live platform:** [ca-oeop-dev-web.politeriver-f001c624.eastus2.azurecontainerapps.io](https://ca-oeop-dev-web.politeriver-f001c624.eastus2.azurecontainerapps.io)
 
