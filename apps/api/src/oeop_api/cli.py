@@ -672,7 +672,10 @@ def main() -> None:
     dele.add_argument(
         "--legacy",
         action="store_true",
-        help="Delete every analysis processed before the canonical grid (grid IS NULL)",
+        help=(
+            "Delete every analysis whose processing version predates the canonical "
+            "grid (major version < 2). In-flight analyses are never matched."
+        ),
     )
     dele.add_argument(
         "--dry-run", action="store_true", help="List what would be deleted, change nothing"

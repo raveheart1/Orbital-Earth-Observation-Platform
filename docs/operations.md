@@ -254,3 +254,35 @@ az containerapp exec -g rg-oeop-dev -n ca-oeop-dev-api \
   --command "python -m oeop_api.cli delete-analysis --legacy --dry-run"
 ```
 
+### Do not use `az containerapp job start --command` for this
+
+It looks like a natural fit — the seed job already carries the API image and
+the database credentials — but on older Azure CLI (confirmed on 2.49.0) it
+fails dangerously:
+
+- `--command "/bin/sh" "-c" "..."` is rejected outright, because the CLI's own
+  argument parser consumes `-c`.
+- Working around that by joining the parts into one comma-separated string is
+  **accepted, and silently does nothing**. The override is not applied, the job
+  runs its *configured* command, and the execution reports `Succeeded`.
+
+For the seed job the configured command is `seed-regions && seed-demo`, so a
+delete that appears to succeed has actually reseeded the database. Never treat
+a `Succeeded` execution as proof a delete happened — confirm the analysis
+returns 404 from the API.
+
+If a job really is the only route, override through ARM, which does apply it.
+Send the container's existing spec back with only `command` changed, or the
+override drops its environment and the container cannot reach the database:
+
+```bash
+az containerapp job show -g $RG -n <job-name> \
+  --query "properties.template.containers[0]" -o json > container.json
+# edit container.json: set "command", remove "args"
+python3 -c "import json;print(json.dumps({'containers':[json.load(open('container.json'))]}))" > body.json
+
+az rest --method post \
+  --url "https://management.azure.com/subscriptions/$SUB/resourceGroups/$RG/providers/Microsoft.App/jobs/<job-name>/start?api-version=2023-05-01" \
+  --body @body.json
+```
+
