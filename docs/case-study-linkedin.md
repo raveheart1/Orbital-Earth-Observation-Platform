@@ -143,6 +143,7 @@ the computation.
 
 ---
 
+**Live platform:** [oeop.net](https://oeop.net)
 **Full technical write-up:** [case-study.md](https://github.com/raveheart1/Orbital-Earth-Observation-Platform/blob/main/docs/case-study.md)
 **Source:** [github.com/raveheart1/Orbital-Earth-Observation-Platform](https://github.com/raveheart1/Orbital-Earth-Observation-Platform)
 

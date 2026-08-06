@@ -251,7 +251,9 @@ groups `rg-oeop-bootstrap` and `rg-oeop-dev`.
       `az acr build` images tagged with the commit SHA, workload apply,
       migration job, region seeding, endpoint smoke tests.
 - [x] Public endpoints healthy:
-      web https://ca-oeop-dev-web.politeriver-f001c624.eastus2.azurecontainerapps.io
+      web https://oeop.net (custom domain, Azure-managed TLS; the generated
+      host ca-oeop-dev-web.politeriver-f001c624.eastus2.azurecontainerapps.io
+      still answers)
       · API https://ca-oeop-dev-api.politeriver-f001c624.eastus2.azurecontainerapps.io
 - [x] Bounded cloud analysis succeeded (analysis
       96dc489d-9e67-4630-afbc-23098eab7f87): the KEDA queue-scaled job woke
@@ -272,3 +274,31 @@ Issues found and fixed during deployment (committed):
 ## Blocked
 
 - None.
+
+## Custom domain and deploy stability (2026-08-06)
+
+- [x] **The platform serves on https://oeop.net** with a free Azure-managed
+      certificate (DigiCert, CN=oeop.net, auto-renewing). Apex A record to the
+      environment's static IP plus the `asuid` TXT, both unproxied in
+      Cloudflare so Azure can validate.
+- [x] **Fixed: every push took the site down.** Stage 1 of `deploy-dev` ran
+      `terraform apply -var deploy_workloads=false` unconditionally, and the
+      apps are `count = var.deploy_workloads ? 1 : 0` — so it destroyed them
+      and stage 2 recreated them. Found while investigating the domain: ARM
+      reported the container apps did not exist while their URLs served 404s.
+      Stage 1 now runs only when there is no registry in the Terraform state,
+      the fresh-environment case it was written for. Verified by polling
+      through two full deploys: 200 throughout, and `0 to destroy`.
+- [x] Azure's ordering for a custom domain cannot be one Terraform apply: a
+      managed certificate cannot be issued for a hostname that is not already
+      on an app (`RequireCustomHostnameInEnvironment`), and the binding cannot
+      reference a certificate that does not exist. The hostname is registered
+      with TLS disabled, the certificate is issued against it, and the deploy
+      workflow attaches the two with `az containerapp hostname bind`. The
+      binding ignores changes to its certificate fields, or the next apply
+      would strip the certificate off. Verified idempotent across a second
+      deploy: binding intact, one certificate, no duplicates.
+- [ ] `www.oeop.net` returns 525 — the Cloudflare Redirect Rule is not in
+      place, so Cloudflare tries the origin with SNI `www.oeop.net`, for which
+      Azure holds no certificate. DNS is correct (proxied); only the rule is
+      missing. See docs/custom-domain.md.

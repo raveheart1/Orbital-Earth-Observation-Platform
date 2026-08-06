@@ -2,7 +2,7 @@
 
 *Gordon McWilliams — August 2026*
 
-**Live platform:** [ca-oeop-dev-web.politeriver-f001c624.eastus2.azurecontainerapps.io](https://ca-oeop-dev-web.politeriver-f001c624.eastus2.azurecontainerapps.io)
+**Live platform:** [oeop.net](https://oeop.net)
 
 ---
 
