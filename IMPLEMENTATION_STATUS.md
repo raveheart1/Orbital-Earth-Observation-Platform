@@ -298,7 +298,15 @@ Issues found and fixed during deployment (committed):
       binding ignores changes to its certificate fields, or the next apply
       would strip the certificate off. Verified idempotent across a second
       deploy: binding intact, one certificate, no duplicates.
-- [ ] `www.oeop.net` returns 525 — the Cloudflare Redirect Rule is not in
-      place, so Cloudflare tries the origin with SNI `www.oeop.net`, for which
-      Azure holds no certificate. DNS is correct (proxied); only the rule is
-      missing. See docs/custom-domain.md.
+- [x] **`www.oeop.net` redirects to the apex** with a 301, path and query
+      string preserved (`/analyses?x=1` -> `https://oeop.net/analyses?x=1`).
+      Applied via `scripts/cloudflare_redirect_rule.py` rather than clicked, so
+      the rule is recorded here. Until it existed, www returned 525: a redirect
+      rule answers at Cloudflare's edge, so reaching the origin at all proved
+      no rule matched, and Azure holds no certificate for that name because
+      only the apex is bound.
+- [x] Corrected in the same pass: the Cloudflare API token permission governing
+      Redirect Rules is **Single Redirect**, not "Dynamic Redirect" as the
+      runbook first said. The ruleset phase is still named
+      `http_request_dynamic_redirect`; the two disagree in Cloudflare's own
+      product.
