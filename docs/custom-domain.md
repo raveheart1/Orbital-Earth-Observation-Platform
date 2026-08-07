@@ -59,6 +59,31 @@ to keep in sync. In Cloudflare:
   then dynamic redirect to `concat("https://oeop.net", http.request.uri.path)`,
   status **301**, preserve query string.
 
+The rule must be **dynamic**, not static. A static redirect to the bare origin
+sends `/analyses/abc` to the home page and silently drops the deep link.
+
+The DNS "Import" button cannot do this. It accepts a BIND zone file, which can
+only describe DNS records, and a Redirect Rule is not one — it lives in the
+Rulesets API. To avoid configuring it by hand:
+
+```bash
+export CLOUDFLARE_API_TOKEN=...   # Zone:Read + Dynamic Redirect:Edit, one zone
+uv run python scripts/cloudflare_redirect_rule.py --dry-run   # prints the rule
+uv run python scripts/cloudflare_redirect_rule.py             # applies it
+```
+
+The script is idempotent — it replaces a rule with the same description rather
+than appending a duplicate, and preserves any other rules in the phase. Revoke
+the token once the rule is in place; it is not needed again.
+
+### Diagnosing `www`
+
+A **525** from `www.oeop.net` means the redirect is not firing. A redirect rule
+answers at the edge, so Cloudflare never contacts the origin; a 525 says it
+tried, reached Azure with SNI `www.oeop.net`, and found no certificate for that
+name — because only the apex is bound. The DNS record being correct is not
+sufficient, and this is the symptom to expect while the rule is missing.
+
 ## 2. Verify the records resolve
 
 Do not skip this. Adding the hostname to Terraform before DNS is live produces
