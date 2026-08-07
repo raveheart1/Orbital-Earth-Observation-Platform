@@ -67,10 +67,14 @@ only describe DNS records, and a Redirect Rule is not one — it lives in the
 Rulesets API. To avoid configuring it by hand:
 
 ```bash
-export CLOUDFLARE_API_TOKEN=...   # Zone:Read + Dynamic Redirect:Edit, one zone
+export CLOUDFLARE_API_TOKEN=...   # Zone:Read + Single Redirect:Edit, one zone
 uv run python scripts/cloudflare_redirect_rule.py --dry-run   # prints the rule
 uv run python scripts/cloudflare_redirect_rule.py             # applies it
 ```
+
+The token permission is called **Single Redirect**, while the ruleset phase
+the rule lands in is `http_request_dynamic_redirect`. Those two names
+disagree in Cloudflare's own product; both are correct.
 
 The script is idempotent — it replaces a rule with the same description rather
 than appending a duplicate, and preserves any other rules in the phase. Revoke

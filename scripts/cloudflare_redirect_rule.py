@@ -10,9 +10,14 @@ there so the configuration is recorded in the repository rather than clicked.
     uv run python scripts/cloudflare_redirect_rule.py
 
 The token needs, scoped to the one zone:
-  * Zone -> Zone -> Read            (to resolve the zone name to its id)
-  * Zone -> Dynamic Redirect -> Edit
-    (older token UIs label this "Transform Rules")
+  * Zone -> Zone -> Read             (to resolve the zone name to its id)
+  * Zone -> Single Redirect -> Edit
+
+"Single Redirect" is the token permission that governs Redirect Rules. The
+ruleset phase they live in is still named `http_request_dynamic_redirect`, so
+the two names disagree; that is Cloudflare's naming, not a mistake here. Older
+token UIs may instead offer "Dynamic Redirect" or fold this into "Transform
+Rules".
 
 Re-running is safe: a rule with the same description is replaced in place
 rather than duplicated, and other rules in the phase are preserved.
@@ -63,8 +68,8 @@ def _call(method: str, path: str, token: str, body: dict[str, Any] | None = None
         if exc.code in (401, 403):
             hint = (
                 "\n\nThe token is missing a permission. It needs Zone:Read plus "
-                "Dynamic Redirect:Edit (labelled 'Transform Rules' in some token "
-                "UIs), scoped to this zone."
+                "Single Redirect:Edit (some token UIs call it 'Dynamic Redirect' "
+                "or fold it into 'Transform Rules'), scoped to this zone."
             )
         raise CloudflareError(f"{method} {path} -> HTTP {exc.code}: {messages}{hint}") from exc
     if not payload.get("success", False):
@@ -166,7 +171,7 @@ def main() -> None:
             "CLOUDFLARE_API_TOKEN is not set.\n\n"
             "Create one at https://dash.cloudflare.com/profile/api-tokens with\n"
             "  Zone -> Zone -> Read\n"
-            "  Zone -> Dynamic Redirect -> Edit\n"
+            "  Zone -> Single Redirect -> Edit\n"
             "scoped to the single zone, then:\n"
             "  export CLOUDFLARE_API_TOKEN=...\n\n"
             "Do not commit it, and revoke it once the rule is in place."
