@@ -71,6 +71,7 @@ BUNDLED_ARTIFACT_TYPES = {
     ArtifactType.SCENE_SUMMARY,
     ArtifactType.TIMESERIES_CSV,
     ArtifactType.ANALYSIS_SUMMARY,
+    ArtifactType.NDVI_CHANGE_PREVIEW,
     ArtifactType.PROVENANCE,
 }
 

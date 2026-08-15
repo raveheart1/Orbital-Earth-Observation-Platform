@@ -1,4 +1,4 @@
-import type { Bbox } from "./schemas";
+import type { Bbox, PolygonGeometry } from "./schemas";
 
 /** Mean length of one degree of latitude, in km. */
 export const KM_PER_DEG_LAT = 110.57;
@@ -143,6 +143,63 @@ export function bboxRing(bbox: Bbox): LonLatRing {
     [minLon, maxLat],
     [minLon, minLat],
   ];
+}
+
+/** Mean Earth radius (IUGG), in km — the sphere ring areas are computed on. */
+const EARTH_RADIUS_KM = 6371.0088;
+
+/** The ring's distinct vertices: a GeoJSON closing repeat, if present, is dropped. */
+function distinctRingVertices(ring: LonLatRing): LonLatRing {
+  const first = ring[0];
+  const last = ring[ring.length - 1];
+  return ring.length > 1 && first && last && first[0] === last[0] && first[1] === last[1]
+    ? ring.slice(0, -1)
+    : ring;
+}
+
+/**
+ * Approximate area of a polygon ring in km², via the Chamberlain–Duquette
+ * spherical algorithm: |Σᵢ (λᵢ₊₁ − λᵢ₋₁) · sin φᵢ| · R² / 2 over the distinct
+ * vertices. Accepts the ring open or closed and either winding; below three
+ * distinct vertices the area is 0.
+ *
+ * Client-side MIRROR of the server's area check only: POST /api/v1/analyses
+ * recomputes the area on the WGS84 ellipsoid and remains authoritative. The
+ * spherical value stays well within 1% of the ellipsoidal one at AOI scale.
+ */
+export function estimateRingAreaKm2(ring: LonLatRing): number {
+  const vertices = distinctRingVertices(ring);
+  const n = vertices.length;
+  if (n < 3) return 0;
+  const rad = (deg: number) => (deg * Math.PI) / 180;
+  let sum = 0;
+  for (let i = 0; i < n; i++) {
+    const prev = vertices[(i + n - 1) % n]!;
+    const next = vertices[(i + 1) % n]!;
+    sum += (rad(next[0]) - rad(prev[0])) * Math.sin(rad(vertices[i]![1]));
+  }
+  return (Math.abs(sum) * EARTH_RADIUS_KM * EARTH_RADIUS_KM) / 2;
+}
+
+/**
+ * A drawn ring as the GeoJSON Polygon geometry object POST /api/v1/analyses
+ * accepts in its `geometry` member, closed by repeating the first vertex as
+ * the GeoJSON spec requires. Already-closed rings are not double-closed.
+ */
+export function ringToPolygonGeometry(ring: LonLatRing): PolygonGeometry {
+  const vertices = distinctRingVertices(ring);
+  const first = vertices[0];
+  return {
+    type: "Polygon",
+    coordinates: [first ? [...vertices, [first[0], first[1]]] : []],
+  };
+}
+
+/** GeoJSON polygon feature over a drawn ring, for MapLibre sources. */
+export function ringToPolygonFeature(
+  ring: LonLatRing,
+): GeoJSON.Feature<GeoJSON.Polygon> {
+  return { type: "Feature", properties: {}, geometry: ringToPolygonGeometry(ring) };
 }
 
 /** GeoJSON polygon feature covering a bbox, for MapLibre sources. */

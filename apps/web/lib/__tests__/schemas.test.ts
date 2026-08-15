@@ -58,6 +58,15 @@ describe("PublicConfigSchema", () => {
     expect(parsed.max_aoi_area_km2).toBe(600);
   });
 
+  it("defaults the polygon vertex ceiling on a response lacking it", () => {
+    const { max_custom_aoi_vertices, ...legacy } = configFixture;
+    void max_custom_aoi_vertices;
+    const parsed = PublicConfigSchema.parse(legacy);
+    // Mirrors the server default: a server old enough to omit the field from
+    // /config/public still enforces 256 on submission.
+    expect(parsed.max_custom_aoi_vertices).toBe(256);
+  });
+
   it("parses the observation-selection fields", () => {
     const parsed = PublicConfigSchema.parse(configFixture);
     expect(parsed.selection_strategies).toEqual(["temporal", "seasonal"]);
@@ -75,6 +84,21 @@ describe("PublicConfigSchema", () => {
     const parsed = PublicConfigSchema.parse(legacy);
     expect(parsed.selection_strategies).toEqual(["temporal", "seasonal"]);
     expect(parsed.seasonal_recommended_above_days).toBe(400);
+  });
+
+  it("parses the advertised spectral-index operations", () => {
+    const parsed = PublicConfigSchema.parse(configFixture);
+    expect(parsed.operations.map((op) => op.id)).toEqual(["ndvi", "nbr"]);
+    expect(parsed.operations[1]?.display_min).toBe(-1);
+    expect(parsed.operations[1]?.change_display_range).toBe(0.6);
+  });
+
+  it("defaults to a single NDVI operation on an older API response lacking them", () => {
+    const { operations, ...legacy } = configFixture;
+    void operations;
+    const parsed = PublicConfigSchema.parse(legacy);
+    // One entry, so the form keeps the picker hidden and never sends the field.
+    expect(parsed.operations.map((op) => op.id)).toEqual(["ndvi"]);
   });
 
   it("accepts a null demo_analysis_id", () => {
@@ -200,6 +224,53 @@ describe("AnalysisSchema", () => {
     expect(parsed.seasonal_target_month).toBeNull();
   });
 
+  it("parses the summary change block with its statistics and endpoints", () => {
+    const parsed = AnalysisSchema.parse(analysisFixture);
+    const change = parsed.summary?.change;
+    expect(change?.computed).toBe(true);
+    expect(change?.earlier?.stac_item_id).toBe(
+      "S2A_MSIL2A_20230504T163211_R041_T17TLG",
+    );
+    expect(change?.later?.observed_at).toBe("2023-09-26T16:33:49Z");
+    expect(change?.delta_threshold).toBe(0.1);
+    expect(change?.display_range).toBe(0.4);
+    expect(change?.stats?.delta_mean).toBe(-0.081);
+    expect(change?.stats?.pct_decreased).toBe(22.3);
+    expect(change?.stats?.valid_both_pct).toBe(87.4);
+  });
+
+  it("accepts an old summary without the change block", () => {
+    const legacySummary = { ...analysisFixture.summary } as Record<
+      string,
+      unknown
+    >;
+    delete legacySummary.change;
+    const parsed = AnalysisSchema.parse({
+      ...analysisFixture,
+      summary: legacySummary,
+    });
+    expect(parsed.summary?.change).toBeUndefined();
+  });
+
+  it("parses a skipped change block carrying only computed: false and a reason", () => {
+    const parsed = AnalysisSchema.parse({
+      ...analysisFixture,
+      summary: {
+        ...analysisFixture.summary,
+        change: {
+          computed: false,
+          skipped_reason: "fewer_than_two_usable_observations",
+          note: "A per-pixel change map needs at least two usable observations.",
+        },
+      },
+    });
+    expect(parsed.summary?.change?.computed).toBe(false);
+    expect(parsed.summary?.change?.skipped_reason).toBe(
+      "fewer_than_two_usable_observations",
+    );
+    expect(parsed.summary?.change?.stats).toBeUndefined();
+  });
+
   it("defaults grid to null on legacy analyses missing the field", () => {
     const { grid, ...legacy } = analysisFixture;
     void grid;
@@ -265,6 +336,18 @@ describe("ArtifactSchema", () => {
     const legacy = artifactFixture() as Record<string, unknown>;
     delete legacy.grid_signature;
     expect(ArtifactSchema.parse(legacy).grid_signature).toBeNull();
+  });
+
+  it("parses the fire-detections artifact type", () => {
+    const parsed = ArtifactSchema.parse(
+      artifactFixture({
+        artifact_type: "fire_detections",
+        content_type: "application/geo+json",
+        scene_id: null,
+        stac_item_id: null,
+      }),
+    );
+    expect(parsed.artifact_type).toBe("fire_detections");
   });
 });
 

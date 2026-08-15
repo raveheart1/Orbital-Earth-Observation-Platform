@@ -132,4 +132,10 @@ class BlobStore:
                 expiry=expiry,
             )
         blob = self._client.get_blob_client(self._container, blob_path)
-        return f"{blob.url}?{sas}"
+        url = f"{blob.url}?{sas}"
+        if self._settings.blob_download_base_url:
+            # Swap the internal endpoint prefix for the client-reachable one;
+            # the SAS signs the resource path, not the host, so this is safe.
+            internal_base = self._client.url.rstrip("/")
+            url = self._settings.blob_download_base_url.rstrip("/") + url[len(internal_base) :]
+        return url

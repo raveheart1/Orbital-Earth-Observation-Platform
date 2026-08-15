@@ -5,8 +5,12 @@ The Orbital Earth Observation Platform answers one scientific question:
 > How has vegetation health changed at a given place over time, based on
 > Sentinel-2 satellite observations?
 
-The place can be any of ten curated regions — four in Michigan, the project's
-home ground, and six elsewhere in the world — or an area the visitor draws,
+— and, for fire-affected areas, a companion one: how strongly did the spectral
+signature of burning (NBR) change across a documented wildfire?
+
+The place can be any of twelve curated regions — four in Michigan, the project's
+home ground, and eight elsewhere in the world, including two verified wildfire
+burn scars — or an area the visitor draws,
 anywhere Sentinel-2 observes (roughly 56°S to 83°N). Nothing in the pipeline is
 Michigan-specific: the canonical analysis grid derives its UTM zone from the
 AOI centroid ([ADR 0007](adr/0007-canonical-analysis-grid.md)), so hemisphere
@@ -14,7 +18,8 @@ and zone follow the request.
 
 It does so with a small, boring, reliable pipeline: a web UI submits an
 analysis, an API validates and persists it, a queue decouples submission from
-processing, and a scale-to-zero worker computes NDVI from cloud-optimized
+processing, and a scale-to-zero worker computes the analysis's configured index
+(NDVI or NBR) from cloud-optimized
 Sentinel-2 assets, writing artifacts to private blob storage and structured
 results to PostgreSQL.
 
@@ -38,7 +43,7 @@ A static rendering of the diagram below is in
 | Web UI | `apps/web` | Next.js 15 + MapLibre + Recharts. Draw/select an AOI, submit an analysis, watch results. Calls the API only through its server-side proxy (`/backend/*`), so the browser never talks to the API origin directly. |
 | API | `apps/api` | FastAPI service under `/api/v1`. Validates AOI and dates, persists `Analysis` rows, enqueues work, serves scenes/time series/artifacts/provenance, issues short-lived SAS download URLs. |
 | Worker | `apps/worker` | Queue consumer. Runs as an Azure Container Apps Job (KEDA queue scaling, scale to zero) in Azure, or as a long-lived container locally. |
-| Science core | `packages/earth_observation` | STAC search, deterministic scene selection, SCL masking, NDVI, COG/PNG outputs, statistics, provenance. No database or Azure dependencies; reusable from `notebooks/`. |
+| Science core | `packages/earth_observation` | STAC search, deterministic scene selection, SCL masking, spectral indices (NDVI, NBR), COG/PNG outputs, statistics, provenance. No database or Azure dependencies; reusable from `notebooks/`. |
 | Platform core | `packages/platform_core` (imported as `oeop_core`) | Settings (`OEOP_*` env), SQLAlchemy + PostGIS models, Azure blob/queue clients, structlog JSON logging, OpenTelemetry/Azure Monitor wiring. |
 | Infrastructure | `infra/` | Terraform (azurerm): Container Apps + Jobs, PostgreSQL Flexible Server + PostGIS, Storage queues/blobs, Key Vault, ACR, Log Analytics + Application Insights, user-assigned managed identity, GitHub OIDC federation. |
 
@@ -61,7 +66,7 @@ flowchart LR
     end
     subgraph pc [Microsoft Planetary Computer]
         S["STAC API\nsentinel-2-l2a"]
-        C["Sentinel-2 COG assets\nB04 / B08 / SCL / visual"]
+        C["Sentinel-2 COG assets\nB04 / B08 / B12 / SCL / visual"]
     end
 
     B --> W --> A
@@ -71,7 +76,7 @@ flowchart LR
     J -->|load config| PG
     J -->|search scenes| S
     J -->|"sign URLs, windowed\nrange reads (AOI only)"| C
-    J -->|"NDVI COGs, PNGs,\nCSV, provenance JSON"| BL
+    J -->|"index COGs, PNGs,\nCSV, provenance JSON"| BL
     J -->|"scenes, observations,\nartifacts, status"| PG
     A -->|"results + short-lived\nSAS download URLs"| W
 ```
@@ -121,9 +126,9 @@ sequenceDiagram
     J->>PC: STAC search (bbox, dates, cloud cover)
     J->>J: deterministic scene selection v1.0.0
     loop each selected scene
-        J->>PC: sign asset URLs, windowed COG reads (B04, B08, SCL, visual)
-        J->>J: reflectance -> SCL mask -> NDVI -> stats
-        J->>BL: NDVI COG + previews + scene summary
+        J->>PC: sign asset URLs, windowed COG reads (index bands, SCL, visual)
+        J->>J: reflectance -> SCL mask -> index (NDVI/NBR) -> stats
+        J->>BL: index COG + previews + scene summary
     end
     J->>BL: time-series CSV, analysis summary, provenance JSON
     J->>PG: scenes, observations, artifacts, status=succeeded

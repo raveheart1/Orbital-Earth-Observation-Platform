@@ -7,16 +7,28 @@ import { formatBytes, formatDate, shortSha, truncateMiddle } from "@/lib/format"
 const TYPE_LABELS: Record<ArtifactType, string> = {
   ndvi_cog: "NDVI GeoTIFF (COG)",
   ndvi_preview: "NDVI preview (PNG)",
+  nbr_cog: "NBR GeoTIFF (COG)",
+  nbr_preview: "NBR preview (PNG)",
   true_color_preview: "True-color preview (PNG)",
   scene_summary: "Scene summary (JSON)",
   timeseries_csv: "Time series (CSV)",
   analysis_summary: "Analysis summary (JSON)",
+  ndvi_change_cog: "NDVI change GeoTIFF (COG)",
+  ndvi_change_preview: "NDVI change preview (PNG)",
+  nbr_change_cog: "NBR change GeoTIFF (COG)",
+  nbr_change_preview: "NBR change preview (PNG)",
+  fire_detections: "Active-fire detections (FIRMS, GeoJSON)",
   provenance: "Provenance record (JSON)",
 };
 
 const ANALYSIS_LEVEL: ArtifactType[] = [
   "timeseries_csv",
   "analysis_summary",
+  "ndvi_change_cog",
+  "ndvi_change_preview",
+  "nbr_change_cog",
+  "nbr_change_preview",
+  "fire_detections",
   "provenance",
 ];
 

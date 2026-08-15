@@ -46,6 +46,14 @@ class Settings(BaseSettings):
         default=None,
         description="https://<account>.queue.core.windows.net — used with managed identity",
     )
+    blob_download_base_url: str | None = Field(
+        default=None,
+        description="Client-reachable base URL substituted for the storage endpoint "
+        "in generated download URLs. Needed when the endpoint the API talks to is "
+        "not resolvable by browsers — e.g. docker compose, where the API reaches "
+        "Azurite at http://azurite:10000 but the host only publishes it as "
+        "http://localhost:10000/devstoreaccount1.",
+    )
     artifacts_container: str = "artifacts"
     analysis_queue_name: str = "analysis-jobs"
     poison_queue_name: str = "analysis-jobs-poison"
@@ -121,6 +129,13 @@ class Settings(BaseSettings):
         "regions' ceiling so users see one number, and processes in about three "
         "minutes — far inside max_job_runtime_seconds.",
     )
+    max_custom_aoi_vertices: int = Field(
+        default=256,
+        description="Vertex ceiling for a drawn polygon's exterior ring, excluding "
+        "the closing vertex. Generous for anything hand-drawn on a map while "
+        "bounding the cost of every downstream geometry operation on an "
+        "arbitrary public submission.",
+    )
     rate_limit_submissions_per_hour: int = Field(
         default=10, description="Best-effort per-client submission throttle (per replica)"
     )
@@ -133,6 +148,31 @@ class Settings(BaseSettings):
     max_request_body_bytes: int = 64 * 1024
     download_url_ttl_seconds: int = Field(
         default=900, description="Lifetime of generated artifact download URLs"
+    )
+
+    # --- FIRMS active-fire overlay (optional) -------------------------------
+    firms_map_key: str | None = Field(
+        default=None,
+        description="NASA FIRMS Area API key (secret). None disables the "
+        "active-fire overlay entirely — it is an optional deployment feature "
+        "and its absence or failure never fails an analysis",
+    )
+    firms_source: str = Field(
+        default="VIIRS_SNPP_SP",
+        description="FIRMS product for the overlay. Standard processing (SP) "
+        "covers the full archive back to 2012; NRT products only cover recent "
+        "days, and analysis spans may reach years back",
+    )
+    firms_max_windows: int = Field(
+        default=75,
+        description="Cap on FIRMS API calls per analysis (cost control; the "
+        "key allows 5000 transactions per 10 minutes and multi-day requests "
+        "count as several). At 5 days per call this covers ~1 year of date "
+        "span; longer spans are truncated and the truncation is recorded in "
+        "the artifact metadata",
+    )
+    firms_timeout_seconds: float = Field(
+        default=30.0, description="Per-request timeout for FIRMS API calls"
     )
 
     # --- Build / provenance metadata ---------------------------------------

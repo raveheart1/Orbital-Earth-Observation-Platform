@@ -34,8 +34,10 @@ def test_catalog_keeps_a_michigan_focus_and_spans_the_globe():
     groups = {r["slug"]: r.get("group", "Global") for r in regions}
     michigan = [s for s, g in groups.items() if g == "Michigan"]
     world = [s for s, g in groups.items() if g == "Global"]
+    wildfire = [s for s, g in groups.items() if g == "Wildfire"]
     assert len(michigan) >= 3, "Michigan remains the home focus"
     assert len(world) >= 3, "the catalog must demonstrate global reach"
+    assert len(wildfire) >= 2, "burn-scar regions support NBR pre/post analyses"
 
     for region in regions:
         if groups[region["slug"]] != "Michigan":
@@ -65,7 +67,7 @@ def test_global_regions_span_multiple_hemispheres_and_utm_zones():
 
 def test_every_region_declares_a_group():
     for region in load_predefined_regions():
-        assert region.get("group") in {"Michigan", "Global"}, region["slug"]
+        assert region.get("group") in {"Michigan", "Global", "Wildfire"}, region["slug"]
 
 
 def test_queue_message_roundtrip_parse():

@@ -1,5 +1,44 @@
 /** Realistic API payload fixtures used by the schema and transform tests. */
 
+/** NDVI preview legend, as the server's `legend_spec` builds it. */
+const ndviLegendFixture = {
+  type: "ndvi",
+  display_min: -0.2,
+  display_max: 0.9,
+  stops: [
+    { value: -0.2, color: "#2c7bb6" },
+    { value: 0.0, color: "#d7d1c0" },
+    { value: 0.3, color: "#a6d96a" },
+    { value: 0.9, color: "#1a9641" },
+  ],
+  masked_color: "#b0a8b9",
+  masked_label: "Masked (cloud, shadow, snow)",
+  nodata_color: "#686a72",
+  nodata_label: "No source imagery",
+  note: "masked pixels are transparent and excluded from all statistics; grey pixels had no source imagery",
+};
+
+/** NBR preview legend: the registry's NBR stops over the fixed −1..+1 range. */
+const nbrLegendFixture = {
+  type: "nbr",
+  display_min: -1,
+  display_max: 1,
+  stops: [
+    { value: -1, color: "#45260a" },
+    { value: -0.5, color: "#966032" },
+    { value: 0, color: "#ebe4cd" },
+    { value: 0.5, color: "#80b05c" },
+    { value: 1, color: "#0e6028" },
+  ],
+  masked_color: "transparent",
+  masked_label: "Cloud, shadow, or snow (observed, excluded)",
+  nodata_color: "#686a72",
+  nodata_label: "No source imagery for this area",
+  note:
+    "Fixed display range, identical for every observation in an analysis. " +
+    "Analytical outputs retain full NBR values in [-1, 1].",
+};
+
 export const configFixture = {
   environment: "local",
   demo_mode: true,
@@ -9,6 +48,7 @@ export const configFixture = {
   // carry their own cap, set from measured processing cost.
   max_aoi_area_km2: 600,
   max_custom_aoi_area_km2: 250,
+  max_custom_aoi_vertices: 256,
   min_aoi_area_km2: 0.5,
   max_date_span_days: 3660,
   min_start_date: "2015-07-01",
@@ -21,24 +61,38 @@ export const configFixture = {
   default_cloud_cover_pct: 20,
   map_default_center: [-83.5, 42.35],
   map_default_zoom: 8.5,
-  ndvi_legend: {
-    type: "ndvi",
-    display_min: -0.2,
-    display_max: 0.9,
-    stops: [
-      { value: -0.2, color: "#2c7bb6" },
-      { value: 0.0, color: "#d7d1c0" },
-      { value: 0.3, color: "#a6d96a" },
-      { value: 0.9, color: "#1a9641" },
-    ],
-    masked_color: "#b0a8b9",
-    masked_label: "Masked (cloud, shadow, snow)",
-    nodata_color: "#686a72",
-    nodata_label: "No source imagery",
-    note: "masked pixels are transparent and excluded from all statistics; grey pixels had no source imagery",
-  },
+  ndvi_legend: ndviLegendFixture,
   demo_analysis_id: "0d3f9a52-6f89-4a2e-9f4e-0f8b0e5c1a77",
   processing_version: "2.0.0",
+  // Mirrors the server's registry-driven operations list.
+  operations: [
+    {
+      id: "ndvi",
+      title: "NDVI — vegetation health",
+      description:
+        "NDVI = (NIR - Red) / (NIR + Red). Higher values indicate denser, " +
+        "healthier green vegetation; negative values indicate water, bare " +
+        "soil, or non-vegetated surfaces.",
+      display_min: -0.2,
+      display_max: 0.9,
+      change_display_range: 0.4,
+      legend: ndviLegendFixture,
+    },
+    {
+      id: "nbr",
+      title: "NBR — burn severity",
+      description:
+        "NBR = (NIR - SWIR2) / (NIR + SWIR2). Healthy vegetation is strongly " +
+        "NIR-reflective and SWIR-absorptive (high NBR); recently burned or " +
+        "bare surfaces drop low or negative, so a negative change between " +
+        "dates is consistent with burning. NBR is a spectral signal only — " +
+        "it does not by itself confirm fire.",
+      display_min: -1,
+      display_max: 1,
+      change_display_range: 0.6,
+      legend: nbrLegendFixture,
+    },
+  ],
 };
 
 export const regionFixture = {
@@ -76,6 +130,39 @@ export const gridFixture = {
   bounds_projected: [322730, 4684980, 335450, 4696470],
   bounds_geographic: [-83.95, 42.2, -83.6, 42.35],
   signature: "EPSG:32617:1272x1149:10,0,322730,0,-10,4696470",
+};
+
+/** Summary change block as the worker writes it (per-pixel NDVI change). */
+export const summaryChangeFixture = {
+  computed: true,
+  earlier: {
+    stac_item_id: "S2A_MSIL2A_20230504T163211_R041_T17TLG",
+    observed_at: "2023-05-04T16:32:11Z",
+  },
+  later: {
+    stac_item_id: "S2A_MSIL2A_20230926T163349_R041_T17TKG",
+    observed_at: "2023-09-26T16:33:49Z",
+  },
+  mask_policy: "valid_in_both",
+  delta_threshold: 0.1,
+  display_range: 0.4,
+  stats: {
+    aoi_pixel_count: 900000,
+    valid_both_pixel_count: 786600,
+    valid_both_pct: 87.4,
+    delta_mean: -0.081,
+    delta_median: -0.074,
+    delta_std: 0.118,
+    delta_p10: -0.242,
+    delta_p90: 0.061,
+    pct_increased: 8.6,
+    pct_decreased: 22.3,
+  },
+  note:
+    "Delta is the later minus the earlier NDVI for the specific acquisition " +
+    "dates shown; it does not by itself establish causes, and individual " +
+    "10 m pixels are spectral mixtures that shift slightly between dates. " +
+    "See the limitations documentation.",
 };
 
 export const analysisFixture = {
@@ -118,6 +205,7 @@ export const analysisFixture = {
     identical_analytical_grid: true,
     comparison_note:
       "Every usable observation was resampled onto one canonical analytical grid, so imagery and statistics cover identical ground.",
+    change: summaryChangeFixture,
   },
   grid: gridFixture,
   is_demo: true,
@@ -130,6 +218,30 @@ export const analysisFixture = {
       "/api/v1/analyses/0d3f9a52-6f89-4a2e-9f4e-0f8b0e5c1a77/artifacts",
     provenance:
       "/api/v1/analyses/0d3f9a52-6f89-4a2e-9f4e-0f8b0e5c1a77/provenance",
+  },
+};
+
+/** NBR burn-severity analysis: the NDVI fixture with the operation's own
+ * processing info, change-map display range, and worker change note. */
+export const nbrAnalysisFixture = {
+  ...analysisFixture,
+  id: "1e4fa263-7f90-4b3f-af5f-1f9c1f6d2b88",
+  processing: { ...analysisFixture.processing, operation: "nbr" },
+  summary: {
+    ...analysisFixture.summary,
+    change: {
+      ...summaryChangeFixture,
+      display_range: 0.6,
+      note:
+        "Delta is the later minus the earlier NBR for the specific " +
+        "acquisition dates shown. NBR drops over burned or severely damaged " +
+        "vegetation, so a negative delta indicates burn severity increase " +
+        "(new burn) and a positive delta indicates recovery or regrowth. It " +
+        "does not by itself establish causes, and individual 10 m pixels are " +
+        "spectral mixtures that shift slightly between dates; the SWIR band " +
+        "is natively 20 m and resampled onto the 10 m grid. See the " +
+        "limitations documentation.",
+    },
   },
 };
 

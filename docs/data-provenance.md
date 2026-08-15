@@ -8,8 +8,8 @@ configuration). The document is validated against a JSON Schema (draft
 than shipping unauditable results.
 
 - Schema source of truth: `packages/earth_observation/src/earth_observation/provenance.py`
-  (`PROVENANCE_SCHEMA`, version `1.0.0`)
-- Published copy: [`schemas/provenance-1.0.0.json`](schemas/provenance-1.0.0.json)
+  (`PROVENANCE_SCHEMA`, version `2.3.0`)
+- Published copy: [`schemas/provenance-2.3.0.json`](schemas/provenance-2.3.0.json)
 - Methodology the parameters refer to:
   [scientific-methodology.md](scientific-methodology.md)
 
@@ -21,10 +21,12 @@ than shipping unauditable results.
 | `request` | AOI geometry + geodesic area (km²), start/end dates, cloud threshold, scene limit | The full user-controlled input surface. Everything needed to re-issue the query. |
 | `canonical_grid` | Grid schema version, CRS/EPSG, resolution, affine transform, width/height, projected and geographic bounds, AOI geometry, signature | The single analytical grid every observation was reprojected onto. Two observations are only comparable if they share it, so it is recorded once per analysis and echoed per scene. |
 | `scene_selection` | Algorithm name + version (`temporal-stratified-lowest-cloud` / `2.0.0`), selected count, the coverage threshold used, **every excluded acquisition with its reason and coverage** | Selection changes results as much as processing does. Recording exclusions (`insufficient_aoi_coverage`, `cloud_cover_above_threshold`, `not_selected_temporal_sampling`) makes "why isn't scene X in my series?" answerable. |
-| `processing` | Operation (`ndvi`), the full `ProcessingConfig` snapshot, masked SCL classes (ids and names), **mosaic method**, **resampling method for spectral and categorical data** | The mask policy and every scientific parameter, frozen at run time. Resampling choices are recorded because they change pixel values; the categorical/nearest guarantee is what keeps SCL class labels meaningful. |
+| `processing` | Operation (`ndvi` / `nbr`), the index registry identity (schema >= 2.2.0: title, formula, band roles resolved to asset keys, display/change scaling), the full `ProcessingConfig` snapshot, masked SCL classes (ids and names), **mosaic method**, **resampling method for spectral and categorical data** | The mask policy and every scientific parameter, frozen at run time. Resampling choices are recorded because they change pixel values; the categorical/nearest guarantee is what keeps SCL class labels meaningful. |
 | `software` | `processing_version` (2.0.0), git commit SHA, container image, Python version, `uv.lock` sha256, key package versions | Pins the exact code. Two runs with identical config but different rasterio/GDAL versions are not guaranteed bit-identical. |
 | `scenes` | Per **acquisition**: acquisition key, primary item id, **every contributing STAC item id**, **Sentinel-2 tile ids**, granule count, acquisition (sensing) time, cloud cover, processing baselines, **band scaling used and its source**, original **unsigned** asset hrefs keyed by item, **coverage accounting**, usable flag + reason, output CRS/transform/resolution, processing seconds, warnings | The per-observation scientific record. Listing every contributing granule is what makes a mosaicked observation auditable — see [ADR 0007](adr/0007-canonical-analysis-grid.md). |
+| `change` | The per-pixel change map (schema >= 2.1.0): operation (>= 2.2.0), earliest/latest source item ids and sensing dates, mask policy (`valid_in_both`), delta threshold, display range, colormap stops, statistics — or `computed: false` with the skip reason | The change COG is a derived product of exactly two observations; recording which two, and the mask/threshold/display parameters, is what makes it auditable. |
 | `outputs` | Every artifact: type, blob path, content type, **sha256**, size in bytes | Integrity: a downloaded artifact can be verified against its recorded digest. |
+| `fire_context` | The FIRMS active-fire overlay (schema >= 2.3.0, only when enabled and fetched): source product, date span + bbox, windows queried vs needed (truncation flag), detection count | The overlay is archived and checksummed like every other input; recording windows and truncation keeps partial coverage honest. |
 | `timing` | Started/completed timestamps, duration | Operational forensics and performance regression tracking. |
 | `warnings` | Non-fatal anomalies (grid mismatches, missing visual asset, ...) | Anything unusual that did not stop the run must still be visible. |
 

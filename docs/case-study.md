@@ -782,9 +782,17 @@ shortwave-infrared information to examine burned areas and fire severity. A
 pre-fire and post-fire comparison would be a meaningful extension of the
 change-analysis model.
 
+*Update, August 2026: shipped. NBR is a supported operation end to end —
+per-scene COGs, ΔNBR change maps, operation-aware provenance — and the curated
+catalog gained two verified burn-scar regions (2024 Park Fire, California;
+2021 Evia, Greece) with measured ΔNBR of −0.21 each.*
+
 **Polygon areas of interest.** Supporting user-drawn polygons would let analyses
 follow rivers, fields, watersheds, burn perimeters, parks, or property lines
 rather than rectangular bounding boxes.
+
+*Update, August 2026: shipped. Analyses accept arbitrary drawn polygons, not
+just rectangles.*
 
 **Open-source contribution.** This project introduced me to STAC, Rasterio,
 geospatial Python, COG tooling, and the wider Earth-observation software

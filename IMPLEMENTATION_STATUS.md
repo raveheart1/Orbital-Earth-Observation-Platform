@@ -310,3 +310,42 @@ Issues found and fixed during deployment (committed):
       runbook first said. The ruleset phase is still named
       `http_request_dynamic_redirect`; the two disagree in Cloudflare's own
       product.
+
+## Change detection, polygon AOIs, NBR burn severity, and FIRMS context (2026-08-13/14)
+
+- [x] **Per-pixel change maps** (`earth_observation.change`): the earliest and
+      latest usable observations of an analysis are subtracted on the canonical
+      grid (delta = later − earlier, pixels valid on both dates only), shipped as
+      a change COG + diverging-ramp preview, stats block in the analysis summary,
+      and a `ChangePanel` in the UI. Provenance schema 2.1.0.
+- [x] **Visitor-drawn polygon AOIs** (exterior ring, vertex-capped at 256), in
+      the form, the map, validation, and the analysis-page map (which previously
+      rendered only the bounding box).
+- [x] **Index registry + NBR** (`earth_observation.indices`): NDVI and NBR share
+      the normalized-difference machinery (clip-to-zero, zero-denominator and
+      NaN discipline unchanged). NBR = (B08 − B12)/(B08 + B12); the 20 m SWIR is
+      bilinearly resampled onto the 10 m grid through the same reprojection path
+      as SCL, with a recorded per-scene warning. `operation` is accepted on
+      submission, advertised by `/api/v1/config/public` (with per-operation
+      legend specs), and drives worker artifact types, per-index change ranges
+      and wording, and every UI label. Provenance 2.2.0 records the index
+      identity. No database migrations anywhere (string column, VARCHAR enums,
+      JSON config).
+- [x] **Two verified Wildfire regions** (catalog 10 → 12): Park Fire Burn Scar
+      (2024, CA, 142 km², T10TFK) and Evia Burn Scar (2021, Greece, 144 km²,
+      T34SFJ), each checked against live STAC coverage before seeding. Live NBR
+      analyses: Park Fire mean ΔNBR −0.239 (45.4% burn-severity increase), Evia
+      −0.274 — consistent with the documented fire locations and dates.
+- [x] **Optional FIRMS active-fire overlay**: with `OEOP_FIRMS_MAP_KEY` set, the
+      worker archives VIIRS detections (area API, ≤5-day windows, capped) for the
+      analysis bbox + date span as a checksummed GeoJSON artifact; the web shows
+      a toggleable point layer and a caption line on NBR change maps. Unset key →
+      feature absent, never an error. Provenance 2.3.0 (`fire_context` block).
+- [x] **Local-stack fixes found while testing**: artifact download URLs are now
+      browser-reachable under docker compose (`blob_download_base_url` setting —
+      the SAS signs the resource path, not the host), and
+      `OEOP_MAX_JOB_RUNTIME_SECONDS` is actually passed to containers (a 225 km²,
+      12-scene, two-tile NBR analysis on a ~1 Mbps link exceeded the 25-minute
+      default; the deadline is legitimate, the missing passthrough was the bug).
+- [x] Tests: 308 Python, 237 vitest; ruff/mypy/eslint/tsc clean; `make verify`
+      green before the PR.

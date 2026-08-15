@@ -14,6 +14,7 @@ import {
   defaultCustomBbox,
   maxAreaKm2ForMode,
   validateAoiArea,
+  validateRingVertexCount,
   type AoiMode,
 } from "@/lib/aoi";
 import {
@@ -26,7 +27,10 @@ import { formatAreaLimitKm2, formatDaySpan, formatKm2 } from "@/lib/format";
 import {
   bboxIsValid,
   estimateBboxAreaKm2,
+  estimateRingAreaKm2,
   parseBboxInputs,
+  ringToPolygonGeometry,
+  type LonLatRing,
 } from "@/lib/geo";
 import { firstRegionId } from "@/lib/regions";
 import {
@@ -43,9 +47,11 @@ import type {
   Region,
   SelectionStrategy,
 } from "@/lib/schemas";
+import { DEFAULT_OPERATION } from "@/lib/schemas";
 import { useFetch } from "@/lib/useFetch";
 import { ErrorBox, LoadingBox } from "./FetchStates";
 import MapPanel from "./MapPanel";
+import type { DrawMode } from "./MapView";
 import RegionPicker from "./RegionPicker";
 
 interface BboxInputs {
@@ -135,11 +141,17 @@ export function FormInner({
     maxLon: "",
     maxLat: "",
   });
+  // Which drawing tool the custom mode uses; the rectangle keeps the numeric
+  // fields as its keyboard-accessible path, the polygon is pointer-only.
+  const [drawTool, setDrawTool] = useState<DrawMode>("rectangle");
+  /** Completed drawn ring, distinct vertices without the closing repeat. */
+  const [polygonRing, setPolygonRing] = useState<LonLatRing | null>(null);
   const [startDate, setStartDate] = useState(defaultStart);
   const [endDate, setEndDate] = useState(today);
   const [cloudPct, setCloudPct] = useState(config.default_cloud_cover_pct);
   const [sceneLimit, setSceneLimit] = useState(config.default_scene_limit);
   const [strategy, setStrategy] = useState<SelectionStrategy>("temporal");
+  const [operation, setOperation] = useState<string>(DEFAULT_OPERATION);
   // Null means "follow the date range". Once the visitor picks a month
   // explicitly it sticks, even when the dates move under it.
   const [pickedMonth, setPickedMonth] = useState<number | null>(null);
@@ -164,10 +176,20 @@ export function FormInner({
     return parsed && bboxIsValid(parsed) ? parsed : null;
   }, [bboxInputs]);
 
+  const polygonActive = mode === "custom" && drawTool === "polygon";
+
   const activeBbox: Bbox | null =
     mode === "region" ? (selectedRegion?.bbox ?? null) : customBbox;
 
+  // Memoized so the map's fitBounds effect sees a stable identity across
+  // unrelated form re-renders.
+  const polygonGeometry = useMemo(
+    () => (polygonRing ? ringToPolygonGeometry(polygonRing) : null),
+    [polygonRing],
+  );
+
   const customArea = customBbox ? estimateBboxAreaKm2(customBbox) : null;
+  const polygonArea = polygonRing ? estimateRingAreaKm2(polygonRing) : null;
   /** The cap in force right now — drawn areas are capped far more tightly. */
   const activeMaxArea = maxAreaKm2ForMode(mode, config);
 
@@ -179,6 +201,15 @@ export function FormInner({
     }
     if (!customAllowed) {
       return "Custom areas are disabled on this deployment. Choose a predefined region.";
+    }
+    if (drawTool === "polygon") {
+      if (!polygonRing) {
+        return "Outline your area on the map: click to place at least three vertices, then click the first point to close the polygon.";
+      }
+      return (
+        validateRingVertexCount(polygonRing.length, config) ??
+        validateAoiArea(estimateRingAreaKm2(polygonRing), "custom", config, "polygon")
+      );
     }
     const parsed = parseBboxInputs(bboxInputs);
     if (!parsed) {
@@ -222,6 +253,10 @@ export function FormInner({
   const formValid =
     !aoiError && !dateError && !sceneLimitError && config.submissions_enabled;
 
+  // The operation picker is offered only when the deployment runs more than
+  // one index; a single-operation (or older) server never sees the field.
+  const operationOffered = config.operations.length > 1;
+
   // --- Submit -------------------------------------------------------------
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault();
@@ -232,7 +267,12 @@ export function FormInner({
     const payload: CreateAnalysisRequest = {
       ...(mode === "region"
         ? { region_id: selectedRegion?.id }
-        : { bbox: customBbox ?? undefined }),
+        : drawTool === "polygon"
+          ? { geometry: polygonGeometry ?? undefined }
+          : { bbox: customBbox ?? undefined }),
+      // Sent only when the picker was rendered: servers old enough to advertise
+      // a single operation also forbid unknown request fields.
+      ...(operationOffered ? { operation } : {}),
       start_date: startDate,
       end_date: endDate,
       max_cloud_cover_pct: cloudPct,
@@ -351,32 +391,93 @@ export function FormInner({
               />
             ) : (
               <div>
-                <p className="hint" style={{ marginBottom: "0.75rem" }}>
-                  Click the map twice to draw a rectangle (first click sets one
-                  corner, second click the opposite corner; Escape cancels), or
-                  type the coordinates — the map and the fields stay in sync.
-                  Custom areas are capped at{" "}
-                  {formatAreaLimitKm2(config.max_custom_aoi_area_km2)} — roughly{" "}
-                  {Math.sqrt(config.max_custom_aoi_area_km2).toFixed(1)} km on a
-                  side — so the fields start on a compliant example box.
-                </p>
-                <div className="field-row">
-                  {BBOX_FIELDS.map(({ key, label }) => (
-                    <div className="field" key={key}>
-                      <label htmlFor={`bbox-${key}`}>{label}</label>
-                      <input
-                        id={`bbox-${key}`}
-                        type="number"
-                        step="0.00001"
-                        inputMode="decimal"
-                        value={bboxInputs[key]}
-                        onChange={(e) =>
-                          setBboxInputs({ ...bboxInputs, [key]: e.target.value })
-                        }
-                      />
-                    </div>
-                  ))}
+                <div
+                  className="mode-toggle"
+                  role="radiogroup"
+                  aria-label="Drawing tool"
+                  style={{ marginBottom: "0.75rem" }}
+                >
+                  <label>
+                    <input
+                      type="radio"
+                      name="aoi-draw-tool"
+                      value="rectangle"
+                      checked={drawTool === "rectangle"}
+                      onChange={() => setDrawTool("rectangle")}
+                    />
+                    Rectangle
+                  </label>
+                  <label>
+                    <input
+                      type="radio"
+                      name="aoi-draw-tool"
+                      value="polygon"
+                      checked={drawTool === "polygon"}
+                      onChange={() => setDrawTool("polygon")}
+                    />
+                    Polygon
+                  </label>
                 </div>
+                {drawTool === "rectangle" ? (
+                  <>
+                    <p className="hint" style={{ marginBottom: "0.75rem" }}>
+                      Click the map twice to draw a rectangle (first click sets
+                      one corner, second click the opposite corner; Escape
+                      cancels), or type the coordinates — the map and the
+                      fields stay in sync. Custom areas are capped at{" "}
+                      {formatAreaLimitKm2(config.max_custom_aoi_area_km2)} —
+                      roughly{" "}
+                      {Math.sqrt(config.max_custom_aoi_area_km2).toFixed(1)} km
+                      on a side — so the fields start on a compliant example
+                      box.
+                    </p>
+                    <div className="field-row">
+                      {BBOX_FIELDS.map(({ key, label }) => (
+                        <div className="field" key={key}>
+                          <label htmlFor={`bbox-${key}`}>{label}</label>
+                          <input
+                            id={`bbox-${key}`}
+                            type="number"
+                            step="0.00001"
+                            inputMode="decimal"
+                            value={bboxInputs[key]}
+                            onChange={(e) =>
+                              setBboxInputs({
+                                ...bboxInputs,
+                                [key]: e.target.value,
+                              })
+                            }
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <p className="hint" style={{ marginBottom: "0.75rem" }}>
+                      Click the map to place vertices one by one; click the
+                      first point (or double-click) to close the outline, and
+                      press Escape to start over. Up to{" "}
+                      {config.max_custom_aoi_vertices} vertices, under the same{" "}
+                      {formatAreaLimitKm2(config.max_custom_aoi_area_km2)} cap
+                      as drawn rectangles.
+                    </p>
+                    <p aria-live="polite">
+                      Vertices placed:{" "}
+                      <span className="num">{polygonRing?.length ?? 0}</span>
+                      {polygonRing ? (
+                        <button
+                          type="button"
+                          className="btn btn-small"
+                          style={{ marginLeft: "0.75rem" }}
+                          onClick={() => setPolygonRing(null)}
+                        >
+                          Clear polygon
+                        </button>
+                      ) : null}
+                    </p>
+                  </>
+                )}
               </div>
             )}
 
@@ -385,7 +486,7 @@ export function FormInner({
               <span className="num">
                 {mode === "region"
                   ? formatKm2(selectedRegion?.area_km2 ?? null)
-                  : formatKm2(customArea)}
+                  : formatKm2(polygonActive ? polygonArea : customArea)}
               </span>
               <span className="small muted">
                 {" "}
@@ -405,16 +506,57 @@ export function FormInner({
           <MapPanel
             center={config.map_default_center}
             zoom={config.map_default_zoom}
-            bbox={activeBbox}
+            bbox={polygonActive ? null : activeBbox}
+            geometry={polygonActive ? polygonGeometry : null}
             drawEnabled={
               mode === "custom" && customAllowed && config.submissions_enabled
             }
+            drawMode={drawTool}
             onDrawComplete={setBboxFromDraw}
+            onDrawPolygonComplete={setPolygonRing}
             onCenterChange={handleCenterChange}
-            ariaLabel="Map of the area of interest. Use the coordinate fields to define a custom area with the keyboard."
+            ariaLabel={
+              polygonActive
+                ? "Map of the area of interest. Polygon drawing uses the pointer; switch to the rectangle tool for keyboard-accessible coordinate fields."
+                : "Map of the area of interest. Use the coordinate fields to define a custom area with the keyboard."
+            }
           />
         </div>
       </fieldset>
+
+      {operationOffered ? (
+        <fieldset disabled={!config.submissions_enabled || submitting}>
+          <legend>What to measure</legend>
+          <div className="field">
+            <span className="field-label" id="operation-label">
+              Index
+            </span>
+            <div
+              className="region-cards"
+              role="radiogroup"
+              aria-labelledby="operation-label"
+            >
+              {config.operations.map((option) => (
+                <label className="region-card" key={option.id}>
+                  <input
+                    type="radio"
+                    name="operation"
+                    value={option.id}
+                    checked={operation === option.id}
+                    onChange={() => setOperation(option.id)}
+                  />
+                  <span>
+                    <span className="region-name">{option.title}</span>
+                    <span className="region-desc" style={{ display: "block" }}>
+                      {option.description}
+                    </span>
+                  </span>
+                </label>
+              ))}
+            </div>
+          </div>
+        </fieldset>
+      ) : null}
 
       <fieldset disabled={!config.submissions_enabled || submitting}>
         <legend>Observation window & scene selection</legend>

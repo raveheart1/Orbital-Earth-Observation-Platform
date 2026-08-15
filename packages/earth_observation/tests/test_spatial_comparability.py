@@ -322,6 +322,7 @@ class TestPreviewsAndProvenance:
     def test_provenance_lists_all_contributing_items(self, seam, seam_grid, tmp_path):
         from datetime import UTC, datetime
 
+        from earth_observation.indices import INDICES
         from earth_observation.provenance import build_provenance
 
         acq = group_acquisitions(seam["candidates"], seam["aoi_geojson"])[0]
@@ -338,6 +339,7 @@ class TestPreviewsAndProvenance:
             analysis_id="6f1f5c62-9d94-4a2f-8f0a-2f5d2a9b1c33",
             created_at="2024-07-01T00:00:00+00:00",
             config=CONFIG,
+            index=INDICES["ndvi"],
             grid=seam_grid,
             aoi_geometry=seam["aoi_geojson"],
             aoi_area_km2=4.0,

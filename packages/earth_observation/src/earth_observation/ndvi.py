@@ -1,6 +1,8 @@
-"""NDVI computation and Sentinel-2 DN -> reflectance conversion.
+"""Normalized-difference index computation and Sentinel-2 DN -> reflectance conversion.
 
-NDVI = (NIR - Red) / (NIR + Red), computed on surface reflectance.
+NDVI = (NIR - Red) / (NIR + Red) and NBR = (NIR - SWIR2) / (NIR + SWIR2),
+both computed on surface reflectance via the shared
+:func:`_normalized_difference` helper.
 
 Sentinel-2 L2A distributes reflectance as scaled integers. Since processing
 baseline 04.00 (25 January 2022) the encoding includes an additive offset:
@@ -57,42 +59,75 @@ def to_reflectance(dn: FloatArray, scaling: BandScaling) -> FloatArray:
     return dn.astype(np.float64) * scaling.scale + scaling.offset
 
 
-def compute_ndvi(
-    red: FloatArray,
-    nir: FloatArray,
+def _normalized_difference(
+    plus: FloatArray,
+    minus: FloatArray,
     valid_mask: npt.NDArray[np.bool_] | None = None,
+    *,
+    plus_name: str,
+    minus_name: str,
 ) -> tuple[npt.NDArray[np.float32], int]:
-    """Compute NDVI with explicit invalid-pixel handling.
+    """Compute ``(plus - minus) / (plus + minus)`` with explicit invalid-pixel handling.
 
     Negative reflectance inputs are clipped to zero before the ratio:
     negative surface reflectance is a retrieval artifact (common over water
     and deep shadow once the baseline-04.00 offset is removed), and without
-    clipping a near-zero denominator produces physically meaningless NDVI
+    clipping a near-zero denominator produces physically meaningless index
     values of arbitrary magnitude. With clipping the output is guaranteed to
     lie in [-1, 1].
 
-    Returns ``(ndvi, zero_denominator_count)`` where ``ndvi`` is float32 with
+    Returns ``(index, zero_denominator_count)`` where ``index`` is float32 with
     NaN at every pixel that is masked, non-finite in either input, or has a
     zero denominator (both bands zero after clipping). Zero-denominator
     pixels are counted separately because they indicate degenerate
     reflectance rather than clouds.
     """
-    if red.shape != nir.shape:
-        raise ValueError(f"Band shapes differ: red {red.shape} vs nir {nir.shape}")
-    red64 = np.clip(red.astype(np.float64), 0.0, None)
-    nir64 = np.clip(nir.astype(np.float64), 0.0, None)
+    if minus.shape != plus.shape:
+        raise ValueError(
+            f"Band shapes differ: {minus_name} {minus.shape} vs {plus_name} {plus.shape}"
+        )
+    minus64 = np.clip(minus.astype(np.float64), 0.0, None)
+    plus64 = np.clip(plus.astype(np.float64), 0.0, None)
 
-    valid = np.isfinite(red64) & np.isfinite(nir64)
+    valid = np.isfinite(minus64) & np.isfinite(plus64)
     if valid_mask is not None:
-        if valid_mask.shape != red.shape:
-            raise ValueError(f"Mask shape {valid_mask.shape} does not match band shape {red.shape}")
+        if valid_mask.shape != minus.shape:
+            raise ValueError(
+                f"Mask shape {valid_mask.shape} does not match band shape {minus.shape}"
+            )
         valid &= valid_mask
 
-    denominator = nir64 + red64
+    denominator = plus64 + minus64
     zero_denominator = valid & (denominator == 0.0)
     zero_count = int(np.count_nonzero(zero_denominator))
     computable = valid & ~zero_denominator
 
-    ndvi = np.full(red.shape, np.nan, dtype=np.float64)
-    np.divide(nir64 - red64, denominator, out=ndvi, where=computable)
-    return ndvi.astype(np.float32), zero_count
+    result = np.full(minus.shape, np.nan, dtype=np.float64)
+    np.divide(plus64 - minus64, denominator, out=result, where=computable)
+    return result.astype(np.float32), zero_count
+
+
+def compute_ndvi(
+    red: FloatArray,
+    nir: FloatArray,
+    valid_mask: npt.NDArray[np.bool_] | None = None,
+) -> tuple[npt.NDArray[np.float32], int]:
+    """Compute NDVI = (NIR - Red) / (NIR + Red).
+
+    Shares the clip-to-zero / NaN-propagation / zero-denominator discipline of
+    :func:`_normalized_difference`; see its docstring for the exact contract.
+    """
+    return _normalized_difference(nir, red, valid_mask, plus_name="nir", minus_name="red")
+
+
+def compute_nbr(
+    nir: FloatArray,
+    swir: FloatArray,
+    valid_mask: npt.NDArray[np.bool_] | None = None,
+) -> tuple[npt.NDArray[np.float32], int]:
+    """Compute NBR = (NIR - SWIR2) / (NIR + SWIR2).
+
+    Same invalid-pixel discipline as :func:`compute_ndvi` — both are
+    normalized differences and share :func:`_normalized_difference`.
+    """
+    return _normalized_difference(nir, swir, valid_mask, plus_name="nir", minus_name="swir")

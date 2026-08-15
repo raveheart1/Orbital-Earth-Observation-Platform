@@ -14,16 +14,24 @@ from pydantic import BaseModel, ConfigDict, Field
 
 
 class AnalysisCreateRequest(BaseModel):
-    """Submit a new NDVI analysis.
+    """Submit a new analysis.
 
-    Exactly one of ``region_id`` / ``bbox`` must be provided. ``bbox`` is
-    ``[min_lon, min_lat, max_lon, max_lat]`` in WGS84.
+    Exactly one of ``region_id`` / ``bbox`` / ``geometry`` must be provided.
+    ``bbox`` is ``[min_lon, min_lat, max_lon, max_lat]`` in WGS84. ``geometry``
+    is a GeoJSON Polygon geometry object (not a Feature) in WGS84, restricted
+    to a single exterior ring — no holes — of at most 256 vertices.
     """
 
     model_config = ConfigDict(extra="forbid")
 
     region_id: uuid.UUID | None = None
+    operation: str = Field(
+        default="ndvi",
+        description="Spectral-index operation to run; the available operations "
+        "are advertised by /api/v1/config/public.",
+    )
     bbox: tuple[float, float, float, float] | None = None
+    geometry: dict[str, Any] | None = None
     start_date: date
     end_date: date
     max_cloud_cover_pct: float = Field(default=20.0, ge=0.0, le=100.0)
@@ -230,6 +238,23 @@ class DatasetResponse(BaseModel):
     gsd_meters: int
 
 
+class PublicOperationInfo(BaseModel):
+    """One spectral-index operation the deployment can run."""
+
+    id: str = Field(description="Operation name to send as `operation` on submission")
+    title: str
+    description: str = Field(description="Plain-language note on what the index shows")
+    display_min: float
+    display_max: float
+    change_display_range: float = Field(
+        description="Half-range of the change-map colormap (delta spans -range..+range)"
+    )
+    legend: dict[str, Any] = Field(
+        description="Preview-legend spec (stops, labels, wording) matching the "
+        "operation's preview colormap"
+    )
+
+
 class PublicConfigResponse(BaseModel):
     environment: str
     demo_mode: bool
@@ -241,6 +266,11 @@ class PublicConfigResponse(BaseModel):
     )
     max_custom_aoi_area_km2: float = Field(
         default=2.0, description="Maximum area for a visitor-drawn AOI, in km²"
+    )
+    max_custom_aoi_vertices: int = Field(
+        default=256,
+        description="Vertex ceiling for a drawn polygon's exterior ring, "
+        "excluding the closing vertex",
     )
     max_date_span_days: int
     min_start_date: date
@@ -260,6 +290,9 @@ class PublicConfigResponse(BaseModel):
     map_default_center: tuple[float, float]
     map_default_zoom: float
     ndvi_legend: dict[str, Any]
+    operations: list[PublicOperationInfo] = Field(
+        description="Spectral-index operations this deployment can run",
+    )
     demo_analysis_id: uuid.UUID | None
     processing_version: str
 

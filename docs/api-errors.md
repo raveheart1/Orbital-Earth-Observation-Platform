@@ -40,11 +40,16 @@ never succeed as specified, so it is rejected before any work is enqueued.
 Typical causes:
 
 - Malformed, empty, or self-intersecting AOI geometry
+- Drawn `geometry` outside the accepted grammar: a Feature wrapper instead of
+  a bare geometry object, a MultiPolygon, interior rings (holes), or an
+  exterior ring with more than 256 vertices
 - Antimeridian-crossing bounding box (unsupported by design)
 - AOI area outside limits (0.5–600 km²; 250 km² in demo mode)
 - Date span too long (max 3660 days, about ten years) or start before
   2015-07-01
 - Scene limit or cloud threshold outside allowed bounds
+- Unknown `operation` name; the supported operations are listed in the error
+  detail and advertised by `/api/v1/config/public`
 
 Fix the request; retrying unchanged will always fail.
 

@@ -9,6 +9,7 @@ import type {
   TimeseriesPoint,
 } from "@/lib/schemas";
 import { detectGridMismatch } from "@/lib/grid";
+import { operationUi } from "@/lib/operations";
 import { bboxRing, extractGeometryRings, type LonLatRing } from "@/lib/geo";
 import { findSceneArtifact, selectComparisonPoints } from "@/lib/timeseries";
 import { formatDate, formatGranules, formatPct } from "@/lib/format";
@@ -21,7 +22,13 @@ import LegendBar from "./LegendBar";
  * the projection curvature this ignores is far below one preview pixel, so
  * the linear mapping is adequate.
  */
-function AoiOverlay({ grid, rings }: { grid: AnalysisGrid; rings: LonLatRing[] }) {
+export function AoiOverlay({
+  grid,
+  rings,
+}: {
+  grid: AnalysisGrid;
+  rings: LonLatRing[];
+}) {
   const [minLon, minLat, maxLon, maxLat] = grid.bounds_geographic;
   if (
     minLon === undefined ||
@@ -69,6 +76,18 @@ function AoiOverlay({ grid, rings }: { grid: AnalysisGrid; rings: LonLatRing[] }
       })}
     </svg>
   );
+}
+
+/**
+ * AOI outline rings in WGS84: prefer the request geometry, then the region's,
+ * then fall back to the rectangular bbox.
+ */
+export function analysisAoiRings(analysis: Analysis): LonLatRing[] {
+  const fromAnalysis = extractGeometryRings(analysis.geometry);
+  if (fromAnalysis.length > 0) return fromAnalysis;
+  const fromRegion = extractGeometryRings(analysis.region?.geometry ?? null);
+  if (fromRegion.length > 0) return fromRegion;
+  return [bboxRing(analysis.bbox)];
 }
 
 function PreviewCell({
@@ -143,11 +162,118 @@ function PreviewCell({
 }
 
 /**
+ * Swipe comparison: the earliest and latest previews of one kind stacked in
+ * a single fixed-aspect viewport, with the earliest (left) layer clipped at
+ * a draggable divider via CSS clip-path. The divider itself is a full-size
+ * `<input type=range>`, so it is keyboard-operable (arrow keys) and needs no
+ * pointer-event bookkeeping of our own. Only offered on canonical-grid
+ * analyses: both layers are guaranteed to cover identical ground, which is
+ * exactly what makes overlaying them meaningful.
+ */
+function SwipeViewport({
+  before,
+  after,
+  beforeAlt,
+  afterAlt,
+  beforeDate,
+  afterDate,
+  grid,
+  rings,
+  showAoi,
+  position,
+  onPositionChange,
+}: {
+  before: Artifact | null;
+  after: Artifact | null;
+  beforeAlt: string;
+  afterAlt: string;
+  beforeDate: string;
+  afterDate: string;
+  grid: AnalysisGrid;
+  rings: LonLatRing[];
+  showAoi: boolean;
+  position: number;
+  onPositionChange: (value: number) => void;
+}) {
+  return (
+    <figure className="swipe-frame">
+      <div
+        className="swipe-viewport"
+        style={{ aspectRatio: `${grid.width} / ${grid.height}` }}
+        data-testid="swipe-viewport"
+      >
+        {after ? (
+          <img src={after.download_url} alt={afterAlt} />
+        ) : (
+          <div
+            className="compare-missing"
+            role="img"
+            aria-label={`${afterAlt} (not available)`}
+          >
+            Preview not available
+          </div>
+        )}
+        {before ? (
+          <img
+            src={before.download_url}
+            alt={beforeAlt}
+            style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
+          />
+        ) : (
+          <div
+            className="compare-missing"
+            role="img"
+            aria-label={`${beforeAlt} (not available)`}
+            style={{ clipPath: `inset(0 ${100 - position}% 0 0)` }}
+          >
+            Preview not available
+          </div>
+        )}
+        {showAoi && rings.length > 0 ? (
+          <AoiOverlay grid={grid} rings={rings} />
+        ) : null}
+        <span className="swipe-label swipe-label--left">
+          <span className="mono">{beforeDate}</span> earliest
+        </span>
+        <span className="swipe-label swipe-label--right">
+          <span className="mono">{afterDate}</span> latest
+        </span>
+        <div
+          className="swipe-divider"
+          style={{ left: `${position}%` }}
+          aria-hidden="true"
+        />
+        <input
+          className="swipe-range"
+          type="range"
+          min={0}
+          max={100}
+          step={1}
+          value={position}
+          onChange={(event) => onPositionChange(Number(event.target.value))}
+          aria-label={`Comparison divider: percentage of the view showing the earliest observation (${beforeDate}) instead of the latest (${afterDate})`}
+        />
+      </div>
+      <figcaption className="small muted" style={{ marginTop: "0.35rem" }}>
+        Drag the divider — or focus it and use the arrow keys — to sweep
+        between the <span className="mono">{beforeDate}</span> (left) and{" "}
+        <span className="mono">{afterDate}</span> (right) observations.
+      </figcaption>
+    </figure>
+  );
+}
+
+/**
  * Before/after comparison for the earliest and latest usable observations:
- * true-color previews on top, NDVI previews below, with the NDVI color
- * legend. All four images render in an identically sized viewport derived
+ * true-color previews on top, index previews (NDVI, NBR, …) below, with the
+ * color legend. All four images render in an identically sized viewport derived
  * from the canonical analysis grid, and a grid-signature check warns loudly
  * if the artifacts were produced on different grids.
+ *
+ * A slider mode overlays the earliest and latest previews of one kind in a
+ * single viewport. It is disabled on a grid-signature mismatch (overlaying
+ * images of different ground would be actively misleading) and unavailable
+ * for legacy grid-null analyses, which fall back to side-by-side.
  */
 export default function ComparePreviews({
   analysis,
@@ -163,7 +289,12 @@ export default function ComparePreviews({
   areaLabel: string;
 }) {
   const [showAoi, setShowAoi] = useState(true);
+  const [mode, setMode] = useState<"side-by-side" | "slider">("side-by-side");
+  const [sliderKind, setSliderKind] = useState<"index" | "true_color">("index");
+  const [sliderPosition, setSliderPosition] = useState(50);
   const toggleId = useId();
+  const modeName = useId();
+  const kindName = useId();
   const comparison = selectComparisonPoints(points);
   if (!comparison) {
     return (
@@ -174,6 +305,7 @@ export default function ComparePreviews({
     );
   }
 
+  const op = operationUi(analysis.processing.operation);
   const { first, last } = comparison;
   const firstDate = formatDate(first.observed_at);
   const lastDate = formatDate(last.observed_at);
@@ -195,17 +327,17 @@ export default function ComparePreviews({
       point: last,
     },
     {
-      key: "ndvi-first",
-      artifact: findSceneArtifact(artifacts, first.stac_item_id, "ndvi_preview"),
-      alt: `NDVI map of ${areaLabel} acquired ${firstDate}; greener shades indicate denser, healthier vegetation`,
-      label: "NDVI — earliest",
+      key: "index-first",
+      artifact: findSceneArtifact(artifacts, first.stac_item_id, op.previewArtifactType),
+      alt: `${op.name} map of ${areaLabel} acquired ${firstDate}; ${op.previewAltHint}`,
+      label: `${op.name} — earliest`,
       point: first,
     },
     {
-      key: "ndvi-last",
-      artifact: findSceneArtifact(artifacts, last.stac_item_id, "ndvi_preview"),
-      alt: `NDVI map of ${areaLabel} acquired ${lastDate}; greener shades indicate denser, healthier vegetation`,
-      label: "NDVI — latest",
+      key: "index-last",
+      artifact: findSceneArtifact(artifacts, last.stac_item_id, op.previewArtifactType),
+      alt: `${op.name} map of ${areaLabel} acquired ${lastDate}; ${op.previewAltHint}`,
+      label: `${op.name} — latest`,
       point: last,
     },
   ];
@@ -215,16 +347,19 @@ export default function ComparePreviews({
     grid?.signature,
   );
 
-  // AOI outline in WGS84: prefer the request geometry, then the region's,
-  // then fall back to the rectangular bbox.
-  const rings: LonLatRing[] = (() => {
-    const fromAnalysis = extractGeometryRings(analysis.geometry);
-    if (fromAnalysis.length > 0) return fromAnalysis;
-    const fromRegion = extractGeometryRings(analysis.region?.geometry ?? null);
-    if (fromRegion.length > 0) return fromRegion;
-    return [bboxRing(analysis.bbox)];
-  })();
+  const rings = analysisAoiRings(analysis);
   const overlayAvailable = grid !== null && rings.length > 0;
+
+  // The slider needs the canonical-grid guarantee (legacy analyses fall back
+  // to side-by-side without offering it) and is disabled — alongside the loud
+  // warning above — when the artifacts disagree on their grid.
+  const sliderOffered = grid !== null;
+  const sliderMode = mode === "slider" && sliderOffered && !mismatch;
+  const sliderKeys =
+    sliderKind === "index" ? ["index-first", "index-last"] : ["tc-first", "tc-last"];
+  const [sliderBefore, sliderAfter] = sliderKeys.map(
+    (key) => cells.find((cell) => cell.key === key) ?? null,
+  );
 
   return (
     <div>
@@ -258,31 +393,108 @@ export default function ComparePreviews({
         </p>
       ) : null}
 
-      {overlayAvailable ? (
+      {sliderOffered || overlayAvailable ? (
         <div className="compare-controls">
-          <label className="aoi-toggle" htmlFor={toggleId}>
-            <input
-              id={toggleId}
-              type="checkbox"
-              checked={showAoi}
-              onChange={(event) => setShowAoi(event.target.checked)}
-            />
-            Show AOI boundary on previews
-          </label>
+          {sliderOffered ? (
+            <div
+              className="mode-toggle"
+              role="radiogroup"
+              aria-label="Comparison mode"
+            >
+              <label>
+                <input
+                  type="radio"
+                  name={modeName}
+                  value="side-by-side"
+                  checked={!sliderMode}
+                  onChange={() => setMode("side-by-side")}
+                />
+                Side by side
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name={modeName}
+                  value="slider"
+                  checked={sliderMode}
+                  onChange={() => setMode("slider")}
+                  disabled={mismatch}
+                />
+                Slider
+              </label>
+            </div>
+          ) : null}
+          {sliderMode ? (
+            <div
+              className="mode-toggle"
+              role="radiogroup"
+              aria-label="Slider imagery"
+            >
+              <label>
+                <input
+                  type="radio"
+                  name={kindName}
+                  value="index"
+                  checked={sliderKind === "index"}
+                  onChange={() => setSliderKind("index")}
+                />
+                {op.name}
+              </label>
+              <label>
+                <input
+                  type="radio"
+                  name={kindName}
+                  value="true_color"
+                  checked={sliderKind === "true_color"}
+                  onChange={() => setSliderKind("true_color")}
+                />
+                True color
+              </label>
+            </div>
+          ) : null}
+          {overlayAvailable ? (
+            <label className="aoi-toggle" htmlFor={toggleId}>
+              <input
+                id={toggleId}
+                type="checkbox"
+                checked={showAoi}
+                onChange={(event) => setShowAoi(event.target.checked)}
+              />
+              Show AOI boundary on previews
+            </label>
+          ) : null}
         </div>
       ) : null}
 
-      <div className="compare-grid">
-        {cells.map(({ key, ...cell }) => (
-          <PreviewCell
-            key={key}
-            {...cell}
-            grid={grid}
-            rings={rings}
-            showAoi={showAoi}
-          />
-        ))}
-      </div>
+      {sliderMode && grid !== null ? (
+        <SwipeViewport
+          before={sliderBefore?.artifact ?? null}
+          after={sliderAfter?.artifact ?? null}
+          beforeAlt={sliderBefore?.alt ?? ""}
+          afterAlt={sliderAfter?.alt ?? ""}
+          beforeDate={firstDate}
+          afterDate={lastDate}
+          grid={grid}
+          rings={rings}
+          showAoi={showAoi && overlayAvailable}
+          position={sliderPosition}
+          onPositionChange={(value) =>
+            setSliderPosition(Math.min(100, Math.max(0, Math.round(value))))
+          }
+        />
+      ) : (
+        <div className="compare-grid">
+          {cells.map(({ key, ...cell }) => (
+            <PreviewCell
+              key={key}
+              {...cell}
+              grid={grid}
+              rings={rings}
+              showAoi={showAoi}
+            />
+          ))}
+        </div>
+      )}
 
       {analysis.summary?.comparison_note ? (
         <p className="panel-note" style={{ marginTop: "0.75rem" }}>

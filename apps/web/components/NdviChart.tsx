@@ -11,6 +11,7 @@ import {
   YAxis,
 } from "recharts";
 import type { TimeseriesPoint } from "@/lib/schemas";
+import { operationUi } from "@/lib/operations";
 import { toChartPoints, type ChartPoint } from "@/lib/timeseries";
 import { formatNumber, formatPct } from "@/lib/format";
 
@@ -25,16 +26,17 @@ function formatTick(t: number): string {
 interface TooltipContentProps {
   active?: boolean;
   payload?: ReadonlyArray<{ payload?: ChartPoint }>;
+  indexName: string;
 }
 
-function ChartTooltip({ active, payload }: TooltipContentProps) {
+function ChartTooltip({ active, payload, indexName }: TooltipContentProps) {
   const point = payload?.[0]?.payload;
   if (!active || !point) return null;
   return (
     <div className="chart-tooltip">
       <p className="tt-date">{point.date}</p>
       <p>
-        Mean NDVI: <span className="num">{formatNumber(point.mean)}</span>
+        Mean {indexName}: <span className="num">{formatNumber(point.mean)}</span>
       </p>
       <p>
         Median: <span className="num">{formatNumber(point.median)}</span>
@@ -63,12 +65,19 @@ function ChartTooltip({ active, payload }: TooltipContentProps) {
 }
 
 /**
- * NDVI time series: mean NDVI per usable scene plotted on a true time axis
- * (observation dates, no interpolation between them), with a shaded
- * interquartile (p25–p75) band. The same data is available as an accessible
- * table below the chart.
+ * Index time series (NDVI, NBR, …): the mean per usable scene plotted on a
+ * true time axis (observation dates, no interpolation between them), with a
+ * shaded interquartile (p25–p75) band. The same data is available as an
+ * accessible table below the chart.
  */
-export default function NdviChart({ points }: { points: TimeseriesPoint[] }) {
+export default function NdviChart({
+  points,
+  operation,
+}: {
+  points: TimeseriesPoint[];
+  operation?: string;
+}) {
+  const op = operationUi(operation);
   const data = toChartPoints(points);
 
   if (data.length === 0) {
@@ -117,14 +126,17 @@ export default function NdviChart({ points }: { points: TimeseriesPoint[] }) {
                 width={48}
                 tickFormatter={(v: number) => v.toFixed(1)}
                 label={{
-                  value: "NDVI",
+                  value: op.name,
                   angle: -90,
                   position: "insideLeft",
                   fill: AXIS_INK,
                   fontSize: 12,
                 }}
               />
-              <Tooltip content={<ChartTooltip />} isAnimationActive={false} />
+              <Tooltip
+                content={<ChartTooltip indexName={op.name} />}
+                isAnimationActive={false}
+              />
               <Area
                 dataKey="band"
                 stroke="none"
@@ -143,7 +155,7 @@ export default function NdviChart({ points }: { points: TimeseriesPoint[] }) {
                 activeDot={{ r: 5 }}
                 connectNulls={false}
                 isAnimationActive={false}
-                name="Mean NDVI"
+                name={`Mean ${op.name}`}
               />
             </ComposedChart>
           </ResponsiveContainer>
@@ -151,7 +163,7 @@ export default function NdviChart({ points }: { points: TimeseriesPoint[] }) {
         <p className="chart-legend">
           <span className="key">
             <span className="key-line" aria-hidden="true" />
-            Mean NDVI per scene
+            Mean {op.name} per scene
           </span>
           <span className="key">
             <span className="key-band" aria-hidden="true" />
@@ -165,7 +177,7 @@ export default function NdviChart({ points }: { points: TimeseriesPoint[] }) {
         <div className="panel-body table-scroll" style={{ border: "none" }}>
           <table className="data">
             <caption>
-              NDVI statistics per usable scene, ordered by acquisition
+              {op.name} statistics per usable scene, ordered by acquisition
               (sensing) date.
             </caption>
             <thead>

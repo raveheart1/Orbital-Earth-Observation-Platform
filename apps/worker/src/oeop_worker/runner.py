@@ -15,6 +15,7 @@ Reliability properties:
 
 from __future__ import annotations
 
+import asyncio
 import hashlib
 import importlib.metadata
 import json
@@ -34,6 +35,8 @@ from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from earth_observation import PROCESSING_VERSION
 from earth_observation.acquisition import group_acquisitions
+from earth_observation.change import compute_change
+from earth_observation.cog import read_ndvi_array, validate_cog, write_ndvi_cog
 from earth_observation.errors import (
     DataError,
     NoUsableScenesError,
@@ -41,6 +44,8 @@ from earth_observation.errors import (
     UserInputError,
 )
 from earth_observation.grid import CanonicalGrid
+from earth_observation.indices import get_index
+from earth_observation.previews import change_legend_spec, write_change_preview
 from earth_observation.processing import process_acquisition
 from earth_observation.provenance import build_provenance
 from earth_observation.selection import (
@@ -63,6 +68,7 @@ from oeop_core.db.models import (
     Scene,
     SceneSelectionStatus,
 )
+from oeop_core.firms import FirmsError, fetch_fire_detections
 from oeop_core.logging import get_logger
 from oeop_core.settings import Settings
 from oeop_core.telemetry import WorkerMetrics
@@ -70,6 +76,21 @@ from oeop_core.telemetry import WorkerMetrics
 logger = get_logger(__name__)
 
 STALE_LEASE = timedelta(hours=2)
+
+#: Artifact types for per-scene index outputs, keyed by operation. The index
+#: registry (earth_observation.indices) owns what an operation MEANS; this
+#: maps it to storage types. Every registered operation must appear here —
+#: get_index() guarantees the key exists before these are consulted.
+_SCENE_ARTIFACT_TYPES: dict[str, tuple[ArtifactType, ArtifactType]] = {
+    "ndvi": (ArtifactType.NDVI_COG, ArtifactType.NDVI_PREVIEW),
+    "nbr": (ArtifactType.NBR_COG, ArtifactType.NBR_PREVIEW),
+}
+
+#: Same mapping for the analysis-level change-map artifacts.
+_CHANGE_ARTIFACT_TYPES: dict[str, tuple[ArtifactType, ArtifactType]] = {
+    "ndvi": (ArtifactType.NDVI_CHANGE_COG, ArtifactType.NDVI_CHANGE_PREVIEW),
+    "nbr": (ArtifactType.NBR_CHANGE_COG, ArtifactType.NBR_CHANGE_PREVIEW),
+}
 
 
 class JobTimeoutError(Exception):
@@ -299,6 +320,15 @@ def _check_deadline(deadline: float) -> None:
         )
 
 
+def _comparison_endpoints(results: list[SceneResult]) -> tuple[SceneResult, SceneResult] | None:
+    """Earliest and latest USABLE observations, mirroring the web's
+    ``selectComparisonPoints``; None when a before/after pair does not exist."""
+    usable = sorted((r for r in results if r.usable), key=lambda r: r.observed_at)
+    if len(usable) < 2:
+        return None
+    return usable[0], usable[-1]
+
+
 async def _aoi_geojson(session: AsyncSession, analysis: Analysis) -> dict[str, Any]:
     if analysis.geometry is not None:
         return dict(mapping(to_shape(analysis.geometry)))
@@ -318,6 +348,9 @@ async def _run_pipeline(
     deadline: float,
 ) -> Outcome:
     analysis_id = analysis.id
+    # Resolve FIRST: an unknown operation is a terminal user-input error and
+    # must fail before any state from a previous attempt is touched.
+    index = get_index(analysis.operation)
     await _reset_previous_attempt(session, blob, analysis_id)
 
     config = ProcessingConfig(**analysis.processing_config)
@@ -349,6 +382,7 @@ async def _run_pipeline(
         analysis.start_date.isoformat(),
         analysis.end_date.isoformat(),
         analysis.max_cloud_cover_pct,
+        required_band_roles=index.required_band_roles,
     )
     metrics.stac_duration.record(time.monotonic() - stac_started)
     candidates = search_result.candidates
@@ -413,6 +447,52 @@ async def _run_pipeline(
             "raise the cloud-cover threshold."
         )
 
+    # --- 2b. Optional FIRMS active-fire overlay ----------------------------
+    # Fetched AFTER selection succeeds so analyses that fail selection never
+    # spend FIRMS transactions. The overlay is context only: any FIRMS failure
+    # (network, bad key, over-limit) degrades to an analysis warning and never
+    # fails the run. With no key configured the overlay is skipped silently.
+    fire_geojson: dict[str, Any] | None = None
+    fire_context: dict[str, Any] | None = None
+    if settings.firms_map_key:
+        try:
+            firms_result = await asyncio.to_thread(
+                fetch_fire_detections,
+                map_key=settings.firms_map_key,
+                source=settings.firms_source,
+                bbox=aoi_bounds,
+                start=analysis.start_date,
+                end=analysis.end_date,
+                max_windows=settings.firms_max_windows,
+                timeout_seconds=settings.firms_timeout_seconds,
+            )
+            fire_geojson = firms_result.geojson
+            fire_context = {
+                "source": firms_result.source,
+                "start_date": firms_result.start_date,
+                "end_date": firms_result.end_date,
+                "bbox": [round(v, 6) for v in aoi_bounds],
+                "windows_queried": firms_result.windows_queried,
+                "windows_total": firms_result.windows_total,
+                "truncated": firms_result.truncated,
+                "detection_count": firms_result.detection_count,
+                "note": (
+                    "Coordinates are NASA FIRMS VIIRS active-fire detection "
+                    "centroids; a context overlay only, not an input to index "
+                    "computation."
+                ),
+            }
+            logger.info(
+                "firms_detections_fetched",
+                analysis_id=str(analysis_id),
+                detections=firms_result.detection_count,
+                windows=firms_result.windows_queried,
+                truncated=firms_result.truncated,
+            )
+        except FirmsError as exc:
+            logger.warning("firms_fetch_failed", analysis_id=str(analysis_id), detail=str(exc))
+            analysis_warnings.append(f"Active-fire overlay unavailable (FIRMS fetch failed: {exc})")
+
     def _scene_row(acq: Any, *, selected: bool, reason: str | None = None) -> Scene:
         return Scene(
             analysis_id=analysis_id,
@@ -466,7 +546,7 @@ async def _run_pipeline(
         workdir = Path(tmp)
         for acq in selection.selected:
             _check_deadline(deadline)
-            result = process_acquisition(acq, grid, config, workdir)
+            result = process_acquisition(acq, grid, config, workdir, index=index)
             results.append(result)
             metrics.scene_duration.record(result.processing_seconds)
             scene_row = scene_rows[acq.key]
@@ -547,7 +627,7 @@ async def _run_pipeline(
                     mask_scl_classes=list(config.masked_scl_classes),
                     band_scaling=result.scaling.model_dump() if result.scaling else {},
                     processing_params={
-                        "operation": "ndvi",
+                        "operation": index.operation,
                         "resampling_spectral": "bilinear",
                         "resampling_categorical": "nearest",
                         "min_valid_pixel_pct": config.min_valid_pixel_pct,
@@ -560,13 +640,14 @@ async def _run_pipeline(
 
             scene_prefix = f"{output_prefix}/scenes/{acq.primary_item_id}"
             raster = result.raster
+            cog_type, preview_type = _SCENE_ARTIFACT_TYPES[index.operation]
             uploads = [
-                (ArtifactType.NDVI_COG, result.outputs.ndvi_cog, "image/tiff", "ndvi.tif"),
+                (cog_type, result.outputs.ndvi_cog, "image/tiff", index.cog_basename),
                 (
-                    ArtifactType.NDVI_PREVIEW,
+                    preview_type,
                     result.outputs.ndvi_preview,
                     "image/png",
-                    "ndvi_preview.png",
+                    index.preview_basename,
                 ),
                 (
                     ArtifactType.SCENE_SUMMARY,
@@ -636,6 +717,95 @@ async def _run_pipeline(
         timeseries_path = workdir / "timeseries.csv"
         write_timeseries_csv(timeseries_path, results)
         summary = analysis_summary(results)
+
+        # Per-pixel change map between the earliest and latest usable
+        # observations — the same pair the web's before/after comparison
+        # shows. Both index COGs lie on the canonical grid, so the subtraction
+        # is defined pixel-for-pixel; a pixel invalid on either date has no
+        # defined change and stays nodata. Display range and delta threshold
+        # come from the index registry, which is authoritative;
+        # config.change_* remain only for stored-JSON compatibility.
+        change_block: dict[str, Any]
+        change_uploads: list[tuple[ArtifactType, Path, str, str]] = []
+        endpoints = _comparison_endpoints(results)
+        if endpoints is None:
+            change_block = {
+                "computed": False,
+                "operation": index.operation,
+                "skipped_reason": "fewer_than_two_usable_observations",
+                "note": (
+                    "A per-pixel change map needs at least two usable "
+                    "observations; this analysis produced fewer."
+                ),
+            }
+        else:
+            earlier, later = endpoints
+            assert earlier.outputs is not None
+            assert later.outputs is not None
+            delta, change_stats = compute_change(
+                read_ndvi_array(Path(earlier.outputs.ndvi_cog)),
+                read_ndvi_array(Path(later.outputs.ndvi_cog)),
+                grid.aoi_mask(),
+                delta_threshold=index.change_delta_threshold,
+            )
+            change_cog_path = workdir / f"{index.operation}_change.tif"
+            write_ndvi_cog(
+                change_cog_path,
+                delta,
+                transform=grid.transform,
+                crs=grid.crs,
+                nodata=config.output_nodata,
+            )
+            cog_ok, cog_errors, _ = validate_cog(change_cog_path)
+            if not cog_ok:
+                raise DataError(f"Generated change COG failed validation: {cog_errors}")
+            change_preview_path = workdir / f"{index.operation}_change_preview.png"
+            write_change_preview(
+                change_preview_path,
+                delta,
+                display_range=index.change_display_range,
+                max_dim=config.preview_max_dim,
+            )
+            change_cog_type, change_preview_type = _CHANGE_ARTIFACT_TYPES[index.operation]
+            change_uploads = [
+                (
+                    change_cog_type,
+                    change_cog_path,
+                    "image/tiff",
+                    f"{index.operation}_change.tif",
+                ),
+                (
+                    change_preview_type,
+                    change_preview_path,
+                    "image/png",
+                    f"{index.operation}_change_preview.png",
+                ),
+            ]
+            change_block = {
+                "computed": True,
+                "operation": index.operation,
+                "earlier": {
+                    "stac_item_id": earlier.item_id,
+                    "observed_at": earlier.observed_at.isoformat(),
+                },
+                "later": {
+                    "stac_item_id": later.item_id,
+                    "observed_at": later.observed_at.isoformat(),
+                },
+                "mask_policy": "valid_in_both",
+                "delta_threshold": index.change_delta_threshold,
+                "display_range": index.change_display_range,
+                "stats": change_stats.model_dump(),
+                "note": index.change_note,
+            }
+            logger.info(
+                "change_map_computed",
+                analysis_id=str(analysis_id),
+                earlier=earlier.item_id,
+                later=later.item_id,
+                valid_both_pct=change_stats.valid_both_pct,
+            )
+        summary["change"] = change_block
         summary_path = workdir / "summary.json"
         summary_path.write_text(json.dumps(summary, indent=2, sort_keys=True))
 
@@ -657,12 +827,69 @@ async def _run_pipeline(
             )
             provenance_outputs.append(record)
 
+        if fire_geojson is not None and fire_context is not None:
+            fire_path = workdir / "fire_detections.geojson"
+            fire_path.write_text(json.dumps(fire_geojson))
+            record = await _upload(
+                session,
+                blob,
+                budget,
+                metrics,
+                analysis_id=analysis_id,
+                scene_id=None,
+                artifact_type=ArtifactType.FIRE_DETECTIONS,
+                local_path=fire_path,
+                blob_path=f"{output_prefix}/fire_detections.geojson",
+                content_type="application/geo+json",
+                crs="EPSG:4326",
+                bbox=[round(v, 6) for v in aoi_bounds],
+                provenance={
+                    "source": fire_context["source"],
+                    "windows_queried": fire_context["windows_queried"],
+                    "windows_total": fire_context["windows_total"],
+                    "truncated": fire_context["truncated"],
+                    "detection_count": fire_context["detection_count"],
+                },
+            )
+            provenance_outputs.append(record)
+
+        for chg_type, chg_path, chg_content_type, chg_name in change_uploads:
+            record = await _upload(
+                session,
+                blob,
+                budget,
+                metrics,
+                analysis_id=analysis_id,
+                scene_id=None,
+                artifact_type=chg_type,
+                local_path=chg_path,
+                blob_path=f"{output_prefix}/{chg_name}",
+                content_type=chg_content_type,
+                crs=grid.crs,
+                bbox=list(grid.bounds_geographic),
+                provenance={
+                    "grid_signature": grid.signature(),
+                    "width": grid.width,
+                    "height": grid.height,
+                    "earlier_item_id": change_block["earlier"]["stac_item_id"],
+                    "later_item_id": change_block["later"]["stac_item_id"],
+                },
+            )
+            provenance_outputs.append(record)
+
+        provenance_change = dict(change_block)
+        if change_block["computed"]:
+            provenance_change["colormap_stops"] = change_legend_spec(index.change_display_range)[
+                "stops"
+            ]
+
         completed_at = _utcnow()
         started_at = analysis.started_at or completed_at
         provenance_doc = build_provenance(
             analysis_id=str(analysis_id),
             created_at=completed_at.isoformat(),
             config=config,
+            index=index,
             grid=grid,
             aoi_geometry=aoi_geojson,
             aoi_area_km2=analysis.area_km2,
@@ -681,6 +908,8 @@ async def _run_pipeline(
             },
             search=search_result.to_metadata(),
             warnings=analysis_warnings,
+            change=provenance_change,
+            fire_context=fire_context,
         )
         provenance_path = workdir / "provenance.json"
         provenance_path.write_text(json.dumps(provenance_doc, indent=2, sort_keys=True))

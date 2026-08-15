@@ -24,6 +24,48 @@ Every analysis summary embeds an interpretation note to this effect. Treat
 platform output as a *screening instrument*: it tells you where and when to
 look closer, not what happened.
 
+## NBR change is not proof of fire
+
+Everything above applies to NBR with one extra twist: a falling NBR is
+*suggestive* of burning but not exclusive to it. Timber harvest, drought
+stress, seasonal senescence, and land clearing all shift the NIR/SWIR2 ratio
+in the same direction, and an unusually wet pre-fire scene can inflate a ΔNBR
+that no fire caused. A sharp ΔNBR drop over a documented burn scar — the
+curated Wildfire regions — is a reasonable screening signal; the same drop
+somewhere else needs independent evidence before it is called a fire. The
+platform reports the observed spectral change and its magnitude; it
+deliberately does **not** classify burn severity, because the published dNBR
+severity thresholds (Key & Benson) are community guidance calibrated on
+particular ecosystems, not physical constants.
+
+Two measurement caveats specific to NBR:
+
+- The SWIR2 band (B12) is natively **20 m** and is bilinearly resampled onto
+  the 10 m canonical grid, so NBR spatial detail is genuinely 20 m even
+  though the raster is 10 m. The resample is recorded as a processing warning
+  on every NBR scene.
+- SWIR2 penetrates smoke better than visible bands but not perfectly; heavy
+  smoke plumes in a post-fire scene can still contaminate pixels the SCL mask
+  retains.
+
+## FIRMS active-fire detections are not perimeters
+
+Deployments configured with a NASA FIRMS key archive VIIRS active-fire
+detections for the analysis area and date span as a downloadable GeoJSON
+overlay, recorded in provenance like every other input. Read those points
+carefully:
+
+- Each point is a **thermal-anomaly detection** from a ~375 m VIIRS pixel with
+  a detection-confidence value — it says "a hot spot was sensed at this
+  overpass", not "this area burned".
+- Fires under cloud, below the detection threshold, or out between overpasses
+  leave no point; absence of detections is not absence of fire.
+- Detected hot spots can also be industrial sources, gas flares, or other
+  non-fire heat.
+
+Treat the overlay as corroborating evidence alongside ΔNBR — never as a burn
+perimeter, and never as proof on its own.
+
 ## Cloud masking is imperfect
 
 The SCL mask ([policy table](scientific-methodology.md#22-scl-mask-policy))
@@ -170,3 +212,5 @@ Two caveats remain:
   revisions between baselines can introduce small discontinuities.
 - The 20 m SCL is applied to 10 m pixels (nearest-neighbor), so mask edges
   are blocky at 2×2-pixel granularity.
+- NBR's SWIR2 source is 20 m data on the 10 m grid (bilinear), so NBR edges
+  are slightly softer than NDVI's.

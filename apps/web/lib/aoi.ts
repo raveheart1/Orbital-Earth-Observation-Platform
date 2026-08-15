@@ -17,10 +17,15 @@ import type { Bbox } from "./schemas";
  */
 export type AoiMode = "region" | "custom";
 
+/** Which drawing tool produced a custom AOI; shapes only the error wording. */
+export type AoiShape = "box" | "polygon";
+
 export interface AoiLimits {
   min_aoi_area_km2: number;
   max_aoi_area_km2: number;
   max_custom_aoi_area_km2: number;
+  /** Vertex ceiling for a drawn polygon's ring, excluding the closing repeat. */
+  max_custom_aoi_vertices: number;
 }
 
 /** Zoom level at which a ~1.4 km box is comfortable to draw by hand. */
@@ -47,16 +52,36 @@ export function validateAoiArea(
   areaKm2: number,
   mode: AoiMode,
   limits: AoiLimits,
+  shape: AoiShape = "box",
 ): string | null {
   const max = maxAreaKm2ForMode(mode, limits);
   if (areaKm2 > max) {
     return mode === "custom"
-      ? `Drawn area of ${formatKm2(areaKm2)} exceeds the maximum of ${formatAreaLimitKm2(max)} for custom areas. Draw a smaller box, or choose a predefined region to analyse a larger area.`
+      ? `Drawn area of ${formatKm2(areaKm2)} exceeds the maximum of ${formatAreaLimitKm2(max)} for custom areas. Draw a smaller ${shape}, or choose a predefined region to analyse a larger area.`
       : `This region covers ${formatKm2(areaKm2)}, above the ${formatAreaLimitKm2(max)} limit for predefined regions.`;
   }
   if (areaKm2 < limits.min_aoi_area_km2) {
     const noun = mode === "custom" ? "Drawn area" : "Region area";
-    return `${noun} of ${formatKm2(areaKm2)} is below the ${formatAreaLimitKm2(limits.min_aoi_area_km2)} minimum. ${mode === "custom" ? "Draw a larger box." : "Choose another region."}`;
+    return `${noun} of ${formatKm2(areaKm2)} is below the ${formatAreaLimitKm2(limits.min_aoi_area_km2)} minimum. ${mode === "custom" ? `Draw a larger ${shape}.` : "Choose another region."}`;
+  }
+  return null;
+}
+
+/**
+ * Client-side mirror of the server's drawn-polygon vertex checks, over the
+ * ring's distinct vertex count (closing repeat excluded, as the map's draw
+ * tool delivers it). Returns null when the count is acceptable, otherwise the
+ * message to show the visitor.
+ */
+export function validateRingVertexCount(
+  vertexCount: number,
+  limits: AoiLimits,
+): string | null {
+  if (vertexCount < 3) {
+    return "A polygon needs at least three vertices. Click the map to add more.";
+  }
+  if (vertexCount > limits.max_custom_aoi_vertices) {
+    return `Drawn area has ${vertexCount} vertices, exceeding the maximum of ${limits.max_custom_aoi_vertices}. Draw a simpler outline.`;
   }
   return null;
 }
