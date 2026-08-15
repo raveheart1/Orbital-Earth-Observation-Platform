@@ -48,7 +48,7 @@ async def _region_for(session: SessionDep, analysis: Analysis) -> Region | None:
     "",
     status_code=status.HTTP_202_ACCEPTED,
     response_model=AnalysisResponse,
-    summary="Submit a new NDVI analysis",
+    summary="Submit a new analysis",
 )
 async def create_analysis(
     request: Request,

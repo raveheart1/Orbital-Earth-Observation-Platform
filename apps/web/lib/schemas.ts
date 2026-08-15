@@ -8,6 +8,18 @@ import { z } from "zod";
 export const BboxSchema = z.tuple([z.number(), z.number(), z.number(), z.number()]);
 export type Bbox = z.infer<typeof BboxSchema>;
 
+/**
+ * GeoJSON Polygon geometry for a drawn AOI — the `geometry` member of
+ * POST /api/v1/analyses. A geometry object, not a Feature (the server rejects
+ * the wrapper): exterior ring only, [lon, lat] positions, closed by repeating
+ * the first vertex.
+ */
+export const PolygonGeometrySchema = z.object({
+  type: z.literal("Polygon"),
+  coordinates: z.array(z.array(z.tuple([z.number(), z.number()]))),
+});
+export type PolygonGeometry = z.infer<typeof PolygonGeometrySchema>;
+
 /** GeoJSON geometry — kept permissive; only rendered, never traversed deeply. */
 const GeoJsonSchema = z.record(z.string(), z.unknown());
 
@@ -17,7 +29,12 @@ export const LegendStopSchema = z.object({
 });
 
 export const NdviLegendSchema = z.object({
-  type: z.literal("ndvi"),
+  /**
+   * Index the legend describes ("ndvi", "nbr", …). A plain string, not an
+   * enum: the UI derives the legend's display name from it, and a server that
+   * adds a third index must not break parsing.
+   */
+  type: z.string(),
   display_min: z.number(),
   display_max: z.number(),
   stops: z.array(LegendStopSchema).min(1),
@@ -47,6 +64,40 @@ export const DEFAULT_SELECTION_STRATEGIES: string[] = ["temporal", "seasonal"];
 /** Fallback for deployments whose config predates the seasonal strategy. */
 export const DEFAULT_SEASONAL_RECOMMENDED_ABOVE_DAYS = 400;
 
+/** One spectral-index operation advertised by /api/v1/config/public. */
+export const PublicOperationSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  description: z.string(),
+  display_min: z.number(),
+  display_max: z.number(),
+  /** Half-range of the change-map colormap (delta spans −range..+range). */
+  change_display_range: z.number(),
+  /**
+   * Preview-legend spec for this operation's colormap. Optional: a server old
+   * enough to omit it still sends the top-level ndvi_legend, which the UI
+   * falls back to.
+   */
+  legend: NdviLegendSchema.optional(),
+});
+export type PublicOperation = z.infer<typeof PublicOperationSchema>;
+
+/** Fallback for deployments whose config predates the operations list. */
+export const DEFAULT_OPERATIONS: PublicOperation[] = [
+  {
+    id: "ndvi",
+    title: "NDVI — vegetation health",
+    description:
+      "NDVI = (NIR - Red) / (NIR + Red). Higher values indicate denser, " +
+      "healthier green vegetation; negative values indicate water, bare soil, " +
+      "or non-vegetated surfaces.",
+    display_min: -0.2,
+    display_max: 0.9,
+    change_display_range: 0.4,
+  },
+];
+export const DEFAULT_OPERATION = "ndvi";
+
 export const PublicConfigSchema = z.object({
   environment: z.string(),
   demo_mode: z.boolean(),
@@ -66,6 +117,12 @@ export const PublicConfigSchema = z.object({
    * would let the form accept a box the API rejects.
    */
   max_custom_aoi_area_km2: z.number().optional().default(2),
+  /**
+   * Vertex ceiling for a drawn polygon's exterior ring, excluding the closing
+   * vertex. The fallback mirrors the server default: a server old enough to
+   * omit the field from /config/public still enforces 256 on submission.
+   */
+  max_custom_aoi_vertices: z.number().optional().default(256),
   /** Lower area bound; applies to both drawn areas and predefined regions. */
   min_aoi_area_km2: z.number(),
   max_date_span_days: z.number(),
@@ -79,6 +136,14 @@ export const PublicConfigSchema = z.object({
     .array(z.string())
     .optional()
     .default(DEFAULT_SELECTION_STRATEGIES),
+  /**
+   * Spectral-index operations this deployment offers, registry-driven on the
+   * server. Defaulted like selection_strategies: a server old enough to omit
+   * the field runs NDVI only. The form only renders the operation picker —
+   * and only sends `operation` — when more than one is listed, so older
+   * servers (which forbid unknown request fields) never receive it.
+   */
+  operations: z.array(PublicOperationSchema).optional().default(DEFAULT_OPERATIONS),
   /**
    * Above this span, an evenly spread series mostly measures which month each
    * scene fell in rather than any year-to-year change, so the form recommends
@@ -130,6 +195,55 @@ export const AnalysisStatusSchema = z.enum([
 ]);
 export type AnalysisStatus = z.infer<typeof AnalysisStatusSchema>;
 
+/**
+ * Per-pixel NDVI change statistics over pixels valid in BOTH observations,
+ * mirroring the worker's ChangeStats. Every field is null-tolerant: the
+ * delta statistics are null when no pixel was comparable at all.
+ */
+export const ChangeStatsSchema = z.object({
+  aoi_pixel_count: z.number().nullish().default(null),
+  valid_both_pixel_count: z.number().nullish().default(null),
+  /** Share of AOI pixels that are comparable (valid on both dates). */
+  valid_both_pct: z.number().nullish().default(null),
+  delta_mean: z.number().nullish().default(null),
+  delta_median: z.number().nullish().default(null),
+  delta_std: z.number().nullish().default(null),
+  delta_p10: z.number().nullish().default(null),
+  delta_p90: z.number().nullish().default(null),
+  /** Share of comparable pixels with delta above the threshold. */
+  pct_increased: z.number().nullish().default(null),
+  pct_decreased: z.number().nullish().default(null),
+});
+export type ChangeStats = z.infer<typeof ChangeStatsSchema>;
+
+/** One end of the change comparison: which acquisition, observed when. */
+const ChangeEndpointSchema = z.object({
+  stac_item_id: z.string(),
+  observed_at: z.string(),
+});
+
+/**
+ * The summary's per-pixel NDVI change block. Deliberately optional-tolerant
+ * throughout: summaries written before the change map existed omit the block
+ * entirely, and a skipped computation carries only `computed: false` plus a
+ * reason — neither may fail parsing.
+ */
+export const AnalysisChangeSchema = z.object({
+  computed: z.boolean().optional().default(false),
+  skipped_reason: z.string().nullish().default(null),
+  earlier: ChangeEndpointSchema.optional(),
+  later: ChangeEndpointSchema.optional(),
+  /** "valid_in_both": a pixel invalid on either date has no defined change. */
+  mask_policy: z.string().optional(),
+  /** |ΔNDVI| a pixel must exceed to count as increased/decreased. */
+  delta_threshold: z.number().optional(),
+  /** Preview colormap half-range; the diverging ramp spans −range..+range. */
+  display_range: z.number().optional(),
+  stats: ChangeStatsSchema.optional(),
+  note: z.string().optional(),
+});
+export type AnalysisChange = z.infer<typeof AnalysisChangeSchema>;
+
 export const AnalysisSummarySchema = z.object({
   usable_scene_count: z.number(),
   unusable_scene_count: z.number(),
@@ -145,6 +259,8 @@ export const AnalysisSummarySchema = z.object({
   /** True when every usable observation shares one canonical analysis grid. */
   identical_analytical_grid: z.boolean().optional().default(false),
   comparison_note: z.string().optional(),
+  /** Per-pixel change between the comparison endpoints; absent on old runs. */
+  change: AnalysisChangeSchema.optional(),
 });
 export type AnalysisSummary = z.infer<typeof AnalysisSummarySchema>;
 
@@ -331,10 +447,17 @@ export type Timeseries = z.infer<typeof TimeseriesSchema>;
 export const ArtifactTypeSchema = z.enum([
   "ndvi_cog",
   "ndvi_preview",
+  "nbr_cog",
+  "nbr_preview",
   "true_color_preview",
   "scene_summary",
   "timeseries_csv",
   "analysis_summary",
+  "ndvi_change_cog",
+  "ndvi_change_preview",
+  "nbr_change_cog",
+  "nbr_change_preview",
+  "fire_detections",
   "provenance",
 ]);
 export type ArtifactType = z.infer<typeof ArtifactTypeSchema>;
@@ -461,6 +584,13 @@ export type Problem = z.infer<typeof ProblemSchema>;
 export const CreateAnalysisRequestSchema = z.object({
   region_id: z.string().optional(),
   bbox: BboxSchema.optional(),
+  /** Drawn-polygon AOI; exactly one of region_id / bbox / geometry is sent. */
+  geometry: PolygonGeometrySchema.optional(),
+  /**
+   * Spectral-index operation to run. Sent only when the config advertises
+   * more than one operation; servers that predate the field forbid extras.
+   */
+  operation: z.string().optional(),
   start_date: z.string(),
   end_date: z.string(),
   max_cloud_cover_pct: z.number(),

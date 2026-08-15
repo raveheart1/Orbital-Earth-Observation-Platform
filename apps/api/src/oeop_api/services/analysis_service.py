@@ -10,15 +10,23 @@ from __future__ import annotations
 
 import uuid
 from datetime import UTC, date, datetime
+from typing import Any
 
 import anyio
 from geoalchemy2.shape import from_shape
+from shapely.geometry import Polygon
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from earth_observation import PROCESSING_VERSION
 from earth_observation.errors import UserInputError
-from earth_observation.geometry import bbox_polygon, geodesic_area_km2, validate_bbox
+from earth_observation.geometry import (
+    bbox_polygon,
+    geodesic_area_km2,
+    geometry_from_geojson,
+    validate_bbox,
+)
+from earth_observation.indices import get_index
 from earth_observation.types import ProcessingConfig
 from oeop_api.problem import ProblemException
 from oeop_api.schemas import AnalysisCreateRequest
@@ -56,6 +64,36 @@ def _validate_dates(request: AnalysisCreateRequest, settings: Settings) -> None:
         )
 
 
+def _validate_custom_geometry(geojson: dict[str, Any], settings: Settings) -> Polygon:
+    """Parse a drawn-AOI GeoJSON geometry and enforce the drawn-area grammar.
+
+    The pipeline itself is polygon-native and accepts anything
+    ``geometry_from_geojson`` does, but visitor-drawn areas are held to a
+    simpler shape class — one Polygon, exterior ring only, bounded vertex
+    count — so arbitrary public submissions stay cheap and predictable.
+    """
+    # shapely's shape() unwraps Feature objects transparently, which would
+    # silently accept the wrong contract; reject the wrapper before parsing.
+    if geojson.get("type") == "Feature":
+        raise UserInputError(
+            "geometry must be a GeoJSON geometry object, not a Feature; "
+            "send the feature's 'geometry' member instead"
+        )
+    geom = geometry_from_geojson(geojson)
+    if not isinstance(geom, Polygon):
+        raise UserInputError(f"Drawn areas must be a single Polygon, got {geom.geom_type}")
+    if geom.interiors:
+        raise UserInputError("Drawn areas must not contain holes (interior rings)")
+    # GeoJSON rings repeat the first vertex to close; count distinct vertices.
+    vertex_count = len(geom.exterior.coords) - 1
+    if vertex_count > settings.max_custom_aoi_vertices:
+        raise UserInputError(
+            f"Drawn area has {vertex_count} vertices, exceeding the maximum of "
+            f"{settings.max_custom_aoi_vertices}"
+        )
+    return geom
+
+
 def _validate_scene_limit(request: AnalysisCreateRequest, settings: Settings) -> int:
     limit = request.scene_limit or settings.default_scene_limit
     max_limit = settings.effective_max_scene_limit()
@@ -78,15 +116,19 @@ async def create_analysis(
             "Submissions temporarily disabled",
             "New analyses are currently disabled. Precomputed results remain available.",
         )
-    if (request.region_id is None) == (request.bbox is None):
-        raise UserInputError("Provide exactly one of region_id or bbox")
+    provided = sum(v is not None for v in (request.region_id, request.bbox, request.geometry))
+    if provided != 1:
+        raise UserInputError("Provide exactly one of region_id, bbox, or geometry")
+    # Unknown operations are rejected up front with the registry's list; the
+    # worker resolves the same registry entry at processing time.
+    index = get_index(request.operation)
 
     region: Region | None = None
     if request.region_id is not None:
         region = await resolve_region(session, request.region_id)
         bbox = validate_bbox(tuple(region.bbox))
+        polygon = bbox_polygon(bbox)
     else:
-        assert request.bbox is not None
         if not settings.allow_custom_areas:
             raise ProblemException(
                 403,
@@ -94,9 +136,16 @@ async def create_analysis(
                 "This deployment only accepts analyses over predefined regions. "
                 "Select a region instead of drawing a custom area.",
             )
-        bbox = validate_bbox(request.bbox)
+        if request.bbox is not None:
+            bbox = validate_bbox(request.bbox)
+            polygon = bbox_polygon(bbox)
+        else:
+            assert request.geometry is not None
+            polygon = _validate_custom_geometry(request.geometry, settings)
+            # The stored bbox is derived from the polygon, never
+            # client-supplied, so the two representations cannot disagree.
+            bbox = validate_bbox(polygon.bounds)
 
-    polygon = bbox_polygon(bbox)
     area_km2 = geodesic_area_km2(polygon)
     # Predefined regions are curated and run at ~137 km²; visitor-drawn areas
     # are held to a much tighter ceiling so arbitrary public submissions stay
@@ -108,10 +157,11 @@ async def create_analysis(
         else settings.effective_max_aoi_area_km2()
     )
     if area_km2 > max_area:
+        drawn_shape = "polygon" if request.geometry is not None else "box"
         detail = (
             f"Drawn area of {area_km2:.2f} km² exceeds the maximum of "
-            f"{max_area:g} km² for custom areas. Draw a smaller box, or choose a "
-            "predefined region to analyse a larger area."
+            f"{max_area:g} km² for custom areas. Draw a smaller {drawn_shape}, or "
+            "choose a predefined region to analyse a larger area."
             if is_custom_area
             else f"AOI area of {area_km2:.1f} km² exceeds the maximum of {max_area:.0f} km²"
         )
@@ -148,7 +198,7 @@ async def create_analysis(
         collection=config.collection,
         max_cloud_cover_pct=request.max_cloud_cover_pct,
         scene_limit=scene_limit,
-        operation="ndvi",
+        operation=index.operation,
         selection_strategy=request.selection_strategy,
         seasonal_target_month=seasonal_month,
         processing_config=config.model_dump(),

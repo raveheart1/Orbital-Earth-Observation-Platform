@@ -11,7 +11,7 @@ export const metadata: Metadata = {
     template: "%s · Orbital Earth Observation Platform",
   },
   description:
-    "Reproducible NDVI analyses of Sentinel-2 observations, from Michigan to curated regions worldwide: how has vegetation health changed at a given place over time?",
+    "Reproducible NDVI and NBR (burn-severity) analyses of Sentinel-2 observations, from Michigan to curated regions worldwide: how has vegetation health changed at a given place over time?",
 };
 
 function OrbitGlyph() {
@@ -74,9 +74,9 @@ export default function RootLayout({
               <a href={GITHUB_URL} target="_blank" rel="noopener noreferrer">
                 GitHub
               </a>
-              . NDVI results describe observed spectral change, not causes — see
-              the methodology and limitations documents before drawing
-              conclusions.
+              . NDVI and NBR results describe observed spectral change, not
+              causes — see the methodology and limitations documents before
+              drawing conclusions.
             </p>
           </div>
         </footer>

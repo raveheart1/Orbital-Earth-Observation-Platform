@@ -48,14 +48,28 @@ def _extract_epsg(item: Item) -> int | None:
     return None
 
 
-def candidate_from_item(item: Item, asset_keys: AssetKeys) -> SceneCandidate:
+def candidate_from_item(
+    item: Item,
+    asset_keys: AssetKeys,
+    required_band_roles: tuple[str, ...] = ("red", "nir"),
+) -> SceneCandidate:
     """Convert a STAC item into a SceneCandidate, validating required assets.
 
+    ``required_band_roles`` names the spectral roles the caller's index needs
+    (see :mod:`earth_observation.indices`); the SCL role is always required on
+    top of them because the mask policy is index-independent.
+
     Raises :class:`AssetKeysError` when the collection does not expose the
-    red / NIR / SCL assets under the expected keys, so a schema change in the
+    required assets under the expected keys, so a schema change in the
     upstream catalog fails loudly instead of producing wrong science.
     """
-    required = {"red": asset_keys.red, "nir": asset_keys.nir, "scl": asset_keys.scl}
+    required: dict[str, str] = {}
+    for role in dict.fromkeys((*required_band_roles, "scl")):
+        key = getattr(asset_keys, role, None)
+        if key is None:
+            known = sorted(AssetKeys.model_fields)
+            raise AssetKeysError(f"Unknown asset role {role!r}; known roles: {known}")
+        required[role] = key
     missing = [f"{role}={key}" for role, key in required.items() if key not in item.assets]
     if missing:
         raise AssetKeysError(
@@ -177,6 +191,7 @@ def search_scenes(
     start_date: str,
     end_date: str,
     max_cloud_cover_pct: float,
+    required_band_roles: tuple[str, ...] = ("red", "nir"),
 ) -> SceneSearchResult:
     """Search the STAC catalog and return chronologically sorted candidates.
 
@@ -184,7 +199,9 @@ def search_scenes(
     ranges are searched in consecutive windows so the whole period is covered
     rather than only its most recent portion; see :func:`_split_range`.
     AOI overlap percent is computed for each candidate so selection can filter
-    granules that barely clip the AOI.
+    granules that barely clip the AOI. ``required_band_roles`` is the index's
+    required spectral roles (default NDVI's); SCL is always required in
+    addition — see :func:`candidate_from_item`.
     """
     windows = _split_range(start_date, end_date, config.search_window_days)
     per_window = config.max_items_per_window
@@ -211,7 +228,7 @@ def search_scenes(
             truncated.append(f"{window_start}/{window_end}")
 
         for item in items:
-            candidate = candidate_from_item(item, config.asset_keys)
+            candidate = candidate_from_item(item, config.asset_keys, required_band_roles)
             candidate = candidate.model_copy(
                 update={"aoi_overlap_pct": intersection_pct(aoi, shape(candidate.geometry))}
             )

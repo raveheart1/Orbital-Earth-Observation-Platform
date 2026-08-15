@@ -18,14 +18,16 @@ export default function LimitationsNote({
       </Heading>
       <ul>
         <li>
-          Results are <strong>observed spectral vegetation-index changes</strong>{" "}
-          for the specific acquisition dates analysed — they describe what the
-          satellite measured, not why it changed.
+          Results are <strong>observed spectral index changes</strong>{" "}
+          (NDVI for vegetation, NBR for burn severity) for the specific
+          acquisition dates analysed — they describe what the satellite
+          measured, not why it changed.
         </li>
         <li>
-          NDVI alone does <strong>not</strong> prove drought, wildfire damage,
-          climate change, or agricultural failure. Attributing a cause requires
-          independent ground truth and additional data sources.
+          NDVI or NBR alone does <strong>not</strong> prove drought, wildfire
+          damage, climate change, or agricultural failure — a ΔNBR drop over
+          forest is consistent with burning, not proof of it. Attributing a
+          cause requires independent ground truth and additional data sources.
         </li>
         <li>
           Cloud and shadow masking via the Sentinel-2 Scene Classification Layer

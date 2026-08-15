@@ -2,15 +2,23 @@
 
 from __future__ import annotations
 
+import math
+import uuid
 from datetime import date
 
 import pytest
 
 from earth_observation.errors import UserInputError
+from earth_observation.geometry import bbox_polygon, geodesic_area_km2
 from oeop_api.problem import ProblemException
 from oeop_api.rate_limit import SubmissionRateLimiter
 from oeop_api.schemas import AnalysisCreateRequest
-from oeop_api.services.analysis_service import _validate_dates, _validate_scene_limit
+from oeop_api.services.analysis_service import (
+    _validate_dates,
+    _validate_scene_limit,
+    create_analysis,
+)
+from oeop_api.services.serializers import geometry_to_geojson
 from oeop_core.settings import Settings
 
 
@@ -18,12 +26,13 @@ def make_settings(**overrides) -> Settings:
     return Settings(_env_file=None, **overrides)
 
 
-def request_for(start: str, end: str, scene_limit: int | None = None):
+def request_for(start: str, end: str, scene_limit: int | None = None, **overrides):
     return AnalysisCreateRequest(
         bbox=(-83.3, 42.5, -83.2, 42.6),
         start_date=date.fromisoformat(start),
         end_date=date.fromisoformat(end),
         scene_limit=scene_limit,
+        **overrides,
     )
 
 
@@ -117,3 +126,193 @@ class TestCustomAreaLimits:
 
     def test_custom_areas_can_be_switched_off(self):
         assert make_settings(allow_custom_areas=False).allow_custom_areas is False
+
+
+#: Non-rectangular drawn AOI: the L covers three quadrants of its bounding box.
+L_SHAPED_POLYGON = {
+    "type": "Polygon",
+    "coordinates": [
+        [
+            [-83.30, 42.50],
+            [-83.20, 42.50],
+            [-83.20, 42.55],
+            [-83.25, 42.55],
+            [-83.25, 42.60],
+            [-83.30, 42.60],
+            [-83.30, 42.50],
+        ]
+    ],
+}
+
+
+def regular_polygon(vertices: int) -> dict:
+    """Regular ``vertices``-gon near Detroit, closing vertex appended."""
+    ring = [
+        [
+            -83.25 + 0.02 * math.cos(2 * math.pi * i / vertices),
+            42.55 + 0.02 * math.sin(2 * math.pi * i / vertices),
+        ]
+        for i in range(vertices)
+    ]
+    ring.append(ring[0])
+    return {"type": "Polygon", "coordinates": [ring]}
+
+
+def polygon_request(geometry: dict, **overrides):
+    fields: dict = {
+        "geometry": geometry,
+        "start_date": date.fromisoformat("2024-05-01"),
+        "end_date": date.fromisoformat("2024-09-01"),
+    }
+    fields.update(overrides)
+    return AnalysisCreateRequest(**fields)
+
+
+class FakeSession:
+    """Just enough of the AsyncSession surface for create_analysis; no database."""
+
+    def __init__(self):
+        self.added = []
+
+    def add(self, obj):
+        self.added.append(obj)
+
+    async def commit(self):
+        pass
+
+    async def refresh(self, obj):
+        # A real refresh reads back the server-generated primary key.
+        if obj.id is None:
+            obj.id = uuid.uuid4()
+
+
+class FakeQueue:
+    def __init__(self):
+        self.sent = []
+
+    def send_analysis(self, analysis_id: str) -> None:
+        self.sent.append(analysis_id)
+
+
+async def submit(request: AnalysisCreateRequest, settings: Settings | None = None):
+    return await create_analysis(
+        session=FakeSession(),
+        queue=FakeQueue(),
+        settings=settings or make_settings(),
+        request=request,
+    )
+
+
+class TestPolygonSubmissions:
+    """Freeform GeoJSON polygons are accepted alongside bbox rectangles.
+
+    Drawn polygons get a restricted grammar — one Polygon, exterior ring only,
+    bounded vertex count — so arbitrary public submissions stay cheap and
+    predictable; area caps, storage, and serialization follow the bbox path.
+    """
+
+    async def test_l_shaped_polygon_accepted(self):
+        session, queue = FakeSession(), FakeQueue()
+        analysis = await create_analysis(
+            session=session,
+            queue=queue,
+            settings=make_settings(),
+            request=polygon_request(L_SHAPED_POLYGON),
+        )
+        # The stored bbox is derived from the polygon's bounds, but the area
+        # is the geodesic area of the polygon itself: the L covers three
+        # quadrants of its bounding box, so it measures ~3/4 of the box.
+        assert analysis.bbox == [-83.3, 42.5, -83.2, 42.6]
+        box_area = geodesic_area_km2(bbox_polygon((-83.3, 42.5, -83.2, 42.6)))
+        assert analysis.area_km2 == pytest.approx(0.75 * box_area, rel=1e-3)
+        assert analysis.region_id is None
+        # The response serializer echoes exactly the polygon that was drawn.
+        assert geometry_to_geojson(analysis.geometry) == L_SHAPED_POLYGON
+        assert queue.sent == [str(analysis.id)]
+
+    async def test_bbox_path_still_accepts_rectangles(self):
+        analysis = await submit(request_for("2024-05-01", "2024-09-01"))
+        assert analysis.bbox == [-83.3, 42.5, -83.2, 42.6]
+        assert geometry_to_geojson(analysis.geometry)["type"] == "Polygon"
+
+    async def test_feature_wrapper_rejected(self):
+        feature = {"type": "Feature", "properties": {}, "geometry": L_SHAPED_POLYGON}
+        with pytest.raises(UserInputError, match="not a Feature"):
+            await submit(polygon_request(feature))
+
+    async def test_multipolygon_rejected(self):
+        multi = {
+            "type": "MultiPolygon",
+            "coordinates": [
+                [[[-83.3, 42.5], [-83.28, 42.5], [-83.28, 42.52], [-83.3, 42.52], [-83.3, 42.5]]],
+                [[[-83.2, 42.5], [-83.18, 42.5], [-83.18, 42.52], [-83.2, 42.52], [-83.2, 42.5]]],
+            ],
+        }
+        with pytest.raises(UserInputError, match="single Polygon"):
+            await submit(polygon_request(multi))
+
+    async def test_polygon_with_hole_rejected(self):
+        holed = {
+            "type": "Polygon",
+            "coordinates": [
+                [[-83.3, 42.5], [-83.2, 42.5], [-83.2, 42.6], [-83.3, 42.6], [-83.3, 42.5]],
+                [
+                    [-83.27, 42.53],
+                    [-83.23, 42.53],
+                    [-83.23, 42.57],
+                    [-83.27, 42.57],
+                    [-83.27, 42.53],
+                ],
+            ],
+        }
+        with pytest.raises(UserInputError, match="holes"):
+            await submit(polygon_request(holed))
+
+    async def test_self_intersecting_bowtie_rejected(self):
+        bowtie = {
+            "type": "Polygon",
+            "coordinates": [
+                [[-83.3, 42.5], [-83.2, 42.6], [-83.3, 42.6], [-83.2, 42.5], [-83.3, 42.5]]
+            ],
+        }
+        with pytest.raises(UserInputError, match="Self-intersection"):
+            await submit(polygon_request(bowtie))
+
+    async def test_vertex_count_at_the_ceiling_accepted(self):
+        analysis = await submit(polygon_request(regular_polygon(256)))
+        assert analysis.area_km2 > 0
+
+    async def test_vertex_count_over_the_ceiling_rejected(self):
+        with pytest.raises(UserInputError, match="300 vertices, exceeding the maximum of 256"):
+            await submit(polygon_request(regular_polygon(300)))
+
+    async def test_over_area_polygon_rejected_with_polygon_wording(self):
+        settings = make_settings(max_custom_aoi_area_km2=10.0)
+        with pytest.raises(UserInputError, match="Draw a smaller polygon"):
+            await submit(polygon_request(L_SHAPED_POLYGON), settings)
+
+    async def test_geometry_and_bbox_together_rejected(self):
+        request = polygon_request(L_SHAPED_POLYGON, bbox=(-83.3, 42.5, -83.2, 42.6))
+        with pytest.raises(UserInputError, match="exactly one"):
+            await submit(request)
+
+    async def test_geometry_and_region_id_together_rejected(self):
+        request = polygon_request(L_SHAPED_POLYGON, region_id=uuid.uuid4())
+        with pytest.raises(UserInputError, match="exactly one"):
+            await submit(request)
+
+
+class TestOperation:
+    """The operation selects the spectral index; unknown names never enqueue."""
+
+    async def test_default_operation_is_ndvi(self):
+        analysis = await submit(request_for("2024-05-01", "2024-09-01"))
+        assert analysis.operation == "ndvi"
+
+    async def test_nbr_operation_persisted(self):
+        analysis = await submit(request_for("2024-05-01", "2024-09-01", operation="nbr"))
+        assert analysis.operation == "nbr"
+
+    async def test_unknown_operation_rejected_with_supported_list(self):
+        with pytest.raises(UserInputError, match=r"Unknown operation 'ndwi'.*nbr.*ndvi"):
+            await submit(request_for("2024-05-01", "2024-09-01", operation="ndwi"))

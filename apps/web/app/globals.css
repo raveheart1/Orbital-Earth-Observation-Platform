@@ -1052,8 +1052,16 @@ fieldset legend {
 
 .compare-controls {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem 1.5rem;
+  flex-wrap: wrap;
   margin-bottom: 0.75rem;
+}
+
+/* The AOI checkbox keeps its right-edge home when it is the only control. */
+.compare-controls .aoi-toggle {
+  margin-left: auto;
 }
 
 .aoi-toggle {
@@ -1117,6 +1125,99 @@ fieldset legend {
   position: absolute;
   inset: 0;
   aspect-ratio: auto;
+}
+
+/* Swipe comparison: earliest over latest in one fixed-aspect viewport. The
+   top (earliest) layer is clipped at the divider with clip-path, and the
+   whole viewport is covered by an invisible range input, so the divider is
+   draggable with a pointer and movable with the arrow keys. */
+.swipe-frame {
+  margin: 0;
+}
+
+.swipe-viewport {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  background: var(--surface-sunken);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+}
+
+.swipe-viewport img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.swipe-viewport .compare-missing {
+  position: absolute;
+  inset: 0;
+  aspect-ratio: auto;
+}
+
+.swipe-viewport .aoi-overlay {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.swipe-label {
+  position: absolute;
+  top: 0.6rem;
+  z-index: 5;
+  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid var(--rule);
+  border-radius: var(--radius);
+  padding: 0.15rem 0.6rem;
+  font-size: 0.78rem;
+  color: var(--ink-2);
+  pointer-events: none;
+}
+
+.swipe-label--left {
+  left: 0.6rem;
+}
+
+.swipe-label--right {
+  right: 0.6rem;
+}
+
+.swipe-divider {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: #ffffff;
+  box-shadow: 0 0 0 1px rgba(20, 30, 32, 0.65);
+  transform: translateX(-50%);
+  pointer-events: none;
+  z-index: 4;
+}
+
+.swipe-range {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  opacity: 0;
+  cursor: ew-resize;
+}
+
+.swipe-viewport:has(.swipe-range:focus-visible) {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Change map panel: the preview is a single near-square image, so cap its
+   width instead of letting it fill the content column. */
+.change-figure {
+  max-width: 36rem;
 }
 
 /* Legend bar */

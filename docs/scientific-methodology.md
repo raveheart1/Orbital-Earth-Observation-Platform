@@ -33,9 +33,15 @@ program, accessed through the Microsoft Planetary Computer STAC API
 | Asset | Band | Resolution | Use |
 | --- | --- | --- | --- |
 | `B04` | Red (~665 nm) | 10 m | NDVI denominator/numerator |
-| `B08` | NIR (~842 nm) | 10 m | NDVI numerator/denominator |
+| `B08` | NIR (~842 nm) | 10 m | NDVI and NBR numerator/denominator |
+| `B12` | SWIR2 (~2190 nm) | 20 m | NBR denominator/numerator (burn severity) |
 | `SCL` | Scene Classification Layer | 20 m | Pixel quality masking |
 | `visual` | True Color Image (TCI) | 10 m | Human-readable preview only |
+
+Which spectral bands are read depends on the analysis's operation: NDVI uses
+B04+B08, NBR uses B08+B12. The STAC item is validated to carry the required
+assets before it becomes a candidate, so a catalog schema change fails loudly
+rather than producing wrong science.
 
 Only the raster window covering the AOI is read (HTTP range reads against
 cloud-optimized GeoTIFFs); full scenes are never downloaded.
@@ -100,7 +106,10 @@ $$
 With $o = -0.1$ the denominator is displaced by $2o = -0.2$, so NDVI is
 materially biased. Mixing pre- and post-04.00 scenes in one time series without
 offset handling would create a spurious "change" at the baseline boundary that
-has nothing to do with vegetation.
+has nothing to do with vegetation. The identical argument holds for NBR — it
+is the same normalized-ratio form evaluated on NIR and SWIR2 — so the offset
+correction is applied per band, before any index is computed, whichever
+operation the analysis runs.
 
 Measured on live imagery over the demonstration region
 (`scripts/measure_processing_effects.py`, which re-processes the same pixels
@@ -144,7 +153,16 @@ exact class list used is stored with every run; the defaults
 | 10 | THIN_CIRRUS | **Masked** | Partially transparent cirrus skews the red/NIR ratio while looking superficially plausible. |
 | 11 | SNOW_OR_ICE | **Masked** | NDVI over snow is not a vegetation signal; including it would produce spurious winter "vegetation loss". |
 
-### 2.3 NDVI computation
+### 2.3 Index computation (NDVI and NBR)
+
+Every analysis runs one **operation**, chosen at submission (`operation` on
+`POST /api/v1/analyses`, default `ndvi`). Operations are defined in a small
+registry (`earth_observation/indices.py`) that declares the required band
+roles, the formula, and the display ranges; both shipped indices share the
+same normalized-ratio helper, so the numerical discipline below is identical
+for each.
+
+#### NDVI
 
 `earth_observation/ndvi.py:compute_ndvi` evaluates the index on
 offset-corrected reflectance:
@@ -170,6 +188,44 @@ $$
   NDVI values outside the AOI are NaN.
 - The output COG stores nodata as −9999 (float32, deflate-compressed,
   validated with rio-cogeo).
+
+#### NBR (burn severity)
+
+With `operation = "nbr"` the registry evaluates the Normalized Burn Ratio on
+the same offset-corrected reflectance:
+
+$$
+\mathrm{NBR} = \frac{\rho_{\mathrm{NIR}} - \rho_{\mathrm{SWIR2}}}{\rho_{\mathrm{NIR}} + \rho_{\mathrm{SWIR2}}}
+$$
+
+- Bands: **B08** (NIR, 10 m native) and **B12** (SWIR2, **20 m native**). B12
+  is resampled onto the 10 m canonical grid through the same bilinear
+  reprojection path as every continuous band (§2.5), so NBR values derive from
+  20 m source pixels placed on a 10 m lattice — edges are slightly softer than
+  NDVI's, and no real 10 m detail exists in the SWIR2 input. The resample is
+  recorded as a per-scene processing warning.
+- The clip-to-zero rule, zero-denominator counting, NaN discipline, AOI
+  clipping, and COG encoding are exactly NDVI's — the same shared ratio helper
+  evaluates both.
+- SCL masking, baseline-offset scaling, canonical-grid reprojection, coverage
+  gates, and per-observation statistics are index-independent and behave as
+  documented above.
+
+**Direction of change.** Healthy canopy reflects NIR strongly and absorbs
+SWIR2; char and ash reverse that contrast, so burning *lowers* NBR. The
+platform's ΔNBR change map computes **later − earlier**, so a negative ΔNBR is
+a drop in NBR — the direction associated with increased burn severity. The
+analysis change note states this convention on every NBR output, alongside the
+standing caveat that an observed spectral change does not establish its cause.
+
+**Relationship to established burn-severity practice.** The standard field
+method (Key & Benson 2006) thresholds dNBR into severity classes — unburned,
+low, moderate, high. Those thresholds are community guidance calibrated on
+particular ecosystems and sensors, not physical constants, so the platform
+reports the observed spectral change and its magnitude and deliberately does
+**not** classify severity. The ΔNBR change map renders over a fixed ±0.6
+display range with a burn-oriented ramp (raw NBR previews use a symmetric
+−1…+1 range); as with NDVI, display ranges never clip analytical values.
 
 ### 2.4 Canonical analysis grid (spatial comparability)
 
@@ -210,7 +266,7 @@ and reprojected onto the canonical grid:
 
 | Data | Resampling | Rationale |
 |---|---|---|
-| Red, NIR (continuous reflectance) | **bilinear** | Avoids aliasing when source and canonical grids are offset. Applied to both bands identically and *before* the ratio, so NDVI is not systematically biased. Cubic was rejected: its overshoot can push reflectance outside the physical range at water/land edges. |
+| Red, NIR, SWIR2 (continuous reflectance) | **bilinear** | Avoids aliasing when source and canonical grids are offset. Applied to every spectral band identically and *before* the ratio, so the index is not systematically biased. SWIR2 additionally moves 20 m → 10 m here. Cubic was rejected: its overshoot can push reflectance outside the physical range at water/land edges. |
 | Scene Classification Layer (categorical) | **nearest** | Mandatory. Averaging class labels would invent classes that do not exist — interpolating cloud (9) and vegetation (4) would yield water (6). |
 | True-color composite (visual only) | bilinear | Preview product, not analytical. |
 
@@ -364,6 +420,8 @@ brown → yellow → green ramp and transparency where masked. This range is a
 *rendering* choice for visual comparability across scenes. It never clips
 analytical values: the float32 COG and all statistics retain the full
 computed range, including NDVI below −0.2 (e.g., water) and above 0.9.
+NBR previews and ΔNBR change maps follow the same rule with their own fixed
+ranges (§2.3).
 
 ---
 
@@ -389,6 +447,18 @@ mean NDVI across a growing season indicates green-up; a persistent decline
 across comparable dates in successive years indicates *something* changed and
 warrants investigation, not a conclusion. See
 [limitations.md](limitations.md) before attributing causes.
+
+**NBR** reads the same way over a different contrast: healthy canopy sits high
+(summer forest and chaparral commonly +0.2 to +0.5), recently charred surface
+drops toward or below zero. Because ΔNBR is later − earlier, a burn-severity
+increase appears as a *negative* change. Measured on live imagery over the two
+curated burn-scar regions: the Park Fire sub-area moved from **+0.344** mean
+NBR (July 2024, pre-fire) to **+0.137** (October 2024, post-fire), and the
+northern Evia sub-area from **+0.141** (July 2021) to **−0.065** (September
+2021). A drop of that size over forested land is consistent with severe
+burning — but harvest, drought stress, and senescence move the same ratio, so
+the caveat above applies with full force: NBR change is a screening signal,
+not a fire determination.
 
 ---
 
@@ -420,6 +490,6 @@ In rough order of impact for this platform's use case:
 ## 5. Limitations
 
 Documented separately and prominently in [limitations.md](limitations.md).
-The most important one repeats here: **an NDVI change is an observed
+The most important one repeats here: **an NDVI or NBR change is an observed
 spectral change, not a diagnosis.** The platform's own analysis summary
 embeds this note in every output.

@@ -2,13 +2,16 @@ import type { NdviLegend } from "@/lib/schemas";
 import { formatNumber } from "@/lib/format";
 
 /**
- * NDVI color-scale legend rendered from the server-provided legend stops,
+ * Preview color-scale legend rendered from the server-provided legend stops,
  * so the web UI and the rendered PNGs always agree. Distinguishes the three
- * non-colormap cases a viewer can encounter: genuinely low NDVI (colormap),
- * masked pixels (transparent), and "no source imagery" (opaque grey).
+ * non-colormap cases a viewer can encounter: genuinely low values (colormap),
+ * masked pixels (transparent), and "no source imagery" (opaque grey). The
+ * index name comes from the legend's own `type`, so an NBR legend labels
+ * itself NBR without any caller wiring.
  */
 export default function LegendBar({ legend }: { legend: NdviLegend }) {
   const { display_min: min, display_max: max, stops } = legend;
+  const indexName = legend.type.toUpperCase();
   const span = max - min || 1;
   const gradientStops = [...stops]
     .sort((a, b) => a.value - b.value)
@@ -24,14 +27,14 @@ export default function LegendBar({ legend }: { legend: NdviLegend }) {
   return (
     <figure className="legend-bar">
       <figcaption className="small muted">
-        NDVI color scale — fixed display range {formatNumber(min, 1)} to{" "}
+        {indexName} color scale — fixed display range {formatNumber(min, 1)} to{" "}
         {formatNumber(max, 1)} for every scene
       </figcaption>
       <div
         className="legend-gradient"
         style={{ background: `linear-gradient(90deg, ${gradientStops})` }}
         role="img"
-        aria-label={`NDVI color scale, fixed range from ${formatNumber(min, 1)} to ${formatNumber(max, 1)}`}
+        aria-label={`${indexName} color scale, fixed range from ${formatNumber(min, 1)} to ${formatNumber(max, 1)}`}
       />
       <div className="legend-scale" aria-hidden="true">
         <span>{formatNumber(min, 1)}</span>
@@ -54,7 +57,7 @@ export default function LegendBar({ legend }: { legend: NdviLegend }) {
               style={{ background: legend.nodata_color }}
               aria-hidden="true"
             />
-            {legend.nodata_label ?? "No source imagery"} — not low NDVI
+            {legend.nodata_label ?? "No source imagery"} — not low {indexName}
           </p>
         ) : null}
       </div>

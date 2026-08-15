@@ -14,14 +14,20 @@ from typing import Any
 
 import jsonschema
 
-#: 2.0.0 adds the canonical analysis grid, per-acquisition coverage accounting,
-#: and every contributing granule/tile id. 1.0.0 documents predate the grid and
-#: recorded a single STAC item per observation.
-PROVENANCE_SCHEMA_VERSION = "2.0.0"
+#: 2.3.0 adds the optional ``fire_context`` block (FIRMS active-fire overlay
+#: metadata) — optional like every 2.x addition, so documents without the
+#: overlay still validate. 2.2.0 adds the optional ``processing.index`` block
+#: (index title, formula, resolved band roles, display/change scaling) and
+#: ``change.operation``. 2.1.0 adds the optional per-pixel change block
+#: (earliest vs latest usable observation). 2.0.0 added the canonical analysis
+#: grid, per-acquisition coverage accounting, and every contributing
+#: granule/tile id. 1.0.0 documents predate the grid and recorded a single
+#: STAC item per observation.
+PROVENANCE_SCHEMA_VERSION = "2.3.0"
 
 PROVENANCE_SCHEMA: dict[str, Any] = {
     "$schema": "https://json-schema.org/draft/2020-12/schema",
-    "$id": "https://raw.githubusercontent.com/raveheart1/Orbital-Earth-Observation-Platform/main/docs/schemas/provenance-2.0.0.json",
+    "$id": "https://raw.githubusercontent.com/raveheart1/Orbital-Earth-Observation-Platform/main/docs/schemas/provenance-2.3.0.json",
     "title": "OEOP Analysis Provenance",
     "type": "object",
     "required": [
@@ -153,6 +159,27 @@ PROVENANCE_SCHEMA: dict[str, Any] = {
             "required": ["operation", "config", "mosaic_method"],
             "properties": {
                 "operation": {"type": "string"},
+                "index": {
+                    "type": "object",
+                    "description": (
+                        "Spectral-index identity from the index registry "
+                        "(schema >= 2.2.0): what 'operation' computed, on "
+                        "which bands, with which display/change scaling."
+                    ),
+                    "required": ["title", "formula", "band_roles"],
+                    "properties": {
+                        "title": {"type": "string"},
+                        "formula": {"type": "string"},
+                        "band_roles": {
+                            "type": "object",
+                            "description": "Index band role -> resolved STAC asset key",
+                        },
+                        "display_min": {"type": "number"},
+                        "display_max": {"type": "number"},
+                        "change_display_range": {"type": "number"},
+                        "change_delta_threshold": {"type": "number"},
+                    },
+                },
                 "config": {"type": "object"},
                 "mosaic_method": {"type": "string"},
                 "resampling_spectral": {"type": "string"},
@@ -227,6 +254,54 @@ PROVENANCE_SCHEMA: dict[str, Any] = {
                 },
             },
         },
+        "change": {
+            "type": "object",
+            "description": (
+                "Per-pixel index change map between the earliest and latest "
+                "usable observations: delta = later - earlier, defined only "
+                "for pixels valid in BOTH observations. Absent from documents "
+                "produced before schema 2.1.0; ``operation`` (which index the "
+                "delta applies to) was added in 2.2.0."
+            ),
+            "required": ["computed"],
+            "properties": {
+                "computed": {"type": "boolean"},
+                "operation": {"type": "string"},
+                "skipped_reason": {"type": "string"},
+                "earlier": {
+                    "type": "object",
+                    "required": ["stac_item_id", "observed_at"],
+                    "properties": {
+                        "stac_item_id": {"type": "string"},
+                        "observed_at": {"type": "string", "format": "date-time"},
+                    },
+                },
+                "later": {
+                    "type": "object",
+                    "required": ["stac_item_id", "observed_at"],
+                    "properties": {
+                        "stac_item_id": {"type": "string"},
+                        "observed_at": {"type": "string", "format": "date-time"},
+                    },
+                },
+                "mask_policy": {"const": "valid_in_both"},
+                "delta_threshold": {"type": "number"},
+                "display_range": {"type": "number"},
+                "colormap_stops": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["value", "color"],
+                        "properties": {
+                            "value": {"type": "number"},
+                            "color": {"type": "string"},
+                        },
+                    },
+                },
+                "stats": {"type": "object"},
+                "note": {"type": "string"},
+            },
+        },
         "outputs": {
             "type": "array",
             "items": {
@@ -240,6 +315,34 @@ PROVENANCE_SCHEMA: dict[str, Any] = {
                     "sha256": {"type": "string", "pattern": "^[0-9a-f]{64}$"},
                     "size_bytes": {"type": "integer"},
                 },
+            },
+        },
+        "fire_context": {
+            "type": "object",
+            "description": (
+                "NASA FIRMS active-fire detections fetched for the analysis "
+                "area and date span (schema >= 2.3.0). Context overlay only — "
+                "detections are not an input to index computation. Absent when "
+                "the overlay is disabled (no MAP_KEY configured) or the fetch "
+                "failed."
+            ),
+            "required": [
+                "source",
+                "start_date",
+                "end_date",
+                "windows_queried",
+                "detection_count",
+            ],
+            "properties": {
+                "source": {"type": "string"},
+                "start_date": {"type": "string"},
+                "end_date": {"type": "string"},
+                "bbox": {"type": "array", "items": {"type": "number"}},
+                "windows_queried": {"type": "integer"},
+                "windows_total": {"type": "integer"},
+                "truncated": {"type": "boolean"},
+                "detection_count": {"type": "integer"},
+                "note": {"type": "string"},
             },
         },
         "timing": {
@@ -269,6 +372,7 @@ def build_provenance(
     analysis_id: str,
     created_at: str,
     config: Any,
+    index: Any,
     grid: Any,
     aoi_geometry: dict[str, Any],
     aoi_area_km2: float,
@@ -283,14 +387,19 @@ def build_provenance(
     timing: dict[str, Any],
     search: dict[str, Any] | None = None,
     warnings: list[str] | None = None,
+    change: dict[str, Any] | None = None,
+    fire_context: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Assemble and validate a complete provenance document.
 
     ``config`` is a :class:`~earth_observation.types.ProcessingConfig`,
+    ``index`` an :class:`~earth_observation.indices.IndexDefinition`,
     ``grid`` a :class:`~earth_observation.grid.CanonicalGrid`, ``selection`` an
     :class:`~earth_observation.selection.AcquisitionSelection`, and ``results``
     a list of :class:`~earth_observation.types.SceneResult`; typed as ``Any``
-    to avoid circular imports.
+    to avoid circular imports. ``change`` is the per-pixel change block and
+    ``fire_context`` the FIRMS overlay metadata; each is omitted entirely when
+    the caller produced none.
     """
     from earth_observation.mosaic import mosaic_metadata
     from earth_observation.types import SCLClass
@@ -333,7 +442,18 @@ def build_provenance(
             ],
         },
         "processing": {
-            "operation": "ndvi",
+            "operation": index.operation,
+            "index": {
+                "title": index.title,
+                "formula": index.formula,
+                "band_roles": {
+                    role: getattr(config.asset_keys, role) for role in index.required_band_roles
+                },
+                "display_min": index.display_min,
+                "display_max": index.display_max,
+                "change_display_range": index.change_display_range,
+                "change_delta_threshold": index.change_delta_threshold,
+            },
             "config": config.model_dump(),
             "masked_scl_classes": list(config.masked_scl_classes),
             "masked_scl_class_names": [SCLClass(c).name for c in config.masked_scl_classes],
@@ -367,5 +487,9 @@ def build_provenance(
         "timing": timing,
         "warnings": warnings or [],
     }
+    if change is not None:
+        document["change"] = change
+    if fire_context is not None:
+        document["fire_context"] = fire_context
     validate_provenance(document)
     return document

@@ -15,7 +15,9 @@ export default function LandingPage() {
         </p>
         <p className="lede">
           Orbital computes the Normalized Difference Vegetation Index (NDVI)
-          from Copernicus Sentinel-2 imagery over areas of interest you choose,
+          and the Normalized Burn Ratio (NBR) from Copernicus Sentinel-2
+          imagery over areas of interest you choose — vegetation health and
+          burn severity, measured the same auditable way —
           producing per-scene statistics, before/after imagery, and a complete
           provenance record for every run. Each analysis is fully reproducible:
           the scenes considered, the pixels masked, and the software versions
@@ -25,9 +27,10 @@ export default function LandingPage() {
           It was built around Southeast Michigan and still calls it home — the
           demonstration analysis lives there — but the pipeline runs anywhere
           Sentinel-2 observes, roughly <span className="num">56°S</span> to{" "}
-          <span className="num">83°N</span>. Ten curated regions ship with it —
-          four in Michigan and six more spanning Africa, Asia, Europe, and the
-          Americas.
+          <span className="num">83°N</span>. Fifteen curated regions ship with
+          it — four in Michigan, six more spanning Africa, Asia, Europe, and
+          the Americas, and five documented wildfire burn scars for pre/post-fire
+          analysis.
         </p>
         <HeroActions />
       </section>
@@ -46,7 +49,7 @@ export default function LandingPage() {
         </div>
         <div className="how-grid">
           <div className="card">
-            <h3>1 · Measure vegetation</h3>
+            <h3>1 · Measure vegetation — or burn severity</h3>
             <p>
               Healthy vegetation strongly reflects near-infrared light and
               absorbs red light. NDVI captures that contrast:
@@ -56,6 +59,16 @@ export default function LandingPage() {
               Values range from −1 to +1. Dense, healthy vegetation typically
               scores <span className="num">0.6–0.9</span>, sparse vegetation and
               bare soil sit lower, and water is negative.
+            </p>
+            <p>
+              For fire-affected areas, NBR contrasts near-infrared with
+              shortwave-infrared instead:
+            </p>
+            <p className="formula">NBR = (NIR − SWIR2) / (NIR + SWIR2)</p>
+            <p>
+              Char and ash reverse the contrast healthy canopy shows, so burning
+              lowers NBR — a drop between two dates is the signature of
+              increased burn severity.
             </p>
           </div>
           <div className="card">
@@ -79,7 +92,7 @@ export default function LandingPage() {
               Scene Classification Layer (SCL) before any statistic is computed.
             </p>
             <p>
-              Per-scene NDVI statistics form a time series, and every step —
+              Per-scene index statistics form a time series, and every step —
               scene selection, mask policy, software versions — is captured in a
               downloadable provenance document.
             </p>
@@ -141,10 +154,47 @@ export default function LandingPage() {
               drying through summer beside irrigation that does not.
             </p>
           </div>
+          <div className="card">
+            <h3>Wildfire — documented burn scars</h3>
+            <p>
+              <strong>Park Fire Burn Scar</strong> (California) — mixed conifer
+              and chaparral between Mill Creek and Deer Creek, burned in July
+              2024 on the fire&rsquo;s run from Chico toward Lassen Volcanic
+              National Park.
+            </p>
+            <p>
+              <strong>Evia Burn Scar</strong> (Greece) — Aleppo pine and maquis
+              on northern Evia, swept coast to coast over ten days in August
+              2021.
+            </p>
+            <p>
+              <strong>Longwood Burn Scar</strong> (Victoria, Australia) —
+              eucalypt foothill forest in the Strathbogie Ranges, burned in
+              January 2026 as the Longwood fire ran southeast from the Hume
+              Highway.
+            </p>
+            <p>
+              <strong>El Hoyo Burn Scar</strong> (Chubut, Argentina) —
+              Andean-Patagonian forest of the Epuyén valley, burned in the
+              January 2026 Patagonian fire emergency.
+            </p>
+            <p>
+              <strong>Ávila Burn Scar</strong> (Castilla y León, Spain) — pine
+              forest and scrub on the northern slopes of the Sierra de Gredos,
+              burned in July 2026 by the largest wildfire in Spain&rsquo;s
+              recorded history.
+            </p>
+            <p>
+              All five lie fully inside their fire perimeters with strong
+              pre/post-fire NBR contrast, verified against real Sentinel-2
+              coverage before seeding.
+            </p>
+          </div>
         </div>
         <p className="panel-note" style={{ marginTop: "1rem" }}>
-          Each curated region covers about{" "}
-          <span className="num">137 km²</span>, so processing cost is comparable
+          Most curated regions cover between{" "}
+          <span className="num">120</span> and{" "}
+          <span className="num">160 km²</span>, so processing cost is comparable
           between them. You can also draw your own area anywhere Sentinel-2
           observes — its orbit images land between roughly 56°S and 83°N, so the
           poles and the open ocean are out of reach.

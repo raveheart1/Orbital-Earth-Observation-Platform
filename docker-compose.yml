@@ -18,6 +18,14 @@ x-app-env: &app_env
   OEOP_ENVIRONMENT: local
   OEOP_LOG_LEVEL: INFO
   OEOP_DATABASE_URL: postgresql+asyncpg://oeop:oeop_local_dev@postgres:5432/oeop
+  # Download URLs are handed to the browser, which cannot resolve the
+  # in-network `azurite` hostname — publish them against the host endpoint.
+  OEOP_BLOB_DOWNLOAD_BASE_URL: "http://localhost:10000/devstoreaccount1"
+  # Optional NASA FIRMS active-fire overlay; unset/empty disables it cleanly.
+  OEOP_FIRMS_MAP_KEY: ${OEOP_FIRMS_MAP_KEY:-}
+  # Worker hard deadline per analysis; .env can raise it for large AOIs on
+  # slow network paths (COG range reads are latency-bound).
+  OEOP_MAX_JOB_RUNTIME_SECONDS: ${OEOP_MAX_JOB_RUNTIME_SECONDS:-1500}
   <<: *azurite_conn
 
 services:

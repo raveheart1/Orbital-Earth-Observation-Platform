@@ -1,5 +1,5 @@
 import { createElement } from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { FormInner } from "@/components/NewAnalysisForm";
 import { createAnalysis } from "@/lib/api";
@@ -41,14 +41,31 @@ function submittedPayload(): CreateAnalysisRequest {
   return createAnalysisMock.mock.calls[0]![0];
 }
 
-// MapLibre touches WebGL at import time and cannot run under jsdom.
+// MapLibre touches WebGL at import time and cannot run under jsdom. The mock
+// records the latest props so tests can fire the map's draw callbacks.
+interface MapMockProps {
+  drawEnabled?: boolean;
+  drawMode?: string;
+  onDrawPolygonComplete?: (ring: [number, number][]) => void;
+}
+let lastMapProps: MapMockProps = {};
 vi.mock("@/components/MapPanel", () => ({
-  default: (props: { drawEnabled?: boolean }) =>
-    createElement("div", {
+  default: (props: MapMockProps) => {
+    lastMapProps = props;
+    return createElement("div", {
       "data-testid": "map",
       "data-draw-enabled": String(Boolean(props.drawEnabled)),
-    }),
+      "data-draw-mode": props.drawMode ?? "rectangle",
+    });
+  },
 }));
+
+/** Simulate the map's polygon tool delivering a completed ring. */
+function completePolygon(ring: [number, number][]) {
+  act(() => {
+    lastMapProps.onDrawPolygonComplete?.(ring);
+  });
+}
 
 // Deliberately listed Global-first, so the form cannot pass by accident: the
 // picker must still lead with Michigan and preselect a Michigan region.
@@ -223,6 +240,146 @@ describe("NewAnalysisForm — area limits by mode", () => {
   });
 });
 
+// --- Polygon drawing ---------------------------------------------------------
+
+const polygonRadio = () => screen.getByRole("radio", { name: /^polygon$/i });
+const rectangleRadio = () => screen.getByRole("radio", { name: /^rectangle$/i });
+const vertexLine = () => screen.getByText(/Vertices placed:/).textContent ?? "";
+
+/** ~9 km² triangle near Ann Arbor: comfortably inside both area bounds. */
+const TRIANGLE: [number, number][] = [
+  [-83.5, 42.3],
+  [-83.45, 42.3],
+  [-83.5, 42.34],
+];
+
+describe("NewAnalysisForm — polygon drawing", () => {
+  it("defaults the custom mode to the rectangle tool with its numeric fields", () => {
+    renderForm();
+    fireEvent.click(drawRadio());
+
+    expect(rectangleRadio()).toBeChecked();
+    expect(screen.getByLabelText("Min longitude")).toBeInTheDocument();
+    expect(screen.getByTestId("map")).toHaveAttribute(
+      "data-draw-mode",
+      "rectangle",
+    );
+  });
+
+  it("asks for an outline before enabling submission in polygon mode", () => {
+    renderForm();
+    fireEvent.click(drawRadio());
+    fireEvent.click(polygonRadio());
+
+    // The keyboard path belongs to the rectangle tool; the polygon tool shows
+    // its own instructions and vertex count instead.
+    expect(screen.queryByLabelText("Min longitude")).not.toBeInTheDocument();
+    expect(vertexLine()).toContain("0");
+    expect(screen.getByRole("alert").textContent).toContain(
+      "at least three vertices",
+    );
+    expect(submitButton()).toBeDisabled();
+    expect(screen.getByTestId("map")).toHaveAttribute(
+      "data-draw-mode",
+      "polygon",
+    );
+  });
+
+  it("accepts a completed polygon and submits it as a closed GeoJSON ring", async () => {
+    renderForm();
+    fireEvent.click(drawRadio());
+    fireEvent.click(polygonRadio());
+    completePolygon(TRIANGLE);
+
+    expect(vertexLine()).toContain("3");
+    expect(areaLine()).toContain("for drawn areas");
+    expect(screen.queryByRole("alert")).not.toBeInTheDocument();
+    expect(submitButton()).toBeEnabled();
+
+    fireEvent.click(submitButton());
+    await waitFor(() => expect(createAnalysisMock).toHaveBeenCalled());
+    const payload = submittedPayload();
+    expect(payload.geometry).toEqual({
+      type: "Polygon",
+      coordinates: [[...TRIANGLE, TRIANGLE[0]]],
+    });
+    expect(payload).not.toHaveProperty("bbox");
+    expect(payload).not.toHaveProperty("region_id");
+  });
+
+  it("rejects an oversized polygon with the drawn-area wording", () => {
+    renderForm();
+    fireEvent.click(drawRadio());
+    fireEvent.click(polygonRadio());
+    // Half of a 1°×1° cell at ~42.5°N ≈ 4,500 km²: far over the 250 km² cap.
+    completePolygon([
+      [-84, 42],
+      [-83, 42],
+      [-84, 43],
+    ]);
+
+    const error = screen.getByRole("alert");
+    expect(error.textContent).toContain("exceeds the maximum of 250 km²");
+    // Mirrors the server's shape-aware wording: the way out names the tool
+    // the visitor is actually holding.
+    expect(error.textContent).toContain("Draw a smaller polygon");
+    expect(submitButton()).toBeDisabled();
+  });
+
+  it("rejects a ring over the vertex ceiling", () => {
+    renderForm();
+    fireEvent.click(drawRadio());
+    fireEvent.click(polygonRadio());
+    // A 300-vertex circle of ~0.05° radius: legal area, too many vertices.
+    completePolygon(
+      Array.from({ length: 300 }, (_, i): [number, number] => [
+        -83.5 + 0.05 * Math.cos((2 * Math.PI * i) / 300),
+        42.35 + 0.05 * Math.sin((2 * Math.PI * i) / 300),
+      ]),
+    );
+
+    expect(screen.getByRole("alert").textContent).toContain(
+      "300 vertices, exceeding the maximum of 256",
+    );
+    expect(submitButton()).toBeDisabled();
+  });
+
+  it("clears the polygon and disables submission again", () => {
+    renderForm();
+    fireEvent.click(drawRadio());
+    fireEvent.click(polygonRadio());
+    completePolygon(TRIANGLE);
+    fireEvent.click(screen.getByRole("button", { name: /clear polygon/i }));
+
+    expect(vertexLine()).toContain("0");
+    expect(submitButton()).toBeDisabled();
+  });
+
+  it("keeps the drawn polygon when toggling modes", () => {
+    renderForm();
+    fireEvent.click(drawRadio());
+    fireEvent.click(polygonRadio());
+    completePolygon(TRIANGLE);
+    fireEvent.click(screen.getByRole("radio", { name: /predefined region/i }));
+    fireEvent.click(drawRadio());
+
+    expect(polygonRadio()).toBeChecked();
+    expect(vertexLine()).toContain("3");
+  });
+
+  it("still submits a bbox and no geometry from the rectangle tool", async () => {
+    renderForm();
+    fireEvent.click(drawRadio());
+
+    fireEvent.click(submitButton());
+    await waitFor(() => expect(createAnalysisMock).toHaveBeenCalled());
+    const payload = submittedPayload();
+    expect(payload.bbox).toHaveLength(4);
+    expect(payload).not.toHaveProperty("geometry");
+    expect(payload).not.toHaveProperty("region_id");
+  });
+});
+
 // --- Observation selection --------------------------------------------------
 
 const spreadRadio = () =>
@@ -366,5 +523,55 @@ describe("NewAnalysisForm — submission payload", () => {
 
     await waitFor(() => expect(createAnalysisMock).toHaveBeenCalled());
     expect(submittedPayload().seasonal_target_month).toBe(7);
+  });
+});
+
+// --- Operation picker ------------------------------------------------------
+
+const ndviRadio = () =>
+  screen.getByRole("radio", { name: /^NDVI — vegetation health/ });
+const nbrRadio = () =>
+  screen.getByRole("radio", { name: /^NBR — burn severity/ });
+
+describe("NewAnalysisForm — operation picker", () => {
+  it("offers every advertised operation, defaulting to NDVI", () => {
+    renderForm();
+    expect(ndviRadio()).toBeChecked();
+    expect(nbrRadio()).not.toBeChecked();
+    expect(nbrRadio().closest("label")).toHaveTextContent(
+      /does not by itself confirm fire/,
+    );
+  });
+
+  it("stays hidden — and sends no operation — when only one is advertised", async () => {
+    renderForm({ operations: configFixture.operations.slice(0, 1) });
+    expect(
+      screen.queryByRole("radio", { name: /vegetation health|burn severity/ }),
+    ).not.toBeInTheDocument();
+
+    setDates("2025-04-01", "2025-10-01");
+    fireEvent.click(submitButton());
+    await waitFor(() => expect(createAnalysisMock).toHaveBeenCalled());
+    // Servers old enough to offer one operation also forbid unknown fields.
+    expect(submittedPayload()).not.toHaveProperty("operation");
+  });
+
+  it("submits the default NDVI operation when the visitor does not pick", async () => {
+    renderForm();
+    setDates("2025-04-01", "2025-10-01");
+    fireEvent.click(submitButton());
+
+    await waitFor(() => expect(createAnalysisMock).toHaveBeenCalled());
+    expect(submittedPayload().operation).toBe("ndvi");
+  });
+
+  it("submits the chosen NBR operation", async () => {
+    renderForm();
+    fireEvent.click(nbrRadio());
+    setDates("2025-04-01", "2025-10-01");
+    fireEvent.click(submitButton());
+
+    await waitFor(() => expect(createAnalysisMock).toHaveBeenCalled());
+    expect(submittedPayload().operation).toBe("nbr");
   });
 });

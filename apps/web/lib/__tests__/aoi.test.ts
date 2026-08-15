@@ -4,6 +4,7 @@ import {
   defaultCustomBbox,
   maxAreaKm2ForMode,
   validateAoiArea,
+  validateRingVertexCount,
   type AoiLimits,
 } from "@/lib/aoi";
 import { estimateBboxAreaKm2 } from "@/lib/geo";
@@ -47,6 +48,16 @@ describe("validateAoiArea", () => {
     expect(error).toContain("predefined region");
   });
 
+  it("names the polygon tool when the drawn shape was a polygon", () => {
+    // Mirrors the server's shape-aware 422 detail for polygon submissions.
+    expect(validateAoiArea(300, "custom", limits, "polygon")).toContain(
+      "Draw a smaller polygon",
+    );
+    expect(validateAoiArea(0.2, "custom", limits, "polygon")).toContain(
+      "Draw a larger polygon",
+    );
+  });
+
   it("accepts a 1.0 km² drawn box", () => {
     expect(validateAoiArea(1.0, "custom", limits)).toBeNull();
   });
@@ -78,6 +89,29 @@ describe("validateAoiArea", () => {
   });
 });
 
+describe("validateRingVertexCount", () => {
+  it("accepts a triangle and a ring exactly at the ceiling", () => {
+    expect(validateRingVertexCount(3, limits)).toBeNull();
+    expect(validateRingVertexCount(256, limits)).toBeNull();
+  });
+
+  it("rejects a ring over the ceiling with the server's wording", () => {
+    const error = validateRingVertexCount(300, limits);
+    // Mirrors the server's 422 detail, including the way out.
+    expect(error).toContain("300 vertices, exceeding the maximum of 256");
+    expect(error).toContain("simpler outline");
+  });
+
+  it("rejects fewer than three vertices", () => {
+    expect(validateRingVertexCount(2, limits)).toContain("at least three");
+  });
+
+  it("respects a deployment that tightens the ceiling", () => {
+    const tight: AoiLimits = { ...limits, max_custom_aoi_vertices: 8 };
+    expect(validateRingVertexCount(9, tight)).toContain("maximum of 8");
+  });
+});
+
 describe("defaultCustomBbox", () => {
   it("prefills a ~1 km² box that passes validation at input precision", () => {
     const bbox = defaultCustomBbox(CENTER, limits);
@@ -99,6 +133,7 @@ describe("defaultCustomBbox", () => {
       min_aoi_area_km2: 0.5,
       max_aoi_area_km2: 600,
       max_custom_aoi_area_km2: 0.8,
+      max_custom_aoi_vertices: 256,
     };
     const area = estimateBboxAreaKm2(defaultCustomBbox(CENTER, tight));
     expect(validateAoiArea(area, "custom", tight)).toBeNull();

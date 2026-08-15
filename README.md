@@ -4,13 +4,14 @@
 Sentinel-2 satellite observations?**
 
 Built around Southeast Michigan — still the home focus and the demonstration
-analysis — and now shipping curated regions across five continents, anywhere
+analysis — and now shipping curated regions across six continents, anywhere
 Sentinel-2 observes.
 
 A reproducible environmental observation platform that turns that question into
 auditable measurements: it discovers Sentinel-2 scenes through the Microsoft
 Planetary Computer STAC API, applies documented cloud masking, computes NDVI
-over user-selected areas of interest, and publishes every result with
+(vegetation health) or NBR (burn severity) over user-selected areas of
+interest, and publishes every result with
 machine-readable provenance — from the exact source scenes and mask policy down
 to the SHA-256 of every output file.
 
@@ -20,9 +21,10 @@ to the SHA-256 of every output file.
 
 ## What it does
 
-- **Interactive analyses** — pick one of the ten curated regions or draw your
+- **Interactive analyses** — pick one of the fifteen curated regions or draw your
   own area (capped at 250 km², a ceiling set from measured processing cost),
-  choose a date range and cloud-cover threshold, and submit. The API queues the
+  choose the operation — NDVI for vegetation health, NBR for burn severity —
+  plus a date range and cloud-cover threshold, and submit. The API queues the
   work; an event-driven worker processes it and the UI tracks
   `queued → running → succeeded/failed` live.
 - **Works wherever Sentinel-2 looks** — the mission images land between roughly
@@ -34,8 +36,8 @@ to the SHA-256 of every output file.
   read from cloud-optimized GeoTIFFs (no full-scene downloads). The Scene
   Classification Layer masks clouds, shadows, cirrus, and snow under a
   documented, configurable policy, and the Sentinel-2 processing-baseline
-  reflectance offset is handled explicitly (it does *not* cancel in the NDVI
-  ratio).
+  reflectance offset is handled explicitly (it does *not* cancel in a
+  normalized-index ratio — NDVI or NBR alike).
 - **Comparable observations** — every analysis derives one canonical grid (CRS,
   resolution, transform, AOI mask) and every date is reprojected onto it, with
   granules mosaicked when the area crosses a Sentinel-2 tile boundary. Dates
@@ -48,23 +50,27 @@ to the SHA-256 of every output file.
   (validated against a published schema) with STAC item IDs, unsigned asset
   references, mask classes, band scaling, software versions, git commit,
   container image, CRS/transform per output, checksums, and timings.
-- **Downloadable outputs** — per scene: float32 NDVI Cloud Optimized GeoTIFF
-  (rio-cogeo validated), colorized NDVI preview, source true-color preview,
+- **Downloadable outputs** — per scene: float32 index COG (NDVI or NBR,
+  rio-cogeo validated), colorized preview, source true-color preview,
   summary JSON; per analysis: time-series CSV (actual observation dates, never
-  interpolated), summary JSON, provenance JSON.
+  interpolated), change map (ΔNDVI or ΔNBR between the earliest and latest
+  usable observations), summary JSON, provenance JSON.
 
 > **Interpretation note** — results are *observed spectral vegetation-index
-> changes* for specific acquisition dates. NDVI alone does not establish
-> drought, wildfire damage, climate change, or agricultural failure. See
+> changes* for specific acquisition dates. Neither NDVI nor NBR alone
+> establishes drought, wildfire damage, climate change, or agricultural
+> failure — a ΔNBR drop over forest is consistent with burning, not proof of
+> it. See
 > [docs/limitations.md](docs/limitations.md).
 
 ## Curated regions
 
-Ten predefined regions ship with the platform, most sized to ~137 km² so
-processing cost is comparable between them (Hartwick Pines Forest is smaller,
-at ~84 km²). Michigan is the home ground;
-together the ten span five continents, both hemispheres, and very different
-vegetation regimes. Every one was checked for real Sentinel-2 coverage.
+Fifteen predefined regions ship with the platform, most sized between 120 and
+160 km² so processing cost is comparable between them (Hartwick Pines Forest is
+smaller, at ~84 km²). Michigan is the home ground;
+together the fifteen span six continents, both hemispheres, and very different
+vegetation regimes — including five documented wildfire burn scars for
+pre/post-fire NBR analyses. Every one was checked for real Sentinel-2 coverage.
 
 **Michigan**
 
@@ -86,16 +92,28 @@ vegetation regimes. Every one was checked for real Sentinel-2 coverage.
 | Mekong Delta Rice (Vietnam) | Two to three crops a year, so NDVI cycles several times within one; flooded fields before transplanting read near-zero or negative. |
 | Doñana Wetlands (Spain) | A Mediterranean wetland drying markedly through summer, beside irrigated agriculture that does not. |
 
+**Wildfire**
+
+| Region | What the landscape does |
+| --- | --- |
+| Park Fire Burn Scar (California) | Mixed conifer and chaparral in the Sierra Nevada foothills between Mill Creek and Deer Creek; in July 2024 the Park Fire turned dense canopy into charred slopes on its run from Chico toward Lassen Volcanic National Park. |
+| Evia Burn Scar (Greece) | Aleppo pine and maquis on northern Evia near Istiaia; over ten days in August 2021 the fire swept the island's north coast to coast, leaving open, charred hillsides where closed-canopy pine stood. |
+| Longwood Burn Scar (Victoria, Australia) | Eucalypt foothill forest and grazing country in the Strathbogie Ranges south of Longwood; the January 2026 fire, fanned southeast from the Hume Highway by northwesterly winds, burned more than 135,000 hectares of the ranges before containment on 19 January. |
+| El Hoyo Burn Scar (Chubut, Argentina) | Andean-Patagonian forest and shrub-steppe in the Epuyén valley near El Hoyo; fires that broke out on 5 January 2026 and flared again late that month burned through the lake district's forested valleys. |
+| Ávila Burn Scar (Castilla y León, Spain) | Pine forest and scrub on the northern slopes of the Sierra de Gredos above the Valle del Tiétar, between Mijares and Casillas; the fire declared at Burgohondo on 22 July 2026 became the largest wildfire in Spain's recorded history. |
+
 These describe what the *landscape* does, not what the platform concludes: it
-measures NDVI and reports observed change (see the interpretation note above).
+measures spectral indices (NDVI, NBR) and reports observed change (see the
+interpretation note above).
 Regions are exposed by `GET /api/v1/regions`, each carrying a `group` field.
 
 ## Data source
 
 [Sentinel-2 Level-2A](https://planetarycomputer.microsoft.com/dataset/sentinel-2-l2a)
 surface reflectance (ESA / Copernicus), accessed via the Microsoft Planetary
-Computer STAC API. Bands used: B04 (red, 10 m), B08 (NIR, 10 m), SCL (scene
-classification, 20 m), and the true-color composite for previews.
+Computer STAC API. Bands used: B04 (red, 10 m) and B08 (NIR, 10 m) for NDVI,
+B12 (SWIR2, natively 20 m, resampled onto the 10 m grid) for NBR, SCL (scene
+classification, 20 m) for masking, and the true-color composite for previews.
 
 *Contains modified Copernicus Sentinel data, processed by ESA, accessed via the
 Microsoft Planetary Computer.*
@@ -112,7 +130,7 @@ flowchart LR
     J --> S["Planetary Computer<br/>STAC API"]
     S --> C["Sentinel-2 L2A<br/>COG assets"]
     C -->|"windowed range reads"| J
-    J -->|"NDVI COGs, previews,<br/>CSV, provenance"| BL[("Private Blob Storage")]
+    J -->|"index COGs, previews,<br/>CSV, provenance"| BL[("Private Blob Storage")]
     J -->|"observations,<br/>artifacts, status"| P
     A -->|"short-lived SAS URLs"| BL
 ```
@@ -130,7 +148,7 @@ Node 22+ with pnpm (via `corepack enable`), GNU make.
 make bootstrap    # install Python + web dependencies, create .env
 make dev          # start PostGIS, Azurite, API, worker, web
 make migrate      # apply database migrations
-make seed         # seed the predefined regions (Michigan + global)
+make seed         # seed the predefined regions (Michigan + global + wildfire)
 ```
 
 Open http://localhost:3000 (web) and http://localhost:8000/docs (API).
@@ -250,8 +268,8 @@ with the same package the worker runs.
 
 ## Roadmap
 
-- Additional indices (EVI, NDWI) on the same pipeline
-- Per-pixel change maps between two observations
+- Additional indices (EVI, NDWI) on the same index-registry pipeline — NBR for
+  burn severity already ships; the remaining two are configuration plus formula
 - Region-pack import (GeoJSON upload) with server-side simplification
 - Result caching keyed on (AOI, dates, config) to dedupe identical requests
 

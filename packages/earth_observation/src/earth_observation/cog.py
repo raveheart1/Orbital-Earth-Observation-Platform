@@ -51,6 +51,20 @@ def write_ndvi_cog(
         )
 
 
+def read_ndvi_array(path: Path) -> npt.NDArray[np.float32]:
+    """Read a single-band float32 raster back into the NaN-is-invalid convention.
+
+    Inverse of :func:`write_ndvi_cog`: pixels carrying the file's explicit
+    nodata value come back as NaN.
+    """
+    with rasterio.open(path) as src:
+        data = np.asarray(src.read(1), dtype=np.float32)
+        nodata = src.nodata
+    if nodata is not None:
+        data[data == np.float32(nodata)] = np.nan
+    return data
+
+
 def validate_cog(path: Path) -> tuple[bool, list[str], list[str]]:
     """Structurally validate a COG. Returns (is_valid, errors, warnings)."""
     is_valid, errors, warnings = cog_validate(str(path), quiet=True)

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import {
   getAnalysis,
   getArtifacts,
@@ -9,6 +9,7 @@ import {
   getScenes,
   getTimeseries,
 } from "@/lib/api";
+import { findFireDetectionsArtifact, parseFireDetections } from "@/lib/fires";
 import {
   formatChange,
   formatDate,
@@ -19,10 +20,13 @@ import {
   shortSha,
 } from "@/lib/format";
 import { isTerminalStatus, nextPollDelayMs } from "@/lib/polling";
+import { legendForOperation, operationUi } from "@/lib/operations";
 import { describeSelectionStrategy, monthName } from "@/lib/selection";
-import type { Analysis } from "@/lib/schemas";
+import { extractGeometryRings } from "@/lib/geo";
+import type { Analysis, PolygonGeometry } from "@/lib/schemas";
 import { useFetch, type FetchState } from "@/lib/useFetch";
 import ArtifactList from "./ArtifactList";
+import ChangePanel from "./ChangePanel";
 import ComparePreviews from "./ComparePreviews";
 import { ErrorBox, LoadingBox } from "./FetchStates";
 import LimitationsNote from "./LimitationsNote";
@@ -98,6 +102,31 @@ export default function AnalysisDetail({ id }: { id: string }) {
   const artifacts = useFetch(() => getArtifacts(id), [id], succeeded);
   const provenance = useFetch(() => getProvenance(id), [id], succeeded);
 
+  // FIRMS active-fire overlay: fetched once the artifact list is known. The
+  // overlay is context, never core data — any failure silently omits it.
+  const [fireDetections, setFireDetections] =
+    useState<GeoJSON.FeatureCollection | null>(null);
+  const [showFireDetections, setShowFireDetections] = useState(true);
+  const fireToggleId = useId();
+  const artifactsState = artifacts.state;
+  useEffect(() => {
+    if (artifactsState.status !== "ok") return;
+    const artifact = findFireDetectionsArtifact(artifactsState.data.items);
+    if (!artifact) return;
+    let cancelled = false;
+    fetch(artifact.download_url)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: unknown) => {
+        if (!cancelled) setFireDetections(parseFireDetections(data));
+      })
+      .catch(() => {
+        // Context layer only: omit silently.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [artifactsState]);
+
   if (!analysis && loadError) {
     return (
       <ErrorBox message={loadError} onRetry={() => setReloadTick((t) => t + 1)} />
@@ -108,6 +137,7 @@ export default function AnalysisDetail({ id }: { id: string }) {
   }
 
   const areaLabel = analysis.region?.name ?? "the selected area";
+  const op = operationUi(analysis.processing.operation);
   const inProgress = analysis.status === "queued" || analysis.status === "running";
   const isSeasonal = analysis.selection_strategy === "seasonal";
   const targetMonthName = monthName(analysis.seasonal_target_month);
@@ -115,6 +145,15 @@ export default function AnalysisDetail({ id }: { id: string }) {
     (analysis.bbox[0] + analysis.bbox[2]) / 2,
     (analysis.bbox[1] + analysis.bbox[3]) / 2,
   ];
+  // Show the true AOI outline — the drawn polygon, else the region's geometry —
+  // rather than its bounding box whenever the server returned one.
+  const analysisRings = extractGeometryRings(analysis.geometry);
+  const aoiRings = analysisRings.length
+    ? analysisRings
+    : extractGeometryRings(analysis.region?.geometry ?? null);
+  const aoiGeometry: PolygonGeometry | null = aoiRings.length
+    ? { type: "Polygon", coordinates: aoiRings }
+    : null;
 
   return (
     <div>
@@ -233,7 +272,10 @@ export default function AnalysisDetail({ id }: { id: string }) {
             <dt>Observation selection</dt>
             <dd>{describeSelectionStrategy(analysis)}</dd>
             <dt>Area of interest</dt>
-            <dd>{analysis.region?.name ?? "Custom bounding box"}</dd>
+            <dd>
+              {analysis.region?.name ??
+                (aoiGeometry ? "Custom polygon" : "Custom bounding box")}
+            </dd>
             <dt>Area</dt>
             <dd>{formatKm2(analysis.area_km2)}</dd>
             <dt>Bounding box</dt>
@@ -255,13 +297,33 @@ export default function AnalysisDetail({ id }: { id: string }) {
             </dd>
           </dl>
         </div>
-        <MapPanel
-          center={bboxCenter}
-          zoom={8}
-          bbox={analysis.bbox}
-          ariaLabel={`Map showing the analysed bounding box over ${areaLabel}`}
-          short
-        />
+        <div>
+          <MapPanel
+            center={bboxCenter}
+            zoom={8}
+            bbox={analysis.bbox}
+            geometry={aoiGeometry}
+            fireDetections={showFireDetections ? fireDetections : null}
+            ariaLabel={`Map showing the analysed area of interest over ${areaLabel}`}
+            short
+          />
+          {fireDetections ? (
+            <label
+              className="aoi-toggle"
+              htmlFor={fireToggleId}
+              style={{ marginTop: "0.5rem" }}
+            >
+              <input
+                id={fireToggleId}
+                type="checkbox"
+                checked={showFireDetections}
+                onChange={(event) => setShowFireDetections(event.target.checked)}
+              />
+              Show FIRMS active-fire detections on the map (
+              {fireDetections.features.length})
+            </label>
+          ) : null}
+        </div>
       </section>
 
       {analysis.summary ? (
@@ -290,13 +352,13 @@ export default function AnalysisDetail({ id }: { id: string }) {
               </p>
             </div>
             <div className="stat">
-              <p className="stat-label">Mean NDVI, first</p>
+              <p className="stat-label">Mean {op.name}, first</p>
               <p className="stat-value">
                 {formatNumber(analysis.summary.ndvi_mean_first)}
               </p>
             </div>
             <div className="stat">
-              <p className="stat-label">Mean NDVI, last</p>
+              <p className="stat-label">Mean {op.name}, last</p>
               <p className="stat-value">
                 {formatNumber(analysis.summary.ndvi_mean_last)}
               </p>
@@ -330,7 +392,7 @@ export default function AnalysisDetail({ id }: { id: string }) {
               <h2 id="compare-heading">Before & after</h2>
               <p className="muted small">
                 Earliest and latest usable observations, as true-color imagery
-                and NDVI maps.
+                and {op.name} maps.
               </p>
             </div>
             <Section
@@ -350,11 +412,14 @@ export default function AnalysisDetail({ id }: { id: string }) {
                         analysis={analysis}
                         points={ts.points}
                         artifacts={arts.items}
-                        legend={config.state.data.ndvi_legend}
+                        legend={legendForOperation(
+                          config.state.data,
+                          analysis.processing.operation,
+                        )}
                         areaLabel={areaLabel}
                       />
                     ) : (
-                      <LoadingBox label="Loading NDVI legend…" />
+                      <LoadingBox label={`Loading ${op.name} legend…`} />
                     )
                   }
                 </Section>
@@ -362,12 +427,37 @@ export default function AnalysisDetail({ id }: { id: string }) {
             </Section>
           </section>
 
+          {analysis.summary?.change?.computed ? (
+            <section className="section" aria-labelledby="change-heading">
+              <div className="section-head">
+                <h2 id="change-heading">{op.name} change map</h2>
+                <p className="muted small">{op.changeSectionBlurb}</p>
+              </div>
+              <Section
+                state={artifacts.state}
+                reload={artifacts.reload}
+                loadingLabel="Loading change map…"
+              >
+                {(arts) => (
+                  <ChangePanel
+                    analysis={analysis}
+                    artifacts={arts.items}
+                    areaLabel={areaLabel}
+                    fireDetectionCount={
+                      fireDetections ? fireDetections.features.length : null
+                    }
+                  />
+                )}
+              </Section>
+            </section>
+          ) : null}
+
           <section className="section" aria-labelledby="timeseries-heading">
             <div className="section-head">
-              <h2 id="timeseries-heading">NDVI time series</h2>
+              <h2 id="timeseries-heading">{op.name} time series</h2>
               <p className="muted small">
-                Mean NDVI across the area for each usable scene; the shaded band
-                spans the 25th–75th percentile of pixels.
+                Mean {op.name} across the area for each usable scene; the shaded
+                band spans the 25th–75th percentile of pixels.
               </p>
             </div>
             <Section
@@ -375,7 +465,12 @@ export default function AnalysisDetail({ id }: { id: string }) {
               reload={timeseries.reload}
               loadingLabel="Loading time series…"
             >
-              {(ts) => <NdviChart points={ts.points} />}
+              {(ts) => (
+                <NdviChart
+                  points={ts.points}
+                  operation={analysis.processing.operation}
+                />
+              )}
             </Section>
             {isSeasonal ? (
               <p

@@ -63,10 +63,17 @@ class SceneSelectionStatus(str, enum.Enum):
 class ArtifactType(str, enum.Enum):
     NDVI_COG = "ndvi_cog"
     NDVI_PREVIEW = "ndvi_preview"
+    NBR_COG = "nbr_cog"
+    NBR_PREVIEW = "nbr_preview"
     TRUE_COLOR_PREVIEW = "true_color_preview"
     SCENE_SUMMARY = "scene_summary"
     TIMESERIES_CSV = "timeseries_csv"
     ANALYSIS_SUMMARY = "analysis_summary"
+    NDVI_CHANGE_COG = "ndvi_change_cog"
+    NDVI_CHANGE_PREVIEW = "ndvi_change_preview"
+    NBR_CHANGE_COG = "nbr_change_cog"
+    NBR_CHANGE_PREVIEW = "nbr_change_preview"
+    FIRE_DETECTIONS = "fire_detections"
     PROVENANCE = "provenance"
 
 

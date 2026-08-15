@@ -53,12 +53,22 @@ DEFAULT_MASKED_SCL_CLASSES: tuple[int, ...] = (
 
 
 class AssetKeys(BaseModel):
-    """STAC asset keys used for NDVI processing on a given collection."""
+    """STAC asset keys for the band roles index processing may require.
+
+    ``red`` / ``nir`` / ``swir`` are the spectral roles referenced by
+    :mod:`earth_observation.indices`; ``green`` / ``blue`` are reserved for
+    future indices (NDWI, EVI) so adding them later is config-only. ``scl`` is
+    always required separately for masking — it is not part of any index's
+    required roles.
+    """
 
     model_config = ConfigDict(frozen=True)
 
     red: str = "B04"
     nir: str = "B08"
+    swir: str = "B12"
+    green: str = "B03"
+    blue: str = "B02"
     scl: str = "SCL"
     visual: str = "visual"
 
@@ -134,6 +144,20 @@ class ProcessingConfig(BaseModel):
     )
     ndvi_display_min: float = Field(default=-0.2, description="Preview colormap lower bound")
     ndvi_display_max: float = Field(default=0.9, description="Preview colormap upper bound")
+    change_delta_threshold: float = Field(
+        default=0.1,
+        description="NDVI delta magnitude above which a pixel counts as increased "
+        "or decreased in the change-map statistics; smaller changes are treated "
+        "as within noise. Superseded at run time by the index registry "
+        "(earth_observation.indices); retained for stored-config compatibility",
+    )
+    change_display_range: float = Field(
+        default=0.4,
+        description="Change preview colormap half-range; the diverging ramp spans "
+        "-range..+range centered at zero. Superseded at run time by the index "
+        "registry (earth_observation.indices); retained for stored-config "
+        "compatibility",
+    )
     preview_max_dim: int = Field(default=1024, description="Longest preview edge in pixels")
     output_nodata: float = -9999.0
     resampling: str = Field(
@@ -238,6 +262,26 @@ class SceneStats(BaseModel):
     ndvi_p90: float | None
 
 
+class ChangeStats(BaseModel):
+    """Per-pixel NDVI change statistics over pixels valid in BOTH observations.
+
+    ``valid_both_pct`` is the share of AOI pixels that are comparable at all;
+    ``pct_increased`` / ``pct_decreased`` are shares of the valid-in-both
+    pixels whose delta magnitude exceeds the configured threshold.
+    """
+
+    aoi_pixel_count: int
+    valid_both_pixel_count: int
+    valid_both_pct: float
+    delta_mean: float | None
+    delta_median: float | None
+    delta_std: float | None
+    delta_p10: float | None
+    delta_p90: float | None
+    pct_increased: float | None
+    pct_decreased: float | None
+
+
 class RasterInfo(BaseModel):
     """Georeferencing of a produced raster, recorded for provenance."""
 
@@ -250,7 +294,11 @@ class RasterInfo(BaseModel):
 
 
 class SceneOutputs(BaseModel):
-    """Local paths of files produced for one scene (pre-upload)."""
+    """Local paths of files produced for one scene (pre-upload).
+
+    The ``ndvi_*`` field names are historical: they hold the analysis's index
+    outputs (``nbr.tif`` for an NBR analysis, etc.) and are generic containers.
+    """
 
     ndvi_cog: str
     ndvi_preview: str
