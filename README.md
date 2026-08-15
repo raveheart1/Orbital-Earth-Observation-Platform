@@ -4,7 +4,7 @@
 Sentinel-2 satellite observations?**
 
 Built around Southeast Michigan — still the home focus and the demonstration
-analysis — and now shipping curated regions across five continents, anywhere
+analysis — and now shipping curated regions across six continents, anywhere
 Sentinel-2 observes.
 
 A reproducible environmental observation platform that turns that question into
@@ -21,7 +21,7 @@ to the SHA-256 of every output file.
 
 ## What it does
 
-- **Interactive analyses** — pick one of the twelve curated regions or draw your
+- **Interactive analyses** — pick one of the fifteen curated regions or draw your
   own area (capped at 250 km², a ceiling set from measured processing cost),
   choose the operation — NDVI for vegetation health, NBR for burn severity —
   plus a date range and cloud-cover threshold, and submit. The API queues the
@@ -65,11 +65,11 @@ to the SHA-256 of every output file.
 
 ## Curated regions
 
-Twelve predefined regions ship with the platform, most sized to ~137 km² so
-processing cost is comparable between them (Hartwick Pines Forest is smaller,
-at ~84 km²). Michigan is the home ground;
-together the twelve span five continents, both hemispheres, and very different
-vegetation regimes — including two documented wildfire burn scars for
+Fifteen predefined regions ship with the platform, most sized between 120 and
+160 km² so processing cost is comparable between them (Hartwick Pines Forest is
+smaller, at ~84 km²). Michigan is the home ground;
+together the fifteen span six continents, both hemispheres, and very different
+vegetation regimes — including five documented wildfire burn scars for
 pre/post-fire NBR analyses. Every one was checked for real Sentinel-2 coverage.
 
 **Michigan**
@@ -98,6 +98,9 @@ pre/post-fire NBR analyses. Every one was checked for real Sentinel-2 coverage.
 | --- | --- |
 | Park Fire Burn Scar (California) | Mixed conifer and chaparral in the Sierra Nevada foothills between Mill Creek and Deer Creek; in July 2024 the Park Fire turned dense canopy into charred slopes on its run from Chico toward Lassen Volcanic National Park. |
 | Evia Burn Scar (Greece) | Aleppo pine and maquis on northern Evia near Istiaia; over ten days in August 2021 the fire swept the island's north coast to coast, leaving open, charred hillsides where closed-canopy pine stood. |
+| Longwood Burn Scar (Victoria, Australia) | Eucalypt foothill forest and grazing country in the Strathbogie Ranges south of Longwood; the January 2026 fire, fanned southeast from the Hume Highway by northwesterly winds, burned more than 135,000 hectares of the ranges before containment on 19 January. |
+| El Hoyo Burn Scar (Chubut, Argentina) | Andean-Patagonian forest and shrub-steppe in the Epuyén valley near El Hoyo; fires that broke out on 5 January 2026 and flared again late that month burned through the lake district's forested valleys. |
+| Ávila Burn Scar (Castilla y León, Spain) | Pine forest and scrub on the northern slopes of the Sierra de Gredos above the Valle del Tiétar, between Mijares and Casillas; the fire declared at Burgohondo on 22 July 2026 became the largest wildfire in Spain's recorded history. |
 
 These describe what the *landscape* does, not what the platform concludes: it
 measures spectral indices (NDVI, NBR) and reports observed change (see the

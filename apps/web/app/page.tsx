@@ -27,9 +27,9 @@ export default function LandingPage() {
           It was built around Southeast Michigan and still calls it home — the
           demonstration analysis lives there — but the pipeline runs anywhere
           Sentinel-2 observes, roughly <span className="num">56°S</span> to{" "}
-          <span className="num">83°N</span>. Twelve curated regions ship with
+          <span className="num">83°N</span>. Fifteen curated regions ship with
           it — four in Michigan, six more spanning Africa, Asia, Europe, and
-          the Americas, and two documented wildfire burn scars for pre/post-fire
+          the Americas, and five documented wildfire burn scars for pre/post-fire
           analysis.
         </p>
         <HeroActions />
@@ -168,15 +168,33 @@ export default function LandingPage() {
               2021.
             </p>
             <p>
-              Both lie fully inside their fire perimeters with strong
+              <strong>Longwood Burn Scar</strong> (Victoria, Australia) —
+              eucalypt foothill forest in the Strathbogie Ranges, burned in
+              January 2026 as the Longwood fire ran southeast from the Hume
+              Highway.
+            </p>
+            <p>
+              <strong>El Hoyo Burn Scar</strong> (Chubut, Argentina) —
+              Andean-Patagonian forest of the Epuyén valley, burned in the
+              January 2026 Patagonian fire emergency.
+            </p>
+            <p>
+              <strong>Ávila Burn Scar</strong> (Castilla y León, Spain) — pine
+              forest and scrub on the northern slopes of the Sierra de Gredos,
+              burned in July 2026 by the largest wildfire in Spain&rsquo;s
+              recorded history.
+            </p>
+            <p>
+              All five lie fully inside their fire perimeters with strong
               pre/post-fire NBR contrast, verified against real Sentinel-2
               coverage before seeding.
             </p>
           </div>
         </div>
         <p className="panel-note" style={{ marginTop: "1rem" }}>
-          Most curated regions cover about{" "}
-          <span className="num">137 km²</span>, so processing cost is comparable
+          Most curated regions cover between{" "}
+          <span className="num">120</span> and{" "}
+          <span className="num">160 km²</span>, so processing cost is comparable
           between them. You can also draw your own area anywhere Sentinel-2
           observes — its orbit images land between roughly 56°S and 83°N, so the
           poles and the open ocean are out of reach.

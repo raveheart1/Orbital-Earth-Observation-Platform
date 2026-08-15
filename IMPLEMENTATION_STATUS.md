@@ -331,11 +331,18 @@ Issues found and fixed during deployment (committed):
       and wording, and every UI label. Provenance 2.2.0 records the index
       identity. No database migrations anywhere (string column, VARCHAR enums,
       JSON config).
-- [x] **Two verified Wildfire regions** (catalog 10 → 12): Park Fire Burn Scar
+- [x] **Five verified Wildfire regions** (catalog 10 → 15): Park Fire Burn Scar
       (2024, CA, 142 km², T10TFK) and Evia Burn Scar (2021, Greece, 144 km²,
-      T34SFJ), each checked against live STAC coverage before seeding. Live NBR
-      analyses: Park Fire mean ΔNBR −0.239 (45.4% burn-severity increase), Evia
-      −0.274 — consistent with the documented fire locations and dates.
+      T34SFJ), plus three major 2026 fires abroad — Longwood (Victoria,
+      Australia, Jan 2026, 148 km², T55HCV), El Hoyo (Chubut, Argentina,
+      Jan 2026, 137 km², T18GYU+T19GBP) and Ávila (Castilla y León, Spain,
+      Jul 2026 — Spain's largest recorded wildfire, 156 km², T30TUK). Every
+      region was checked against live STAC coverage and a measured pre/post
+      burn signal before seeding (mean ΔNBR −0.26 / −0.13 / −0.22 for the
+      2026 fires; candidate scars failing the signal check were rejected).
+      Live NBR analyses: Park Fire mean ΔNBR −0.239 (45.4% burn-severity
+      increase), Evia −0.274 — consistent with the documented fire locations
+      and dates.
 - [x] **Optional FIRMS active-fire overlay**: with `OEOP_FIRMS_MAP_KEY` set, the
       worker archives VIIRS detections (area API, ≤5-day windows, capped) for the
       analysis bbox + date span as a checksummed GeoJSON artifact; the web shows

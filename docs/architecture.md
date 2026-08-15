@@ -8,8 +8,8 @@ The Orbital Earth Observation Platform answers one scientific question:
 — and, for fire-affected areas, a companion one: how strongly did the spectral
 signature of burning (NBR) change across a documented wildfire?
 
-The place can be any of twelve curated regions — four in Michigan, the project's
-home ground, and eight elsewhere in the world, including two verified wildfire
+The place can be any of fifteen curated regions — four in Michigan, the project's
+home ground, and eleven elsewhere in the world, including five verified wildfire
 burn scars — or an area the visitor draws,
 anywhere Sentinel-2 observes (roughly 56°S to 83°N). Nothing in the pipeline is
 Michigan-specific: the canonical analysis grid derives its UTM zone from the

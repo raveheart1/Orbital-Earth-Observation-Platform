@@ -1,5 +1,5 @@
 {
-  "$comment": "Predefined analysis regions. Bounding boxes are [min_lon, min_lat, max_lon, max_lat] in EPSG:4326. All but Hartwick Pines Forest (~84 km2) are sized to roughly 120-145 km2 so processing cost is comparable across regions. The platform works anywhere Sentinel-2 observes (roughly 56S to 83N); the Michigan regions are the project's home ground and the rest span other continents, hemispheres and vegetation regimes. The Wildfire group lies inside documented burn scars so pre/post-fire NBR analyses have strong contrast; coverage of every region was verified against real Sentinel-2 scenes before seeding.",
+  "$comment": "Predefined analysis regions. Bounding boxes are [min_lon, min_lat, max_lon, max_lat] in EPSG:4326. All but Hartwick Pines Forest (~84 km2) are sized to roughly 120-160 km2 so processing cost is comparable across regions. The platform works anywhere Sentinel-2 observes (roughly 56S to 83N); the Michigan regions are the project's home ground and the rest span other continents, hemispheres and vegetation regimes. The Wildfire group lies inside documented burn scars so pre/post-fire NBR analyses have strong contrast; coverage of every region was verified against real Sentinel-2 scenes before seeding.",
   "regions": [
     {
       "name": "Southeast Michigan Demonstration Region",
@@ -143,6 +143,42 @@
         38.93,
         23.2,
         39.03
+      ]
+    },
+    {
+      "name": "Longwood Burn Scar",
+      "slug": "longwood-burn-scar",
+      "group": "Wildfire",
+      "description": "Eucalypt foothill forest and grazing country in the Strathbogie Ranges of central Victoria, Australia, south of Longwood. The Longwood fire, started beside the Hume Highway on 7 January 2026 and fanned southeast by strong northwesterly winds, burned more than 135,000 hectares before it was contained on 19 January, charring the ranges' mixed eucalypt stands and pasture.",
+      "bbox": [
+        145.35,
+        -36.95,
+        145.5,
+        -36.85
+      ]
+    },
+    {
+      "name": "El Hoyo Burn Scar",
+      "slug": "el-hoyo-burn-scar",
+      "group": "Wildfire",
+      "description": "Andean-Patagonian forest and shrub-steppe in the Epuyen valley near El Hoyo, Chubut Province, Argentina. Fires that broke out around El Hoyo, Puerto Patriada, and Epuyen on 5 January 2026 \u2014 and flared again in late January \u2014 burned through the forested valleys of the lake district, part of a Patagonian emergency that exceeded 45,000 hectares by early February.",
+      "bbox": [
+        -71.6,
+        -42.29,
+        -71.45,
+        -42.19
+      ]
+    },
+    {
+      "name": "Avila Burn Scar",
+      "slug": "avila-burn-scar",
+      "group": "Wildfire",
+      "description": "Pine forest and Mediterranean scrub on the northern slopes of the Sierra de Gredos above the Valle del Tietar in Avila, Spain, between Mijares and Casillas. The fire declared at Burgohondo on 22 July 2026 ran east through the Tietar and Alberche valleys, merged with fires in Madrid's Sierra Oeste, and became the largest wildfire in Spain's recorded history at more than 50,000 hectares.",
+      "bbox": [
+        -4.79,
+        40.31,
+        -4.64,
+        40.42
       ]
     }
   ]
