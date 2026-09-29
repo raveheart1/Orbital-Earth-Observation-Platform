@@ -87,6 +87,7 @@ def candidate_from_item(
         raise AssetKeysError(f"STAC item {item.id} has no geometry")
 
     cloud = item.properties.get("eo:cloud_cover")
+    snow = item.properties.get("s2:snow_ice_percentage")
     instruments = item.properties.get("instruments")
     return SceneCandidate(
         item_id=item.id,
@@ -100,6 +101,7 @@ def candidate_from_item(
         instruments=list(instruments) if instruments else None,
         processing_baseline=item.properties.get("s2:processing_baseline"),
         assets=assets,
+        snow_ice_pct=float(snow) if snow is not None else None,
     )
 
 

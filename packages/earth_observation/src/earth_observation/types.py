@@ -12,6 +12,8 @@ from typing import Any
 
 from pydantic import BaseModel, ConfigDict, Field
 
+from earth_observation.quality import QualityInfo
+
 
 class SCLClass(IntEnum):
     """Sentinel-2 L2A Scene Classification Layer classes (processing baseline >= 04.00).
@@ -91,6 +93,148 @@ class BandScaling(BaseModel):
     )
 
 
+class LandCoverConfig(BaseModel):
+    """Thresholds governing land-cover-stratified statistics.
+
+    See docs/land-cover-stratification.md. A class that fails a threshold is
+    still reported (pixel counts, area, share) but its index statistics are
+    ``None`` with a structured quality state — never zero.
+    """
+
+    model_config = ConfigDict(frozen=True)
+
+    min_class_pixels: int = Field(
+        default=100,
+        description="Classes with fewer AOI pixels than this (100 px = 1 ha at 10 m) "
+        "get no index statistics (insufficient_samples)",
+    )
+    min_class_valid_fraction: float = Field(
+        default=0.5,
+        description="Minimum fraction of a class's AOI pixels that must carry a valid "
+        "index value in an observation; below it the class statistics for that "
+        "observation are withheld (insufficient_coverage), because clouds are "
+        "spatially clustered and a small valid remnant is not representative",
+    )
+    max_reference_year_offset: int = Field(
+        default=3,
+        description="Observations more than this many years from the land-cover "
+        "map's reference year are flagged reference_year_mismatch",
+    )
+
+
+class TemporalConfig(BaseModel):
+    """Parameters of the temporal-context methods (docs/temporal-context.md)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    baseline_window_days: int = Field(
+        default=30,
+        description="Historical observations within this many days of the target "
+        "day-of-year (circular, leap-year aware) are seasonally comparable",
+    )
+    baseline_min_years: int = Field(
+        default=3, description="Distinct reference years required for a baseline"
+    )
+    baseline_min_samples: int = Field(
+        default=4, description="Comparable historical observations required for a baseline"
+    )
+    standardized_min_years: int = Field(
+        default=5,
+        description="Distinct reference years required before a robust standardized "
+        "anomaly (and an unusual/typical classification) is reported",
+    )
+    anomaly_z_threshold: float = Field(
+        default=2.0,
+        description="|robust z| at or above which an observation is classified as "
+        "unusually low/high relative to its seasonal baseline",
+    )
+    min_robust_sigma: float = Field(
+        default=0.01,
+        description="Floor on 1.4826 x MAD (index units); below it the spread is too "
+        "small for a standardized anomaly to be meaningful",
+    )
+    relative_anomaly_min_abs_expected: float = Field(
+        default=0.2,
+        description="Relative (percent) anomalies are reported only when "
+        "|expected| is at least this large; near zero they explode",
+    )
+    min_valid_fraction: float = Field(
+        default=0.7,
+        description="Observations whose stratum valid fraction is below this are "
+        "excluded from baselines/trends and not assessed as targets "
+        "(cloud_contaminated): a spatial mean over a cloud-riddled remnant is "
+        "biased toward whatever the clouds did not cover",
+    )
+    max_baseline_acquisitions: int = Field(
+        default=36,
+        description="Deterministic cap on historical acquisitions measured for the "
+        "baseline (cost control)",
+    )
+    trend_min_years: int = Field(
+        default=5, description="Distinct years required before a trend is estimated"
+    )
+    trend_min_season_years: int = Field(
+        default=10,
+        description="Season-year values (one per calendar month per year) required "
+        "for the seasonal Kendall test",
+    )
+    trend_alpha: float = Field(default=0.05, description="Two-sided significance level")
+    phenology_min_observations: int = Field(
+        default=8, description="Observations in a year required for phenology metrics"
+    )
+    phenology_min_months: int = Field(
+        default=6, description="Distinct calendar months in a year required for phenology"
+    )
+    phenology_max_gap_days: int = Field(
+        default=60,
+        description="Largest gap between consecutive observations in a year for "
+        "phenology metrics to be reported",
+    )
+
+
+class WildfireConfig(BaseModel):
+    """Parameters of the wildfire dNBR workflow (docs/wildfire-dnbr.md)."""
+
+    model_config = ConfigDict(frozen=True)
+
+    max_snow_ice_pct: float = Field(
+        default=10.0,
+        description="Candidates whose granule snow/ice share (s2:snow_ice_percentage, "
+        "AOI-overlap weighted) exceeds this are excluded: snow cover change is a "
+        "major dNBR confounder",
+    )
+    seasonal_tolerance_days: int = Field(
+        default=90,
+        description="Pairs whose pre/post day-of-year distance exceeds this are "
+        "flagged seasonal_mismatch (and ranked after every in-tolerance pair)",
+    )
+    cloud_bucket_pct: float = Field(
+        default=5.0,
+        description="Cloud cover is compared in buckets of this width when ranking "
+        "pairs, so negligible cloud differences do not override seasonal matching",
+    )
+    min_paired_valid_pct: float = Field(
+        default=50.0,
+        description="Minimum share of the AOI valid on BOTH dates for a pair to be "
+        "accepted; otherwise the next-ranked pair is tried",
+    )
+    good_paired_valid_pct: float = Field(
+        default=80.0,
+        description="Below this paired-valid share an accepted pair is flagged "
+        "partial_paired_coverage",
+    )
+    max_scenes_processed: int = Field(
+        default=6,
+        description="Upper bound on acquisitions processed while searching for an "
+        "acceptable pair (cost control)",
+    )
+    ranked_pairs_recorded: int = Field(
+        default=10, description="How many top-ranked pairs are recorded in provenance"
+    )
+    display_min: float = Field(default=-0.5, description="dNBR preview lower bound")
+    display_max: float = Field(default=1.0, description="dNBR preview upper bound")
+
+
 class ProcessingConfig(BaseModel):
     """Snapshot of every parameter that affects scientific output.
 
@@ -166,6 +310,9 @@ class ProcessingConfig(BaseModel):
         "nearest preserves class labels",
     )
     processing_version: str = "1.0.0"
+    land_cover: LandCoverConfig = LandCoverConfig()
+    temporal: TemporalConfig = TemporalConfig()
+    wildfire: WildfireConfig = WildfireConfig()
 
 
 class SceneCandidate(BaseModel):
@@ -187,6 +334,9 @@ class SceneCandidate(BaseModel):
     processing_baseline: str | None
     assets: dict[str, str]
     aoi_overlap_pct: float | None = None
+    snow_ice_pct: float | None = Field(
+        default=None, description="Granule snow/ice share (s2:snow_ice_percentage)"
+    )
 
 
 class SceneSelection(BaseModel):
@@ -282,6 +432,34 @@ class ChangeStats(BaseModel):
     pct_decreased: float | None
 
 
+class ClassStats(BaseModel):
+    """Index statistics for one land-cover class within the AOI (one observation).
+
+    ``aoi_*`` describe the class on the land-cover map (identical for every
+    observation); ``valid_*`` and the statistics describe this observation.
+    Statistics are ``None`` whenever ``quality`` is not valid.
+    """
+
+    class_code: int
+    class_key: str
+    class_name: str
+    aoi_pixel_count: int = Field(description="AOI pixels mapped to this class")
+    aoi_area_km2: float = Field(description="aoi_pixel_count x nominal pixel area")
+    aoi_pct: float = Field(description="Share of ALL AOI pixels mapped to this class")
+    valid_pixel_count: int = Field(description="Class pixels with a valid index value")
+    valid_fraction: float = Field(description="valid_pixel_count / aoi_pixel_count, 0..1")
+    mean: float | None = None
+    median: float | None = None
+    std: float | None = None
+    min: float | None = None
+    max: float | None = None
+    p10: float | None = None
+    p25: float | None = None
+    p75: float | None = None
+    p90: float | None = None
+    quality: QualityInfo = QualityInfo()
+
+
 class RasterInfo(BaseModel):
     """Georeferencing of a produced raster, recorded for provenance."""
 
@@ -319,6 +497,7 @@ class AcquisitionSummary(BaseModel):
     contributing_item_ids: list[str]
     tile_ids: list[str]
     processing_baselines: list[str]
+    snow_ice_pct: float | None = None
     assets: dict[str, dict[str, str]] = Field(
         default_factory=dict,
         description="Original unsigned asset hrefs, keyed by item id then role",
@@ -336,6 +515,10 @@ class SceneResult(BaseModel):
     scaling: BandScaling | None = None
     raster: RasterInfo | None = None
     outputs: SceneOutputs | None = None
+    class_stats: list[ClassStats] | None = Field(
+        default=None,
+        description="Per land-cover class statistics; None when no land-cover layer was supplied",
+    )
     processing_seconds: float = 0.0
     warnings: list[str] = Field(default_factory=list)
 

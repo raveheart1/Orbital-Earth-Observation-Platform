@@ -13,6 +13,45 @@ from pydantic import BaseModel, ConfigDict, Field
 # ---------------------------------------------------------------------------
 
 
+class TemporalContextRequest(BaseModel):
+    """Optional temporal context for a time-series analysis."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    enabled: bool = True
+    baseline_years: int = Field(
+        default=5,
+        ge=1,
+        description="Full calendar years before the analysis start year used as the "
+        "seasonal reference period; capped by /api/v1/config/public",
+    )
+
+
+class WildfireRequest(BaseModel):
+    """Pre/post-fire windows and severity interpretation for workflow=wildfire_dnbr."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    pre_fire_start: date
+    pre_fire_end: date
+    post_fire_start: date
+    post_fire_end: date
+    severity_classification: bool = Field(
+        default=True,
+        description="Also report threshold-based spectral severity classes; the "
+        "continuous dNBR is always produced",
+    )
+    severity_scheme: str = Field(
+        default="key-benson-2006",
+        description="A scheme id from /api/v1/config/public, or 'custom' with custom_thresholds",
+    )
+    custom_thresholds: list[float] | None = Field(
+        default=None,
+        max_length=9,
+        description="Ascending dNBR breakpoints (lower-inclusive) for severity_scheme='custom'",
+    )
+
+
 class AnalysisCreateRequest(BaseModel):
     """Submit a new analysis.
 
@@ -32,8 +71,27 @@ class AnalysisCreateRequest(BaseModel):
     )
     bbox: tuple[float, float, float, float] | None = None
     geometry: dict[str, Any] | None = None
-    start_date: date
-    end_date: date
+    start_date: date | None = Field(
+        default=None,
+        description="Required for workflow=timeseries. For wildfire_dnbr it may be "
+        "omitted; the stored range is then pre_fire_start..post_fire_end.",
+    )
+    end_date: date | None = None
+    workflow: Literal["timeseries", "wildfire_dnbr"] = Field(
+        default="timeseries",
+        description="timeseries = index time series over [start_date, end_date]; "
+        "wildfire_dnbr = pre/post-fire dNBR from the windows in `wildfire` "
+        "(operation must be nbr, and defaults to it)",
+    )
+    land_cover: bool = Field(
+        default=True,
+        description="Stratify statistics by ESA WorldCover land-cover class",
+    )
+    temporal_context: TemporalContextRequest | None = Field(
+        default=None,
+        description="Seasonal baseline, anomalies, trend, and phenology (timeseries workflow only)",
+    )
+    wildfire: WildfireRequest | None = None
     max_cloud_cover_pct: float = Field(default=20.0, ge=0.0, le=100.0)
     scene_limit: int | None = Field(default=None, ge=1)
     selection_strategy: Literal["temporal", "seasonal"] = Field(
@@ -58,6 +116,23 @@ class AnalysisCreateRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 
+class FireEventResponse(BaseModel):
+    """Documented fire context for a curated wildfire region.
+
+    Dates PROPOSE analysis windows; every result still comes from the
+    Sentinel-2 observations actually selected.
+    """
+
+    kind: Literal["wildfire"] = "wildfire"
+    name: str
+    start_date: date
+    end_date: date | None = None
+    end_date_note: str | None = None
+    suggested_pre_fire: dict[str, date]
+    suggested_post_fire: dict[str, date]
+    source_note: str
+
+
 class RegionResponse(BaseModel):
     id: uuid.UUID
     name: str
@@ -68,6 +143,7 @@ class RegionResponse(BaseModel):
     geometry: dict[str, Any]
     area_km2: float
     is_predefined: bool
+    event: FireEventResponse | None = None
 
 
 class FailureInfo(BaseModel):
@@ -102,6 +178,31 @@ class AnalysisLinks(BaseModel):
     timeseries: str
     artifacts: str
     provenance: str
+    land_cover: str | None = None
+    temporal_context: str | None = None
+    wildfire: str | None = None
+
+
+class TemporalOptionsResponse(BaseModel):
+    enabled: bool
+    baseline_years: int
+
+
+class WildfireOptionsResponse(BaseModel):
+    pre_fire_start: date
+    pre_fire_end: date
+    post_fire_start: date
+    post_fire_end: date
+    severity_classification: bool
+    severity_scheme: str
+    custom_thresholds: list[float] | None = None
+
+
+class AnalysisOptionsResponse(BaseModel):
+    land_cover: bool
+    land_cover_dataset: str | None = None
+    temporal: TemporalOptionsResponse
+    wildfire: WildfireOptionsResponse | None = None
 
 
 class AnalysisResponse(BaseModel):
@@ -119,6 +220,8 @@ class AnalysisResponse(BaseModel):
     scene_limit: int
     selection_strategy: str = "temporal"
     seasonal_target_month: int | None = None
+    workflow: str = "timeseries"
+    options: AnalysisOptionsResponse
     processing: ProcessingInfo
     submitted_at: datetime
     started_at: datetime | None
@@ -165,12 +268,43 @@ class SceneResponse(BaseModel):
     instruments: list[str] | None
     selection_status: Literal["selected", "excluded"]
     exclusion_reason: str | None
+    role: str | None = Field(
+        default=None, description="pre_fire / post_fire in the wildfire workflow"
+    )
     source_provider: str
     assets: dict[str, Any] = Field(
         description="Original unsigned STAC asset hrefs, keyed by item id then role"
     )
     quality: dict[str, Any] | None
     bbox: list[float] | None
+
+
+class QualityResponse(BaseModel):
+    """Structured quality metadata (earth_observation.quality.QualityInfo)."""
+
+    state: str
+    reasons: list[str] = Field(default_factory=list)
+    flags: list[str] = Field(default_factory=list)
+    message: str = ""
+    details: dict[str, Any] = Field(default_factory=dict)
+
+
+class AnomalySummary(BaseModel):
+    """Entire-AOI seasonal anomaly of one observation (statistical inference)."""
+
+    result_kind: Literal["statistical_inference"] = "statistical_inference"
+    expected: float | None
+    absolute_anomaly: float | None
+    relative_anomaly_pct: float | None
+    robust_z: float | None
+    classification: str
+    baseline_n_samples: int
+    baseline_n_years: int
+    iqr_low: float | None
+    iqr_high: float | None
+    range_low: float | None
+    range_high: float | None
+    quality_state: str
 
 
 class TimeseriesPoint(BaseModel):
@@ -196,6 +330,11 @@ class TimeseriesPoint(BaseModel):
     granule_count: int = 1
     contributing_item_ids: list[str] = Field(default_factory=list)
     tile_ids: list[str] = Field(default_factory=list)
+    role: str | None = None
+    anomaly: AnomalySummary | None = Field(
+        default=None,
+        description="Entire-AOI seasonal anomaly when temporal context was computed",
+    )
 
 
 class TimeseriesResponse(BaseModel):
@@ -226,6 +365,130 @@ class ArtifactListResponse(BaseModel):
     items: list[ArtifactResponse]
 
 
+# --- land cover ----------------------------------------------------------------
+
+
+class LandCoverClassLegend(BaseModel):
+    code: int
+    key: str
+    name: str
+    color: str
+    users_accuracy_pct: float | None = None
+    users_accuracy_ci_pct: float | None = None
+    producers_accuracy_pct: float | None = None
+    producers_accuracy_ci_pct: float | None = None
+
+
+class LandCoverDatasetResponse(BaseModel):
+    id: str
+    title: str
+    collection: str
+    product_version: str
+    reference_year: int
+    resolution_m: float
+    provider: str
+    license: str
+    license_url: str
+    attribution: str
+    citation: str
+    doi: str
+    documentation_url: str
+    validation_report_url: str
+    overall_accuracy_pct: float | None
+    overall_accuracy_ci_pct: float | None
+    accuracy_source: str
+    notes: list[str] = Field(default_factory=list)
+    legend: list[LandCoverClassLegend] = Field(default_factory=list)
+
+
+class CompositionEntryResponse(BaseModel):
+    class_code: int
+    class_key: str
+    class_name: str
+    color: str
+    pixel_count: int
+    area_km2: float
+    aoi_pct: float
+    users_accuracy_pct: float | None = None
+    producers_accuracy_pct: float | None = None
+
+
+class ClassStatsResponse(BaseModel):
+    """Index statistics of one land-cover class in one observation (a measurement)."""
+
+    class_code: int
+    class_key: str
+    class_name: str
+    aoi_pixel_count: int
+    aoi_area_km2: float
+    aoi_pct: float
+    valid_pixel_count: int
+    valid_fraction: float
+    mean: float | None
+    median: float | None
+    std: float | None
+    min: float | None
+    max: float | None
+    p10: float | None
+    p25: float | None
+    p75: float | None
+    p90: float | None
+    quality: QualityResponse
+
+
+class LandCoverObservation(BaseModel):
+    scene_id: uuid.UUID
+    stac_item_id: str
+    observed_at: datetime
+    role: str | None = None
+    classes: list[ClassStatsResponse]
+
+
+class LandCoverResponse(BaseModel):
+    analysis_id: uuid.UUID
+    status: Literal["not_requested", "pending", "computed", "unavailable"]
+    result_kind: Literal["measurement"] = "measurement"
+    operation: str
+    detail: str | None = Field(
+        default=None, description="Why stratification is unavailable, when it is"
+    )
+    dataset: LandCoverDatasetResponse | None = None
+    selection_reason: str | None = None
+    reference_year_quality: QualityResponse | None = None
+    thresholds: dict[str, Any] = Field(default_factory=dict)
+    aoi_pixel_count: int | None = None
+    unlabeled_pct: float | None = None
+    composition: list[CompositionEntryResponse] = Field(default_factory=list)
+    observations: list[LandCoverObservation] = Field(default_factory=list)
+    note: str = ""
+
+
+# --- temporal context / wildfire -------------------------------------------------
+
+
+class TemporalContextResponse(BaseModel):
+    """Temporal-context document (earth_observation.temporal.TemporalContextDocument).
+
+    ``document`` is the worker's checksummed ``temporal_context.json``
+    verbatim (validated by the worker against the science package's model);
+    ``status`` is always present so a client can render every state.
+    """
+
+    analysis_id: uuid.UUID
+    status: Literal["not_requested", "pending", "computed", "skipped", "unavailable"]
+    detail: str | None = None
+    document: dict[str, Any] | None = None
+
+
+class WildfireResponse(BaseModel):
+    """Wildfire dNBR document (earth_observation.wildfire.WildfireDocument)."""
+
+    analysis_id: uuid.UUID
+    status: Literal["not_applicable", "pending", "computed", "unavailable"]
+    detail: str | None = None
+    document: dict[str, Any] | None = None
+
+
 class DatasetResponse(BaseModel):
     id: str
     title: str
@@ -253,6 +516,57 @@ class PublicOperationInfo(BaseModel):
         description="Preview-legend spec (stops, labels, wording) matching the "
         "operation's preview colormap"
     )
+
+
+class SeverityClassInfo(BaseModel):
+    code: int
+    key: str
+    label: str
+    lower: float | None
+    upper: float | None
+    color: str
+
+
+class SeveritySchemeInfo(BaseModel):
+    id: str
+    title: str
+    citation: str
+    note: str
+    boundary_rule: str
+    calibrated_for_sensor: bool
+    classes: list[SeverityClassInfo]
+
+
+class LandCoverConfigInfo(BaseModel):
+    enabled: bool
+    default_dataset: str
+    datasets: list[LandCoverDatasetResponse]
+    min_class_pixels: int
+    min_class_valid_fraction: float
+
+
+class TemporalConfigInfo(BaseModel):
+    enabled: bool
+    default_baseline_years: int
+    max_baseline_years: int
+    baseline_window_days: int
+    max_baseline_acquisitions: int
+    anomaly_z_threshold: float
+    min_valid_fraction: float
+
+
+class WildfireConfigInfo(BaseModel):
+    enabled: bool
+    default_severity_scheme: str
+    severity_schemes: list[SeveritySchemeInfo]
+    dnbr_legend: dict[str, Any] = Field(
+        description="Continuous dNBR preview legend (stops, labels, sign convention)"
+    )
+    max_window_days: int
+    seasonal_tolerance_days: int
+    min_paired_valid_pct: float
+    formula: str
+    sign_convention: str
 
 
 class PublicConfigResponse(BaseModel):
@@ -294,6 +608,11 @@ class PublicConfigResponse(BaseModel):
         description="Spectral-index operations this deployment can run",
     )
     demo_analysis_id: uuid.UUID | None
+    wildfire_demo_analysis_id: uuid.UUID | None = None
+    workflows: list[str] = Field(default_factory=lambda: ["timeseries", "wildfire_dnbr"])
+    land_cover: LandCoverConfigInfo | None = None
+    temporal_context: TemporalConfigInfo | None = None
+    wildfire: WildfireConfigInfo | None = None
     processing_version: str
 
 

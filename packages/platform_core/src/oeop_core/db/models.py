@@ -1,5 +1,11 @@
 """Domain model: regions, analyses, scenes, observations, artifacts.
 
+Land-cover class statistics and temporal anomalies are relational (one row per
+observation x class / stratum) because they are queried — class time series,
+"which observations were unusual". Naturally document-shaped results (the
+temporal-context and wildfire documents, severity distributions) are
+checksummed artifacts plus a compact block in ``analyses.summary``.
+
 Enums are stored as constrained VARCHARs (``native_enum=False``) so adding a
 member is an additive migration instead of a PostgreSQL ``ALTER TYPE``.
 """
@@ -74,7 +80,23 @@ class ArtifactType(str, enum.Enum):
     NBR_CHANGE_COG = "nbr_change_cog"
     NBR_CHANGE_PREVIEW = "nbr_change_preview"
     FIRE_DETECTIONS = "fire_detections"
+    LAND_COVER_COG = "land_cover_cog"
+    LAND_COVER_PREVIEW = "land_cover_preview"
+    LAND_COVER_SUMMARY = "land_cover_summary"
+    TEMPORAL_CONTEXT = "temporal_context"
+    DNBR_COG = "dnbr_cog"
+    DNBR_PREVIEW = "dnbr_preview"
+    BURN_SEVERITY_COG = "burn_severity_cog"
+    BURN_SEVERITY_PREVIEW = "burn_severity_preview"
+    WILDFIRE_SUMMARY = "wildfire_summary"
     PROVENANCE = "provenance"
+
+
+class SceneRole(str, enum.Enum):
+    """Role of an observation within a workflow (NULL for time-series scenes)."""
+
+    PRE_FIRE = "pre_fire"
+    POST_FIRE = "post_fire"
 
 
 def _enum(enum_cls: type[enum.Enum], name: str) -> Enum:
@@ -103,6 +125,12 @@ class Region(Base):
         default="Global",
         comment="Grouping shown in the UI, e.g. Michigan or Global",
     )
+    event: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONVariant,
+        nullable=True,
+        comment="Documented event context (e.g. a wildfire's dates and suggested "
+        "pre/post windows); proposes defaults, never supplies results",
+    )
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=utcnow, onupdate=utcnow
@@ -129,6 +157,18 @@ class Analysis(Base):
     max_cloud_cover_pct: Mapped[float] = mapped_column(Float)
     scene_limit: Mapped[int] = mapped_column(Integer)
     operation: Mapped[str] = mapped_column(String(40), default="ndvi")
+    workflow: Mapped[str] = mapped_column(
+        String(40),
+        default="timeseries",
+        index=True,
+        comment="timeseries = index time series; wildfire_dnbr = pre/post-fire dNBR",
+    )
+    options: Mapped[dict[str, Any] | None] = mapped_column(
+        JSONVariant,
+        nullable=True,
+        comment="Validated AnalysisOptions snapshot (land cover, temporal context, "
+        "wildfire windows); NULL for analyses that predate options",
+    )
     selection_strategy: Mapped[str] = mapped_column(
         String(20),
         default="temporal",
@@ -223,6 +263,9 @@ class Scene(Base):
         _enum(SceneSelectionStatus, "scene_selection_status")
     )
     exclusion_reason: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    role: Mapped[str | None] = mapped_column(
+        String(20), nullable=True, comment="pre_fire / post_fire in the wildfire workflow"
+    )
     quality: Mapped[dict[str, Any] | None] = mapped_column(
         JSONVariant,
         nullable=True,
@@ -277,6 +320,114 @@ class Observation(Base):
 
     analysis: Mapped[Analysis] = relationship(back_populates="observations")
     scene: Mapped[Scene] = relationship(back_populates="observation")
+    class_stats: Mapped[list[ObservationClassStats]] = relationship(
+        back_populates="observation", cascade="all, delete-orphan"
+    )
+    anomalies: Mapped[list[ObservationAnomaly]] = relationship(
+        back_populates="observation", cascade="all, delete-orphan"
+    )
+
+
+class ObservationClassStats(Base):
+    """Index statistics of one land-cover class in one observation (a measurement)."""
+
+    __tablename__ = "observation_class_stats"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    analysis_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("analyses.id", ondelete="CASCADE"), index=True
+    )
+    observation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("observations.id", ondelete="CASCADE"), index=True
+    )
+    class_code: Mapped[int] = mapped_column(Integer)
+    class_key: Mapped[str] = mapped_column(String(40))
+    class_name: Mapped[str] = mapped_column(String(80))
+    aoi_pixel_count: Mapped[int] = mapped_column(BigInteger)
+    aoi_area_km2: Mapped[float] = mapped_column(Float)
+    aoi_pct: Mapped[float] = mapped_column(Float)
+    valid_pixel_count: Mapped[int] = mapped_column(BigInteger)
+    valid_fraction: Mapped[float] = mapped_column(Float)
+    index_mean: Mapped[float | None] = mapped_column(Float, nullable=True)
+    index_median: Mapped[float | None] = mapped_column(Float, nullable=True)
+    index_std: Mapped[float | None] = mapped_column(Float, nullable=True)
+    index_min: Mapped[float | None] = mapped_column(Float, nullable=True)
+    index_max: Mapped[float | None] = mapped_column(Float, nullable=True)
+    index_p10: Mapped[float | None] = mapped_column(Float, nullable=True)
+    index_p25: Mapped[float | None] = mapped_column(Float, nullable=True)
+    index_p75: Mapped[float | None] = mapped_column(Float, nullable=True)
+    index_p90: Mapped[float | None] = mapped_column(Float, nullable=True)
+    quality_state: Mapped[str] = mapped_column(String(32))
+    quality: Mapped[dict[str, Any]] = mapped_column(JSONVariant)
+
+    observation: Mapped[Observation] = relationship(back_populates="class_stats")
+
+    __table_args__ = (
+        UniqueConstraint("observation_id", "class_code", name="uq_class_stats_observation_class"),
+    )
+
+
+class ObservationAnomaly(Base):
+    """Seasonal anomaly of one observation for one stratum (a statistical inference).
+
+    ``stratum`` is ``aoi`` or ``class:<code>``.
+    """
+
+    __tablename__ = "observation_anomalies"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    analysis_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("analyses.id", ondelete="CASCADE"), index=True
+    )
+    observation_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("observations.id", ondelete="CASCADE"), index=True
+    )
+    stratum: Mapped[str] = mapped_column(String(40))
+    class_code: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    observed: Mapped[float | None] = mapped_column(Float, nullable=True)
+    expected: Mapped[float | None] = mapped_column(Float, nullable=True)
+    absolute_anomaly: Mapped[float | None] = mapped_column(Float, nullable=True)
+    relative_anomaly_pct: Mapped[float | None] = mapped_column(Float, nullable=True)
+    robust_z: Mapped[float | None] = mapped_column(Float, nullable=True)
+    baseline_n_samples: Mapped[int] = mapped_column(Integer)
+    baseline_n_years: Mapped[int] = mapped_column(Integer)
+    robust_sigma: Mapped[float | None] = mapped_column(Float, nullable=True)
+    iqr_low: Mapped[float | None] = mapped_column(Float, nullable=True)
+    iqr_high: Mapped[float | None] = mapped_column(Float, nullable=True)
+    range_low: Mapped[float | None] = mapped_column(Float, nullable=True)
+    range_high: Mapped[float | None] = mapped_column(Float, nullable=True)
+    classification: Mapped[str] = mapped_column(String(32))
+    quality_state: Mapped[str] = mapped_column(String(32))
+    quality: Mapped[dict[str, Any]] = mapped_column(JSONVariant)
+
+    observation: Mapped[Observation] = relationship(back_populates="anomalies")
+
+    __table_args__ = (
+        UniqueConstraint("observation_id", "stratum", name="uq_anomalies_observation_stratum"),
+        Index("ix_anomalies_analysis_classification", "analysis_id", "classification"),
+    )
+
+
+class AcquisitionMeasurement(Base):
+    """Deterministic cache of per-acquisition measurements (statistics only).
+
+    Keyed by :func:`earth_observation.cache_keys.measurement_cache_key`, which
+    covers every input of the measurement. Safe to truncate: a miss simply
+    recomputes. Analyses never reference rows here — their temporal-context
+    artifact records the measured values and the cache keys used.
+    """
+
+    __tablename__ = "acquisition_measurements"
+
+    cache_key: Mapped[str] = mapped_column(String(64), primary_key=True)
+    grid_signature: Mapped[str] = mapped_column(String(200), index=True)
+    operation: Mapped[str] = mapped_column(String(40))
+    acquisition_key: Mapped[str] = mapped_column(String(200))
+    observed_at: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    processing_version: Mapped[str] = mapped_column(String(40))
+    measurement: Mapped[dict[str, Any]] = mapped_column(JSONVariant)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    last_used_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
 
 class Artifact(Base):

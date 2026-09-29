@@ -121,6 +121,23 @@ class Acquisition:
         return sum(value * w for value, w in weighted) / total
 
     @property
+    def snow_ice_pct(self) -> float | None:
+        """Coverage-weighted mean granule snow/ice share, like :attr:`cloud_cover_pct`.
+
+        A granule-level figure (``s2:snow_ice_percentage``), not an AOI
+        measurement; used to screen wildfire pair candidates.
+        """
+        weighted: list[tuple[float, float]] = [
+            (g.snow_ice_pct, max(g.aoi_overlap_pct or 0.0, 1e-6))
+            for g in self.granules
+            if g.snow_ice_pct is not None
+        ]
+        if not weighted:
+            return None
+        total = sum(w for _, w in weighted)
+        return sum(value * w for value, w in weighted) / total
+
+    @property
     def processing_baselines(self) -> list[str]:
         return sorted({g.processing_baseline for g in self.granules if g.processing_baseline})
 

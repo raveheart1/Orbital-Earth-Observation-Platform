@@ -76,6 +76,7 @@ def summarize(acquisition: Acquisition) -> AcquisitionSummary:
         contributing_item_ids=acquisition.item_ids,
         tile_ids=acquisition.tile_ids,
         processing_baselines=acquisition.processing_baselines,
+        snow_ice_pct=acquisition.snow_ice_pct,
         assets={g.item_id: dict(g.assets) for g in acquisition.granules},
     )
 

@@ -51,6 +51,52 @@ def write_ndvi_cog(
         )
 
 
+def write_class_cog(
+    path: Path,
+    classes: npt.NDArray[np.integer],
+    *,
+    transform: Affine,
+    crs: str,
+    nodata: int = 0,
+) -> None:
+    """Write a CATEGORICAL uint8 raster (class codes) as a deflate COG.
+
+    Overviews are built with NEAREST resampling: averaging class codes would
+    invent classes that do not exist (the same rule that governs SCL and
+    land-cover reprojection).
+    """
+    data = np.asarray(classes).astype(np.uint8)
+    src_profile = {
+        "driver": "GTiff",
+        "dtype": "uint8",
+        "count": 1,
+        "height": data.shape[0],
+        "width": data.shape[1],
+        "crs": crs,
+        "transform": transform,
+        "nodata": nodata,
+    }
+    dst_profile = cog_profiles.get("deflate")  # type: ignore[no-untyped-call]
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with MemoryFile() as memfile:
+        with memfile.open(**src_profile) as mem:
+            mem.write(data, 1)
+        cog_translate(
+            memfile.name,
+            str(path),
+            dst_profile,
+            in_memory=True,
+            quiet=True,
+            overview_resampling="nearest",
+        )
+
+
+def read_class_array(path: Path) -> npt.NDArray[np.uint8]:
+    """Read a single-band categorical raster written by :func:`write_class_cog`."""
+    with rasterio.open(path) as src:
+        return np.asarray(src.read(1), dtype=np.uint8)
+
+
 def read_ndvi_array(path: Path) -> npt.NDArray[np.float32]:
     """Read a single-band float32 raster back into the NaN-is-invalid convention.
 

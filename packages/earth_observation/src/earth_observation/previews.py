@@ -61,6 +61,16 @@ MASKED_RGBA = (0, 0, 0, 0)
 NODATA_RGBA = (104, 106, 114, 255)
 
 
+def interpolated_lut(
+    stops: list[tuple[float, tuple[int, int, int]]],
+) -> npt.NDArray[np.uint8]:
+    """256-entry RGB lookup table linearly interpolated between color stops.
+
+    ``stops`` are ``(position 0..1, (r, g, b))`` pairs in ascending position.
+    """
+    return _interpolated_lut(stops)
+
+
 def _interpolated_lut(
     stops: list[tuple[float, tuple[int, int, int]]],
 ) -> npt.NDArray[np.uint8]:
@@ -194,6 +204,37 @@ def write_change_preview(
     rgba = np.dstack([rgb, alpha])
     path.parent.mkdir(parents=True, exist_ok=True)
     Image.fromarray(rgba, mode="RGBA").save(path, format="PNG", optimize=True)
+
+
+def write_class_preview(
+    path: Path,
+    classes: npt.NDArray[np.integer],
+    *,
+    palette: dict[int, tuple[int, int, int]],
+    max_dim: int = 1024,
+    aoi_mask: npt.NDArray[np.bool_] | None = None,
+) -> None:
+    """Colorize a CATEGORICAL raster (class codes) into an RGBA PNG.
+
+    Downsampling uses strided sampling (nearest), never averaging, so every
+    preview pixel is a real class code. Codes absent from ``palette`` (e.g.
+    the nodata code 0) and pixels outside ``aoi_mask`` are transparent.
+    """
+    if classes.ndim != 2:
+        raise ValueError(f"Expected a 2-D class raster, got shape {classes.shape}")
+    factor = _downsample_factor(classes.shape[0], classes.shape[1], max_dim)
+    data = np.asarray(classes)[::factor, ::factor]
+    rgb = np.zeros((*data.shape, 3), dtype=np.uint8)
+    alpha = np.zeros(data.shape, dtype=np.uint8)
+    for code, color in palette.items():
+        hit = data == code
+        if np.any(hit):
+            rgb[hit] = np.array(color, dtype=np.uint8)
+            alpha[hit] = 255
+    if aoi_mask is not None:
+        alpha = np.where(aoi_mask[::factor, ::factor], alpha, 0).astype(np.uint8)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    Image.fromarray(np.dstack([rgb, alpha]), mode="RGBA").save(path, format="PNG", optimize=True)
 
 
 def write_true_color_preview(
