@@ -51,7 +51,7 @@ from pydantic import BaseModel, Field
 
 from earth_observation.geometry import BBox
 from earth_observation.grid import CanonicalGrid
-from earth_observation.quality import QualityInfo
+from earth_observation.quality import QualityInfo, QualityState, degraded, valid
 from earth_observation.stac import sign_href
 from earth_observation.types import ClassStats, LandCoverConfig
 
@@ -454,13 +454,56 @@ def layer_from_array(
 # --- statistics ---------------------------------------------------------------
 
 
+def _present_codes(
+    layer: LandCoverLayer, aoi_mask: npt.NDArray[np.bool_]
+) -> list[tuple[LandCoverClass, npt.NDArray[np.bool_], int]]:
+    """Legend classes present inside the AOI, with their AOI masks and counts."""
+    if layer.classes.shape != aoi_mask.shape:
+        raise ValueError(
+            f"Land-cover raster shape {layer.classes.shape} does not match the AOI mask "
+            f"shape {aoi_mask.shape}"
+        )
+    present: list[tuple[LandCoverClass, npt.NDArray[np.bool_], int]] = []
+    for cls in layer.dataset.classes:
+        mask = aoi_mask & (layer.classes == cls.code)
+        count = int(np.count_nonzero(mask))
+        if count > 0:
+            present.append((cls, mask, count))
+    return present
+
+
 def compute_composition(
     layer: LandCoverLayer,
     aoi_mask: npt.NDArray[np.bool_],
     pixel_area_m2: float,
 ) -> LandCoverComposition:
     """Class shares of the AOI (see :class:`LandCoverComposition`)."""
-    raise NotImplementedError
+    aoi_pixels = int(np.count_nonzero(aoi_mask))
+    entries: list[CompositionEntry] = []
+    labeled = 0
+    for cls, _mask, count in _present_codes(layer, aoi_mask):
+        labeled += count
+        entries.append(
+            CompositionEntry(
+                class_code=cls.code,
+                class_key=cls.key,
+                class_name=cls.name,
+                color=cls.color,
+                pixel_count=count,
+                area_km2=count * pixel_area_m2 / 1.0e6,
+                aoi_pct=round(100.0 * count / aoi_pixels, 4) if aoi_pixels else 0.0,
+                users_accuracy_pct=cls.users_accuracy_pct,
+                producers_accuracy_pct=cls.producers_accuracy_pct,
+            )
+        )
+    unlabeled = aoi_pixels - labeled
+    return LandCoverComposition(
+        aoi_pixel_count=aoi_pixels,
+        pixel_area_m2=pixel_area_m2,
+        classes=entries,
+        unlabeled_pixel_count=unlabeled,
+        unlabeled_pct=round(100.0 * unlabeled / aoi_pixels, 4) if aoi_pixels else 0.0,
+    )
 
 
 def compute_class_stats(
@@ -485,7 +528,76 @@ def compute_class_stats(
 
     Statistics are ``None`` in both cases; counts are always reported.
     """
-    raise NotImplementedError
+    if values.shape != aoi_mask.shape:
+        raise ValueError(
+            f"Value array shape {values.shape} does not match the AOI mask shape {aoi_mask.shape}"
+        )
+    aoi_pixels = int(np.count_nonzero(aoi_mask))
+    finite = np.isfinite(values)
+    out: list[ClassStats] = []
+    for cls, mask, count in _present_codes(layer, aoi_mask):
+        valid_mask = mask & finite
+        valid_count = int(np.count_nonzero(valid_mask))
+        fraction = valid_count / count
+        base: dict[str, Any] = {
+            "class_code": cls.code,
+            "class_key": cls.key,
+            "class_name": cls.name,
+            "aoi_pixel_count": count,
+            "aoi_area_km2": count * pixel_area_m2 / 1.0e6,
+            "aoi_pct": round(100.0 * count / aoi_pixels, 4) if aoi_pixels else 0.0,
+            "valid_pixel_count": valid_count,
+            "valid_fraction": round(fraction, 6),
+        }
+        if count < config.min_class_pixels:
+            out.append(
+                ClassStats(
+                    **base,
+                    quality=degraded(
+                        QualityState.INSUFFICIENT_SAMPLES,
+                        "class_below_min_pixels",
+                        f"{cls.name} covers {count} pixels of the AOI, fewer than the "
+                        f"{config.min_class_pixels} required for class statistics.",
+                        class_pixels=count,
+                        min_class_pixels=config.min_class_pixels,
+                    ),
+                )
+            )
+            continue
+        if fraction < config.min_class_valid_fraction:
+            out.append(
+                ClassStats(
+                    **base,
+                    quality=degraded(
+                        QualityState.INSUFFICIENT_COVERAGE,
+                        "valid_fraction_below_threshold",
+                        f"Only {100.0 * fraction:.1f}% of {cls.name} pixels were valid in "
+                        f"this observation (minimum "
+                        f"{100.0 * config.min_class_valid_fraction:.0f}%); statistics withheld.",
+                        valid_fraction=round(fraction, 6),
+                        min_class_valid_fraction=config.min_class_valid_fraction,
+                    ),
+                )
+            )
+            continue
+        data = values[valid_mask].astype(np.float64)
+        p10, p25, p75, p90 = np.percentile(data, [10, 25, 75, 90])
+        out.append(
+            ClassStats(
+                **base,
+                mean=float(data.mean()),
+                median=float(np.median(data)),
+                std=float(data.std(ddof=0)),
+                min=float(data.min()),
+                max=float(data.max()),
+                p10=float(p10),
+                p25=float(p25),
+                p75=float(p75),
+                p90=float(p90),
+                quality=valid(),
+            )
+        )
+    return out
 
 
 def land_cover_summary_document(

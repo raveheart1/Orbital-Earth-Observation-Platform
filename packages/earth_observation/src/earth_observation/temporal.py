@@ -116,6 +116,29 @@ def class_stratum(code: int) -> str:
     return f"class:{code}"
 
 
+#: Cumulative days before each month on a common (non-leap) calendar.
+_MONTH_OFFSETS = (0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334)
+
+
+def common_calendar_doy(value: date | datetime) -> int:
+    """Day of year (1..365) on a common NON-leap calendar; 29 Feb maps to 28 Feb.
+
+    Using one calendar for every year makes "the same time of year" mean the
+    same month and day in leap and common years alike.
+    """
+    day = 28 if (value.month == 2 and value.day == 29) else value.day
+    return _MONTH_OFFSETS[value.month - 1] + day
+
+
+def circular_doy_distance_days(a: date | datetime, b: date | datetime) -> int:
+    """Seasonal distance in days between two dates, ignoring the year (0..182).
+
+    Wraps the year boundary, so 31 December and 1 January are 1 day apart.
+    """
+    d = abs(common_calendar_doy(a) - common_calendar_doy(b))
+    return min(d, 365 - d)
+
+
 class ReferencePeriod(BaseModel):
     start: date
     end: date
