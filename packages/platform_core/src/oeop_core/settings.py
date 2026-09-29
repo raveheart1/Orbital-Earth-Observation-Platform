@@ -140,6 +140,41 @@ class Settings(BaseSettings):
         default=10, description="Best-effort per-client submission throttle (per replica)"
     )
 
+    # --- Scientific expansion: land cover, temporal context, wildfire -------
+    land_cover_enabled: bool = Field(
+        default=True,
+        description="Kill switch for land-cover stratification (ESA WorldCover). When "
+        "false, analyses are stored with land cover disabled regardless of the request",
+    )
+    land_cover_cache_enabled: bool = Field(
+        default=True,
+        description="Reuse land-cover rasters already aligned to an identical grid "
+        "(blob prefix cache/land-cover/); deterministic keys, safe to delete",
+    )
+    temporal_context_enabled: bool = Field(
+        default=True,
+        description="Allow temporal context (seasonal baseline, anomalies, trend). "
+        "Each request measures up to TemporalConfig.max_baseline_acquisitions extra "
+        "historical acquisitions (statistics only, no artifacts)",
+    )
+    default_baseline_years: int = Field(
+        default=5, description="Default reference-period length in calendar years"
+    )
+    max_baseline_years: int = Field(
+        default=8, description="Ceiling on the requested reference-period length"
+    )
+    historical_measurement_concurrency: int = Field(
+        default=4,
+        description="Threads measuring historical acquisitions in parallel (network "
+        "bound COG range reads); results are ordered deterministically afterwards",
+    )
+    wildfire_enabled: bool = Field(
+        default=True, description="Allow the wildfire_dnbr (pre/post-fire dNBR) workflow"
+    )
+    max_fire_window_days: int = Field(
+        default=366, description="Maximum length of each pre-fire / post-fire window"
+    )
+
     # --- API ----------------------------------------------------------------
     cors_allowed_origins: str = Field(
         default="http://localhost:3000",

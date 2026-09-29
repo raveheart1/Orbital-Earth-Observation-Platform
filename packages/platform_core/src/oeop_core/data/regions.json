@@ -1,5 +1,5 @@
 {
-  "$comment": "Predefined analysis regions. Bounding boxes are [min_lon, min_lat, max_lon, max_lat] in EPSG:4326. All but Hartwick Pines Forest (~84 km2) are sized to roughly 120-160 km2 so processing cost is comparable across regions. The platform works anywhere Sentinel-2 observes (roughly 56S to 83N); the Michigan regions are the project's home ground and the rest span other continents, hemispheres and vegetation regimes. The Wildfire group lies inside documented burn scars so pre/post-fire NBR analyses have strong contrast; coverage of every region was verified against real Sentinel-2 scenes before seeding.",
+  "$comment": "Predefined analysis regions. Bounding boxes are [min_lon, min_lat, max_lon, max_lat] in EPSG:4326. All but Hartwick Pines Forest (~84 km2) are sized to roughly 120-160 km2 so processing cost is comparable across regions. The platform works anywhere Sentinel-2 observes (roughly 56S to 83N); the Michigan regions are the project's home ground and the rest span other continents, hemispheres and vegetation regimes. The Wildfire group lies inside documented burn scars so pre/post-fire NBR analyses have strong contrast; coverage of every region was verified against real Sentinel-2 scenes before seeding. Wildfire regions carry an 'event' object whose dates propose default pre/post-fire windows for the dNBR workflow; results always come from the Sentinel-2 observations actually selected.",
   "regions": [
     {
       "name": "Southeast Michigan Demonstration Region",
@@ -131,7 +131,23 @@
         39.97,
         -121.55,
         40.07
-      ]
+      ],
+      "event": {
+        "kind": "wildfire",
+        "name": "Park Fire",
+        "start_date": "2024-07-24",
+        "end_date": null,
+        "end_date_note": "Burned for weeks after ignition; no containment date is recorded here.",
+        "suggested_pre_fire": {
+          "start": "2024-06-01",
+          "end": "2024-07-23"
+        },
+        "suggested_post_fire": {
+          "start": "2024-08-20",
+          "end": "2024-10-15"
+        },
+        "source_note": "Event dates from public incident reporting summarised in the region description. The windows are proposals only; every result comes from the Sentinel-2 acquisitions actually selected inside them."
+      }
     },
     {
       "name": "Evia Burn Scar",
@@ -143,7 +159,23 @@
         38.93,
         23.2,
         39.03
-      ]
+      ],
+      "event": {
+        "kind": "wildfire",
+        "name": "North Evia fire",
+        "start_date": "2021-08-03",
+        "end_date": null,
+        "end_date_note": "Burned for about ten days in August 2021.",
+        "suggested_pre_fire": {
+          "start": "2021-06-01",
+          "end": "2021-08-02"
+        },
+        "suggested_post_fire": {
+          "start": "2021-08-25",
+          "end": "2021-10-15"
+        },
+        "source_note": "Event dates from public incident reporting summarised in the region description. The windows are proposals only; every result comes from the Sentinel-2 acquisitions actually selected inside them."
+      }
     },
     {
       "name": "Longwood Burn Scar",
@@ -155,7 +187,23 @@
         -36.95,
         145.5,
         -36.85
-      ]
+      ],
+      "event": {
+        "kind": "wildfire",
+        "name": "Longwood fire",
+        "start_date": "2026-01-07",
+        "end_date": "2026-01-19",
+        "end_date_note": "Reported contained on 19 January 2026.",
+        "suggested_pre_fire": {
+          "start": "2025-11-15",
+          "end": "2026-01-06"
+        },
+        "suggested_post_fire": {
+          "start": "2026-01-25",
+          "end": "2026-03-15"
+        },
+        "source_note": "Event dates from public incident reporting summarised in the region description. The windows are proposals only; every result comes from the Sentinel-2 acquisitions actually selected inside them."
+      }
     },
     {
       "name": "El Hoyo Burn Scar",
@@ -167,7 +215,23 @@
         -42.29,
         -71.45,
         -42.19
-      ]
+      ],
+      "event": {
+        "kind": "wildfire",
+        "name": "El Hoyo / Epuyen fires",
+        "start_date": "2026-01-05",
+        "end_date": null,
+        "end_date_note": "Flared again in late January 2026.",
+        "suggested_pre_fire": {
+          "start": "2025-11-10",
+          "end": "2026-01-04"
+        },
+        "suggested_post_fire": {
+          "start": "2026-02-10",
+          "end": "2026-03-31"
+        },
+        "source_note": "Event dates from public incident reporting summarised in the region description. The windows are proposals only; every result comes from the Sentinel-2 acquisitions actually selected inside them."
+      }
     },
     {
       "name": "Avila Burn Scar",
@@ -179,7 +243,23 @@
         40.31,
         -4.64,
         40.42
-      ]
+      ],
+      "event": {
+        "kind": "wildfire",
+        "name": "Avila (Sierra de Gredos) fire",
+        "start_date": "2026-07-22",
+        "end_date": null,
+        "end_date_note": "Declared 22 July 2026 at Burgohondo.",
+        "suggested_pre_fire": {
+          "start": "2026-05-25",
+          "end": "2026-07-21"
+        },
+        "suggested_post_fire": {
+          "start": "2026-08-20",
+          "end": "2026-09-25"
+        },
+        "source_note": "Event dates from public incident reporting summarised in the region description. The windows are proposals only; every result comes from the Sentinel-2 acquisitions actually selected inside them."
+      }
     }
   ]
 }
